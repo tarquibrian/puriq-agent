@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Test caches
+.pytest_cache/
+.hypothesis/
+
+# Node / Astro
+node_modules/
+template/dist/
+.astro/
+
+# Puriq build artifacts
+.puriq-build/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# FUSE temp files (mount)
+.fuse_hidden*

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://puriq.dev/schema/article.v1.json",
+  "title": "Puriq Article Frontmatter",
+  "description": "Metadatos (frontmatter) de un artículo de blog en el Content_Store. Valida el frontmatter del Article, no el cuerpo markdown que es texto libre.",
+  "type": "object",
+  "required": ["id", "title", "date"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "title": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "format": "date" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "category": { "type": "string" },
+    "summary": { "type": "string" }
+  }
+}

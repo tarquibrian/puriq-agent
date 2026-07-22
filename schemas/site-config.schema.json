@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://puriq.dev/schema/site-config.v1.json",
+  "title": "Puriq Site Config",
+  "description": "Capa de ESTRUCTURA: qué módulos se activan, su orden, el hero y el destino de deploy. El usuario edita con opciones acotadas.",
+  "type": "object",
+  "required": ["layout", "modules"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "layout": { "enum": ["clasico", "moderno"] },
+    "modules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "map": { "$ref": "#/$defs/module" },
+        "places": { "$ref": "#/$defs/module" },
+        "events": { "$ref": "#/$defs/module" },
+        "blog": { "$ref": "#/$defs/module" },
+        "chatweb": { "$ref": "#/$defs/chatModule" }
+      }
+    },
+    "hero": {
+      "type": "object",
+      "required": ["type", "asset"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["image", "video"] },
+        "asset": { "type": "string" },
+        "headline": { "type": "string" },
+        "subheadline": { "type": "string" }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "email": { "type": "string" },
+        "phone": { "type": "string" }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": { "enum": ["aws-amplify", "s3-cloudfront", "static-export", "vercel", "netlify"] },
+        "domain": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "module": {
+      "type": "object",
+      "required": ["enabled", "order"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "order": { "type": "integer", "minimum": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "chatModule": {
+      "type": "object",
+      "required": ["enabled", "order"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "order": { "type": "integer", "minimum": 1 },
+        "label": { "type": "string" },
+        "persona": { "type": "string", "description": "Tono/personalidad del asistente." },
+        "knowledgeSource": { "type": "string", "description": "Ruta a los Q&A que alimentan el RAG." },
+        "apiEndpoint": { "type": "string", "description": "URL opcional del proxy RAG (Bedrock). Si se define, el asistente consulta este endpoint; si no, usa recuperacion client-side sobre el FAQ publico." }
+      }
+    }
+  }
+}

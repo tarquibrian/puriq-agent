@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://puriq.dev/schema/tourism-data.v1.json",
+  "title": "Puriq Tourism Data",
+  "description": "Contenido turístico de una región: sitio, lugares, eventos y categorías. Es la capa de CONTENIDO que el usuario edita libremente.",
+  "type": "object",
+  "required": ["site", "places"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "site": {
+      "type": "object",
+      "required": ["name", "region", "defaultLocale", "center"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "region": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "defaultLocale": { "type": "string", "pattern": "^[a-z]{2}$" },
+        "locales": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z]{2}$" },
+          "minItems": 1
+        },
+        "center": { "$ref": "#/$defs/coords" }
+      }
+    },
+    "places": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/place" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "categories": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/category" }
+    }
+  },
+  "$defs": {
+    "coords": {
+      "type": "object",
+      "required": ["lat", "lng"],
+      "additionalProperties": false,
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+        "zoom": { "type": "integer", "minimum": 0, "maximum": 22 }
+      }
+    },
+    "place": {
+      "type": "object",
+      "required": ["id", "name", "category", "coords"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "name": { "type": "string", "minLength": 1 },
+        "category": { "type": "string" },
+        "coords": { "$ref": "#/$defs/coords" },
+        "address": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "description": { "type": "string", "description": "Vacío = lo genera el LLM en build." },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "hours": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "source": { "enum": ["user", "osm", "wikidata"], "default": "user" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["id", "name", "startDate"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "name": { "type": "string", "minLength": 1 },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "placeId": { "type": "string" },
+        "description": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "recurring": { "enum": ["none", "yearly", "monthly", "weekly"], "default": "none" }
+      }
+    },
+    "category": {
+      "type": "object",
+      "required": ["id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "label": { "type": "string" },
+        "icon": { "type": "string" }
+      }
+    }
+  }
+}

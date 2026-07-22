@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://puriq.dev/schema/theme-tokens.v1.json",
+  "title": "Puriq Theme Tokens",
+  "description": "Capa de MARCA: colores, tipografías y tono de voz. El usuario la edita libremente; el LLM usa 'voice' al redactar.",
+  "type": "object",
+  "required": ["colors", "typography"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "colors": {
+      "type": "object",
+      "required": ["primary", "background", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": { "$ref": "#/$defs/hex" },
+        "secondary": { "$ref": "#/$defs/hex" },
+        "background": { "$ref": "#/$defs/hex" },
+        "text": { "$ref": "#/$defs/hex" },
+        "accent": { "$ref": "#/$defs/hex" }
+      }
+    },
+    "typography": {
+      "type": "object",
+      "required": ["headingFont", "bodyFont"],
+      "additionalProperties": false,
+      "properties": {
+        "headingFont": { "type": "string" },
+        "bodyFont": { "type": "string" },
+        "baseSize": { "type": "string" }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tone": { "type": "string" },
+        "formality": { "enum": ["formal", "informal"] }
+      }
+    },
+    "logo": { "type": "string" },
+    "radius": { "type": "string" }
+  },
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" }
+  }
+}
