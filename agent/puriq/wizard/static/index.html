@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Puriq - Asistente</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Puriq</div>
+    <div class="tagline">Asistente para construir el sitio turistico de tu provincia</div>
+  </header>
+
+  <div class="layout">
+    <!-- Navegacion lateral por pasos -->
+    <nav id="stepnav" class="stepnav" aria-label="Pasos del asistente"></nav>
+
+    <main class="content">
+      <!-- Cada paso se monta aqui -->
+      <section id="step-panel" class="panel" aria-live="polite"></section>
+
+      <!-- Controles de navegacion adelante/atras -->
+      <div class="navbtns">
+        <button type="button" id="btn-prev" class="btn btn-ghost">&larr; Atras</button>
+        <span id="step-indicator" class="step-indicator"></span>
+        <button type="button" id="btn-next" class="btn">Siguiente &rarr;</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Aviso global (guardado ok, errores de red, etc.) -->
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1086 @@
+"""Wizard web local: la interfaz amigable para el encargado de turismo (no-tecnico).
+
+Un solo punto de intake (ver PROYECTO seccion 6): modulos, preguntas clave,
+carga de recursos, Q&A del chatbot y marca. Luego build y preview en el mismo sitio.
+
+Este modulo es la **capa web fina** (FastAPI) sobre `puriq.core`/`puriq.tools` y la
+capa de contrato (`wizard/contracts.py`): cada endpoint valida, delega y responde
+redactado (DD-1/DD-4). Aqui viven el scaffold de la app, el servido de la UI
+estatica (`/static` + `GET /`), los endpoints de estado/intake/assets/Q&A, el
+WebSocket de build, preview/deploy y los **manejadores de error transversales**
+que aplican `wizard_error_response`+`config.redact` a toda respuesta HTTP para que
+ninguna traza cruda ni valor de secreto se filtre (Req 12.2). El servidor escucha
+solo en `127.0.0.1` (`serve()`, Req 12.1).
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import queue
+import threading
+from pathlib import Path
+
+import jsonschema
+from fastapi import FastAPI, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from puriq import config
+from puriq.core import Puriq
+from puriq.errors import wizard_error_response
+from puriq.wizard import contracts
+from puriq.wizard.assets import (
+    IMAGE_EXTS,
+    normalize_asset_name,
+    resolve_within_assets,
+)
+from puriq.wizard.intake import (
+    CoordinateRangeError,
+    build_event,
+    build_place,
+    make_coords,
+)
+from puriq.tools.deploy import DeployError
+from puriq.wizard.modules import ModuleCatalogError, build_modules
+from puriq.wizard.validation import (
+    DeployTargetError,
+    QAValidationError,
+    validate_deploy_target,
+    validate_qa_entry,
+)
+
+STATIC = Path(__file__).parent / "static"
+
+# Variable de entorno con la que se puede fijar la raiz del proyecto sobre el que
+# opera el wizard. Si no esta definida, se usa el directorio de trabajo actual.
+PROJECT_ENV_VAR = "PURIQ_PROJECT"
+
+# Documentos del contrato que `GET /api/state` carga para prellenar la UI.
+_STATE_DOCS = ("tourism-data", "site-config", "theme-tokens")
+
+# Clave del documento de contenido turistico y su nombre de archivo (para nombrar
+# el documento infractor en las respuestas de error redactadas, Req 7.2).
+_TOURISM_DOC = "tourism-data"
+_TOURISM_FILE = "tourism-data.json"
+
+# Documento de estructura (modulos, hero, deploy) y su nombre de archivo.
+_SITE_CONFIG_DOC = "site-config"
+_SITE_CONFIG_FILE = "site.config.json"
+
+# Documento de marca (colores, tipografia, voz, logo) y su nombre de archivo.
+_THEME_DOC = "theme-tokens"
+_THEME_FILE = "theme.tokens.json"
+
+# Limite de tamano de un Asset (Req 4.5). 10 MiB es suficiente para fotos y
+# logos de un sitio turistico; cargas mayores se rechazan con un mensaje que
+# indica el maximo permitido. Se compara ANTES de escribir en disco.
+MAX_ASSET_BYTES = 10 * 1024 * 1024
+_MAX_ASSET_MB = MAX_ASSET_BYTES // (1024 * 1024)
+
+# Almacenamiento de la base de conocimiento Q&A (Req 5.1, 5.2, 5.3).
+# Formato elegido: un unico archivo `content/qa.json` en la raiz del proyecto
+# con una lista JSON de entradas ``{"question", "answer"}``. Los QA_Entry se
+# **anexan** (no se pisan) y NO se indexan ni consumen durante el wizard
+# (Req 5.3); un chatweb futuro leera este archivo. La ruta relativa
+# `content/qa.json` es la que se registra en
+# `Site_Config.modules.chatweb.knowledgeSource` (Req 5.2), coherente con que el
+# knowledgeSource apunta al arbol `/content`.
+_CONTENT_DIRNAME = "content"
+_QA_FILENAME = "qa.json"
+_QA_RELPATH = f"{_CONTENT_DIRNAME}/{_QA_FILENAME}"
+
+app = FastAPI(title="Puriq Wizard")
+app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+def project_root() -> Path:
+    """Resuelve la raiz del proyecto local sobre el que opera el wizard.
+
+    El wizard trabaja siempre sobre un proyecto local (los 3 JSON del contrato,
+    `/assets`, `/content`, `dist/`). La raiz se toma de la variable de entorno
+    `PURIQ_PROJECT` si esta definida y no vacia; de lo contrario, del directorio
+    de trabajo actual. Se resuelve a una ruta absoluta para que la capa de
+    contrato y la contencion de assets trabajen sobre rutas estables.
+    """
+    raw = os.environ.get(PROJECT_ENV_VAR)
+    base = Path(raw) if raw else Path.cwd()
+    return base.resolve()
+
+
+def _redact_value(value: object) -> object:
+    """Aplica `config.redact` de forma recursiva a los strings de una estructura.
+
+    Recorre dicts, listas y tuplas enmascarando cada string con `config.redact`
+    (Req 12.2), de modo que ningun valor de secreto configurado aparezca en la
+    respuesta del wizard. Los valores no-string (numeros, booleanos, None) se
+    devuelven sin cambios.
+    """
+    if isinstance(value, str):
+        return config.redact(value)
+    if isinstance(value, dict):
+        return {key: _redact_value(val) for key, val in value.items()}
+    if isinstance(value, list):
+        return [_redact_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_redact_value(item) for item in value]
+    return value
+
+
+# --- Manejadores de errores transversales (Req 12.2, 7.5, DD-4) --------------
+#
+# Ademas del manejo `422` por-endpoint (que ya nombra documento+campo del
+# contrato), se registran dos manejadores a nivel de la app como red de
+# seguridad: ninguna respuesta HTTP puede filtrar una traza cruda ni un valor de
+# secreto. Ambos pasan por `wizard_error_response` (traduccion accionable DD-4)
+# que **siempre** aplica `config.redact` antes de serializar, y ademas se re-
+# redacta el cuerpo completo con `_redact_value` por defensa en profundidad.
+#
+#   - `RequestValidationError` (pydantic/FastAPI): se lanza ANTES de entrar al
+#     endpoint cuando el cuerpo/params no cumplen el modelo. El cuerpo por
+#     defecto de FastAPI incluye los valores de entrada, que podrian contener un
+#     secreto; por eso se responde `422` con un cuerpo redactado en vez del
+#     default (Req 12.2).
+#   - `Exception` (catch-all): cualquier excepcion no manejada por un endpoint se
+#     traduce a un `500` redactado con causa + accion sugerida, sin traceback
+#     (Req 12.2). El manejador propio de `HTTPException` de Starlette no se ve
+#     afectado (solo se captura lo que no tiene manejador especifico).
+
+
+def _field_path(loc: object) -> str:
+    """Construye una ruta de campo legible desde el `loc` de un error pydantic.
+
+    Descarta el prefijo `body`/`query`/`path` y une el resto con puntos/indices
+    (p. ej. `('body','places',0,'name')` -> `places[0].name`). No incluye el
+    valor de entrada, solo la ubicacion del campo.
+    """
+    partes = list(loc) if isinstance(loc, (list, tuple)) else [loc]
+    if partes and partes[0] in ("body", "query", "path", "header", "cookie"):
+        partes = partes[1:]
+    campo = ""
+    for parte in partes:
+        if isinstance(parte, int):
+            campo += f"[{parte}]"
+        elif campo:
+            campo += f".{parte}"
+        else:
+            campo = str(parte)
+    return campo or "(cuerpo)"
+
+
+@app.exception_handler(RequestValidationError)
+async def _handle_request_validation_error(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Devuelve un `422` redactado ante un error de validacion de la peticion (Req 12.2).
+
+    Reemplaza el cuerpo por defecto de FastAPI por una respuesta accionable que
+    nombra unicamente los campos invalidos y su motivo, **sin** incluir los
+    valores de entrada (que podrian ser secretos escritos por el usuario) ni la
+    ruta/linea del codigo que expone el `str` de la excepcion en esta version de
+    FastAPI. El texto se redacta por defensa en profundidad (Req 7.5, 12.2).
+    """
+    detalles = "; ".join(
+        f"{_field_path(err.get('loc'))}: {err.get('msg')}"
+        for err in exc.errors()
+    )
+    causa = "Entrada invalida en la peticion"
+    if detalles:
+        causa = f"{causa}: {detalles}"
+    cuerpo = {
+        "causa": config.redact(causa),
+        "accion": config.redact(
+            "Revisa los campos indicados y volve a enviar la peticion."
+        ),
+    }
+    return JSONResponse(status_code=422, content=_redact_value(cuerpo))
+
+
+@app.exception_handler(Exception)
+async def _handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+    """Red de seguridad: traduce cualquier excepcion no manejada a un `500` redactado.
+
+    Garantiza que ninguna excepcion inesperada filtre un traceback ni un valor de
+    secreto en la respuesta HTTP (Req 12.2). Reutiliza `wizard_error_response`
+    (misma traduccion accionable que el CLI, DD-4) y aplica `config.redact` de
+    forma exhaustiva sobre el cuerpo.
+    """
+    return JSONResponse(
+        status_code=500,
+        content=_redact_value(wizard_error_response(exc)),
+    )
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> str:
+    return (STATIC / "index.html").read_text(encoding="utf-8")
+
+
+@app.get("/api/state")
+def get_state() -> dict:
+    """Devuelve los 3 contratos existentes (o defaults) para prellenar la UI.
+
+    Carga `tourism-data`, `site-config` y `theme-tokens` con la capa de contrato
+    (`_load_contract`, que usa carga tolerante/estricta segun el documento y cae
+    en un documento base minimo si el archivo no existe, Req 1.5/11.1). Aplica
+    `config.redact` de forma recursiva a la respuesta para que ningun valor de
+    secreto se filtre (Req 12.2).
+    """
+    project = project_root()
+    state = {doc: contracts._load_contract(project, doc) for doc in _STATE_DOCS}
+    return _redact_value(state)
+
+
+# --- Intake de contenido turistico: sitio, Places y Events (Req 3) -----------
+#
+# Las tres rutas siguen el patron load -> merge -> save (DD-1): se parte del
+# documento existente (`_load_contract`), se fusiona el parche del formulario de
+# forma no destructiva (`merge_document`) y solo si el resultado valida contra el
+# esquema se escribe (`save_contract`, validate-before-write). Ante un error de
+# coordenada/validacion se responde `422` con un cuerpo redactado y accionable
+# (`wizard_error_response`), sin persistir nada. Los constructores puros de
+# `wizard/intake.py` (`build_place`/`build_event`/`make_coords`) derivan el `id`
+# slug y validan el rango de coordenadas; el wizard aqui solo cablea la E/S.
+
+# Excepciones que se traducen a `422` en el intake (todas de validacion/entrada).
+# `CoordinateRangeError` es subclase de `ValueError`; se lista aparte por claridad.
+_INTAKE_ERRORS = (CoordinateRangeError, ValueError, jsonschema.ValidationError)
+
+
+class _Center(BaseModel):
+    """Centro del mapa del sitio (`Tourism_Data.site.center`), un `coords`."""
+
+    lat: float
+    lng: float
+    zoom: int | None = None
+
+
+class SiteBody(BaseModel):
+    """Cuerpo de `PUT /api/tourism-data/site` (Req 3.1)."""
+
+    name: str
+    region: str
+    defaultLocale: str = "es"
+    center: _Center
+
+
+class PlaceBody(BaseModel):
+    """Cuerpo de `POST /api/tourism-data/places` (Req 3.2, 3.4-3.6)."""
+
+    name: str
+    category: str
+    lat: float | None = None
+    lng: float | None = None
+    zoom: int | None = None
+    address: str | None = None
+
+
+class EventBody(BaseModel):
+    """Cuerpo de `POST /api/tourism-data/events` (Req 3.3)."""
+
+    name: str
+    startDate: str
+    endDate: str | None = None
+    placeId: str | None = None
+    description: str | None = None
+    recurring: str | None = None
+
+
+def _save_tourism_patch(project: Path, patch: dict) -> dict:
+    """Aplica el patron load -> merge -> save sobre `tourism-data` (DD-1).
+
+    Carga el documento existente (o su base minima), fusiona `patch` de forma no
+    destructiva y valida-antes-de-escribir. Devuelve el documento fusionado ya
+    persistido. Propaga `ValueError`/`ValidationError` si la validacion falla
+    (el llamador los mapea a `422`).
+    """
+    base = contracts._load_contract(project, _TOURISM_DOC)
+    merged = contracts.merge_document(base, patch)
+    contracts.save_contract(project, _TOURISM_DOC, merged)
+    return merged
+
+
+@app.put("/api/tourism-data/site")
+def put_site(body: SiteBody):
+    """Guarda los datos de sitio (nombre, region, locale, centro) (Req 3.1).
+
+    Valida el rango del centro con `make_coords` (Req 3.5, 3.6) y persiste via
+    load-merge-save. Ante error de coordenada/validacion responde `422` con un
+    cuerpo redactado y accionable, sin escribir nada (Req 3.7, 7.1, 7.2).
+    """
+    project = project_root()
+    try:
+        center = make_coords(body.center.lat, body.center.lng, body.center.zoom)
+        patch = {
+            "site": {
+                "name": body.name,
+                "region": body.region,
+                "defaultLocale": body.defaultLocale,
+                "center": center,
+            }
+        }
+        merged = _save_tourism_patch(project, patch)
+    except _INTAKE_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_TOURISM_FILE),
+        )
+    return _redact_value(merged)
+
+
+@app.post("/api/tourism-data/places")
+def add_place(body: PlaceBody):
+    """Anexa un Place con `id` slug validando coords/direccion (Req 3.2, 3.4-3.6).
+
+    Reusa el constructor puro `build_place` (deriva `id = slugify(name)`, valida
+    el rango de coordenadas y conserva `address` sin inventar `coords`). El
+    `merge_document` anexa por `id` sin borrar Places previos (Req 11.2). Ante
+    error responde `422` redactado sin persistir (Req 3.7).
+    """
+    project = project_root()
+    try:
+        place = build_place(
+            body.name,
+            body.category,
+            lat=body.lat,
+            lng=body.lng,
+            zoom=body.zoom,
+            address=body.address,
+        )
+        merged = _save_tourism_patch(project, {"places": [place]})
+    except _INTAKE_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_TOURISM_FILE),
+        )
+    return _redact_value(merged)
+
+
+@app.post("/api/tourism-data/events")
+def add_event(body: EventBody):
+    """Anexa un Event con `id` slug via load-merge-save (Req 3.3, 11.2).
+
+    Reusa el constructor puro `build_event` (deriva `id = slugify(name)`). El
+    `merge_document` anexa por `id` sin borrar Events previos. Ante error de
+    validacion responde `422` redactado sin persistir (Req 3.7).
+    """
+    project = project_root()
+    try:
+        event = build_event(
+            body.name,
+            body.startDate,
+            end_date=body.endDate,
+            place_id=body.placeId,
+            description=body.description,
+            recurring=body.recurring,
+        )
+        merged = _save_tourism_patch(project, {"events": [event]})
+    except _INTAKE_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_TOURISM_FILE),
+        )
+    return _redact_value(merged)
+
+
+# --- Estructura (modulos + deploy.target) y marca (theme tokens) -------------
+#
+# Ambos endpoints reusan el mismo patron load -> merge -> save (DD-1) que el
+# intake, pero sobre los documentos *estrictos* del contrato (`site-config` y
+# `theme-tokens`, que `_load_contract` carga y `save_contract` valida con el
+# esquema completo). El wizard solo construye el parche con los constructores
+# puros (`build_modules`) y validadores (`validate_deploy_target`); la validacion
+# final contra el esquema (colores hex, order>=1, claves del catalogo, etc.) la
+# hace `save_contract` antes de escribir (validate-before-write, Req 2.4/2.5/6.5).
+
+# Errores de validacion/entrada que se traducen a `422` en estos endpoints.
+# `ModuleCatalogError` y `DeployTargetError` son subclases de `ValueError`; se
+# listan aparte por claridad de intencion.
+_CONFIG_ERRORS = (
+    ModuleCatalogError,
+    DeployTargetError,
+    ValueError,
+    jsonschema.ValidationError,
+)
+
+
+def _save_patch(project: Path, doc: str, patch: dict) -> dict:
+    """Aplica load -> merge -> save sobre un documento del contrato (DD-1).
+
+    Carga el documento existente (o su base minima), fusiona `patch` de forma no
+    destructiva (`merge_document`) y valida-antes-de-escribir (`save_contract`).
+    Devuelve el documento fusionado ya persistido. Propaga
+    `ValueError`/`ValidationError` si la validacion contra el esquema falla (el
+    llamador los mapea a `422`).
+    """
+    base = contracts._load_contract(project, doc)
+    merged = contracts.merge_document(base, patch)
+    contracts.save_contract(project, doc, merged)
+    return merged
+
+
+class _ModuleSelection(BaseModel):
+    """Descriptor de un modulo en la seleccion de `PUT /api/site-config`.
+
+    Espeja la entrada del constructor puro `build_modules`: `key` del catalogo
+    (`map`/`places`/`events`/`blog`/`chatweb`), `enabled` on/off y, solo para
+    `chatweb`, los campos extra `persona`/`knowledgeSource`. El `order` no se
+    envia: lo deriva `build_modules` a partir del orden de la lista (Req 2.2).
+    """
+
+    key: str
+    enabled: bool = True
+    persona: str | None = None
+    knowledgeSource: str | None = None
+
+
+class SiteConfigBody(BaseModel):
+    """Cuerpo de `PUT /api/site-config` (Req 2.1-2.5, 10.5).
+
+    `modules` es la seleccion **ordenada** de modulos (el orden de la lista fija
+    el `order`); `deployTarget` es el destino de publicacion opcional que se
+    valida contra el catalogo y se persiste en `Site_Config.deploy.target`.
+    """
+
+    modules: list[_ModuleSelection]
+    deployTarget: str | None = None
+
+
+class _Colors(BaseModel):
+    """Colores de marca (`Theme_Tokens.colors`); el esquema exige formato hex."""
+
+    primary: str | None = None
+    secondary: str | None = None
+    background: str | None = None
+    text: str | None = None
+    accent: str | None = None
+
+
+class _Typography(BaseModel):
+    """Tipografia de marca (`Theme_Tokens.typography`)."""
+
+    headingFont: str | None = None
+    bodyFont: str | None = None
+    baseSize: str | None = None
+
+
+class ThemeBody(BaseModel):
+    """Cuerpo de `PUT /api/theme-tokens` (Req 6.1-6.5).
+
+    Campos opcionales para permitir parches por paso (el merge conserva lo no
+    tocado): `colors`, `typography`, `tone` (se escribe en `voice.tone`) y
+    `logo` (ruta relativa del Asset dentro de `/assets`).
+    """
+
+    colors: _Colors | None = None
+    typography: _Typography | None = None
+    tone: str | None = None
+    logo: str | None = None
+
+
+@app.put("/api/site-config")
+def put_site_config(body: SiteConfigBody):
+    """Guarda seleccion/orden de modulos y `deploy.target` (Req 2.1-2.5, 10.5).
+
+    Construye el sub-documento `modules` con el constructor puro `build_modules`
+    (restringe al catalogo `map/places/events/blog/chatweb` y asigna `order`
+    entero >= 1 segun el orden recibido, Req 2.2, 2.3). Si viene `deployTarget`,
+    lo valida contra el catalogo soportado (`validate_deploy_target`, Req 10.2) y
+    lo persiste en `Site_Config.deploy.target` (Req 10.5). Escribe via
+    load-merge-save con validacion estricta contra `site-config.schema.json`
+    (Req 2.4, 2.5); ante error responde `422` nombrando el campo, sin persistir.
+    """
+    project = project_root()
+    try:
+        selection = [descriptor.model_dump(exclude_none=True) for descriptor in body.modules]
+        patch: dict = {"modules": build_modules(selection)}
+        if body.deployTarget is not None:
+            patch["deploy"] = {"target": validate_deploy_target(body.deployTarget)}
+        merged = _save_patch(project, _SITE_CONFIG_DOC, patch)
+    except _CONFIG_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_SITE_CONFIG_FILE),
+        )
+    return _redact_value(merged)
+
+
+@app.put("/api/theme-tokens")
+def put_theme_tokens(body: ThemeBody):
+    """Guarda colores, tipografia, tono de voz y logo de marca (Req 6.1-6.5).
+
+    Arma un parche solo con los campos provistos (el merge conserva lo no tocado)
+    y lo escribe via load-merge-save con validacion estricta contra
+    `theme-tokens.schema.json` (Req 6.5). Un color que no cumple el patron hex es
+    rechazado por el esquema y se traduce a `422` con el formato esperado (Req 6.4),
+    sin persistir nada (validate-before-write).
+    """
+    project = project_root()
+    patch: dict = {}
+    if body.colors is not None:
+        colors = body.colors.model_dump(exclude_none=True)
+        if colors:
+            patch["colors"] = colors
+    if body.typography is not None:
+        typography = body.typography.model_dump(exclude_none=True)
+        if typography:
+            patch["typography"] = typography
+    if body.tone is not None:
+        patch["voice"] = {"tone": body.tone}
+    if body.logo is not None:
+        patch["logo"] = body.logo
+
+    try:
+        merged = _save_patch(project, _THEME_DOC, patch)
+    except _CONFIG_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_THEME_FILE),
+        )
+    return _redact_value(merged)
+
+
+# --- Carga de Assets a /assets (Req 4) ---------------------------------------
+#
+# `POST /api/assets` recibe un archivo (multipart) y lo almacena de forma segura
+# dentro de `<project>/assets` (DD-3): valida extension/tipo (Req 4.4) y tamano
+# contra `MAX_ASSET_BYTES` (Req 4.5), normaliza el nombre a Slug con
+# `normalize_asset_name` (Req 4.6), desambigua colisiones con sufijo numerico
+# conservando los Assets previos (Req 4.6, 11.4) y verifica la contencion en el
+# arbol con `resolve_within_assets` antes de escribir (Req 12.4). Devuelve la
+# ruta relativa del Asset (Req 4.1) y, opcionalmente, la enlaza a las `images`
+# de un Place/Event (Req 4.2) o a `Theme_Tokens.logo` (Req 4.3) via
+# load-merge-save. Errores de validacion/entrada -> `422` redactado.
+
+# Errores de validacion/entrada que se traducen a `422` en la carga de Assets.
+_ASSET_ERRORS = (ValueError, jsonschema.ValidationError)
+
+
+def _next_available_asset(project: Path, name: str) -> tuple[str, Path]:
+    """Devuelve un nombre libre dentro de `/assets` y su ruta resuelta (Req 4.6, 11.4).
+
+    Verifica la contencion con `resolve_within_assets` (Req 12.4). Si `name` ya
+    existe, desambigua anexando un sufijo numerico al *stem* (``slug-1.ext``,
+    ``slug-2.ext``, ...) hasta hallar uno libre, de modo que los Assets previos
+    nunca se sobreescriben (Req 11.4).
+    """
+    target = resolve_within_assets(project, name)
+    if not target.exists():
+        return name, target
+
+    stem, _, ext = name.rpartition(".")
+    ext = f".{ext}"
+    counter = 1
+    while True:
+        candidate = f"{stem}-{counter}{ext}"
+        candidate_path = resolve_within_assets(project, candidate)
+        if not candidate_path.exists():
+            return candidate, candidate_path
+        counter += 1
+
+
+def _append_image(project: Path, entity_key: str, entity_id: str, rel_path: str) -> dict:
+    """Anexa `rel_path` a `images` de un Place/Event por `id` via load-merge-save (Req 4.2).
+
+    Carga `tourism-data`, ubica la entidad (`places`/`events`) por `id`, calcula
+    la nueva lista de `images` (sin duplicar la ruta) y persiste el parche con
+    `merge_document`+`save_contract`. Si la entidad no existe, lanza `ValueError`
+    accionable (el llamador lo mapea a `422`) en vez de crear una entidad
+    incompleta que no cumpliria el esquema.
+    """
+    base = contracts._load_contract(project, _TOURISM_DOC)
+    entidades = base.get(entity_key) or []
+    actual = next((e for e in entidades if e.get("id") == entity_id), None)
+    if actual is None:
+        raise ValueError(
+            f"No existe un {entity_key[:-1]} con id '{entity_id}' para asociar la "
+            f"imagen. Crea la entrada antes de subir su imagen."
+        )
+    images = list(actual.get("images") or [])
+    if rel_path not in images:
+        images.append(rel_path)
+    patch = {entity_key: [{"id": entity_id, "images": images}]}
+    merged = contracts.merge_document(base, patch)
+    contracts.save_contract(project, _TOURISM_DOC, merged)
+    return merged
+
+
+@app.post("/api/assets")
+async def upload_asset(
+    file: UploadFile = File(...),
+    target: str | None = Form(default=None),
+    id: str | None = Form(default=None),
+):
+    """Sube un Asset a `<project>/assets` y devuelve su ruta relativa (Req 4.1-4.6, 12.4).
+
+    Valida el tipo/extension con `normalize_asset_name` (Req 4.4) y el tamano
+    contra `MAX_ASSET_BYTES` (Req 4.5); normaliza el nombre a Slug (Req 4.6);
+    desambigua colisiones conservando los Assets previos (Req 4.6, 11.4) y
+    verifica la contencion con `resolve_within_assets` (Req 12.4) antes de
+    escribir. Segun `target`, enlaza la ruta relativa a `images` de un Place
+    (`target='place'`) o Event (`target='event'`) por `id` (Req 4.2), o a
+    `Theme_Tokens.logo` (`target='logo'`) via load-merge-save (Req 4.3). Ante
+    error de validacion/entrada responde `422` redactado sin dejar basura.
+    """
+    project = project_root()
+    try:
+        contenido = await file.read()
+
+        # Tamano: se compara antes de tocar disco (Req 4.5).
+        if len(contenido) > MAX_ASSET_BYTES:
+            raise ValueError(
+                f"El archivo supera el tamano maximo permitido de "
+                f"{_MAX_ASSET_MB} MB."
+            )
+
+        # Tipo/extension + normalizacion a Slug (Req 4.4, 4.6). Extension no
+        # soportada -> ValueError que lista los formatos aceptados.
+        nombre = normalize_asset_name(file.filename or "", IMAGE_EXTS)
+
+        # Desambiguacion de colision + verificacion de contencion (Req 4.6, 12.4).
+        nombre_final, destino = _next_available_asset(project, nombre)
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        destino.write_bytes(contenido)
+
+        rel_path = f"assets/{nombre_final}"
+
+        # Enlace opcional al contrato (Req 4.2, 4.3).
+        contrato = None
+        if target == "logo":
+            contrato = _save_patch(project, _THEME_DOC, {"logo": rel_path})
+        elif target in ("place", "event"):
+            if not id:
+                raise ValueError(
+                    f"Para asociar la imagen a un {target} se requiere el 'id' "
+                    f"de la entrada."
+                )
+            entity_key = "places" if target == "place" else "events"
+            contrato = _append_image(project, entity_key, id, rel_path)
+    except _ASSET_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc),
+        )
+
+    respuesta: dict = {"path": rel_path}
+    if contrato is not None:
+        respuesta["document"] = contrato
+    return _redact_value(respuesta)
+
+
+# --- Captura de la base de conocimiento Q&A (Req 5) --------------------------
+#
+# `POST /api/qa` valida que pregunta y respuesta no esten vacias con
+# `validate_qa_entry` (Req 5.4), anexa el QA_Entry a `content/qa.json` SIN
+# indexarlo ni consumirlo (Req 5.1, 5.3) y registra la ruta de la base de
+# conocimiento en `Site_Config.modules.chatweb.knowledgeSource` via
+# load-merge-save (Req 5.2). El registro crea el modulo `chatweb` con
+# `enabled`/`order` minimos si aun no existe, para no producir un `site-config`
+# invalido contra el esquema.
+
+# Errores que se traducen a `422` en la captura de Q&A.
+_QA_ERRORS = (QAValidationError, ValueError, jsonschema.ValidationError)
+
+
+class QABody(BaseModel):
+    """Cuerpo de `POST /api/qa` (Req 5.1, 5.4): un par pregunta/respuesta."""
+
+    question: str
+    answer: str
+
+
+def _append_qa_entry(project: Path, entry: dict) -> str:
+    """Anexa `entry` a `content/qa.json` sin indexarlo (Req 5.1, 5.3).
+
+    Crea `<project>/content` si no existe y mantiene una lista JSON de entradas.
+    Si el archivo previo esta corrupto o no es una lista, se reinicia con una
+    lista nueva para no perder la entrada actual. Devuelve la ruta relativa
+    `content/qa.json` que se registra como knowledgeSource (Req 5.2).
+    """
+    content_dir = project / _CONTENT_DIRNAME
+    content_dir.mkdir(parents=True, exist_ok=True)
+    qa_path = content_dir / _QA_FILENAME
+
+    entries: list = []
+    if qa_path.exists():
+        try:
+            cargado = json.loads(qa_path.read_text(encoding="utf-8"))
+            if isinstance(cargado, list):
+                entries = cargado
+        except (ValueError, OSError):
+            entries = []
+
+    entries.append(entry)
+    qa_path.write_text(
+        json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return _QA_RELPATH
+
+
+def _register_knowledge_source(project: Path, rel_path: str) -> dict:
+    """Registra `rel_path` en `Site_Config.modules.chatweb.knowledgeSource` (Req 5.2).
+
+    Carga `site-config` y arma un parche para `modules.chatweb`. Si `chatweb` ya
+    existe con `enabled`/`order`, solo actualiza `knowledgeSource`; si no, crea
+    el modulo con `enabled=True` y un `order` entero >= 1 (siguiente al maximo de
+    los modulos presentes) para cumplir el esquema. Persiste via load-merge-save.
+    """
+    base = contracts._load_contract(project, _SITE_CONFIG_DOC)
+    modules = base.get("modules") or {}
+    chatweb = modules.get("chatweb")
+
+    if isinstance(chatweb, dict) and "enabled" in chatweb and "order" in chatweb:
+        chat_patch = {"knowledgeSource": rel_path}
+    else:
+        orders = [
+            m.get("order", 0)
+            for m in modules.values()
+            if isinstance(m, dict) and isinstance(m.get("order"), int)
+        ]
+        siguiente = (max(orders) + 1) if orders else 1
+        chat_patch = {
+            "enabled": True,
+            "order": siguiente,
+            "knowledgeSource": rel_path,
+        }
+
+    return _save_patch(project, _SITE_CONFIG_DOC, {"modules": {"chatweb": chat_patch}})
+
+
+@app.post("/api/qa")
+def add_qa(body: QABody):
+    """Guarda un QA_Entry en `/content` y registra su knowledgeSource (Req 5.1-5.4).
+
+    Valida que pregunta y respuesta no esten vacias con `validate_qa_entry`
+    (Req 5.4); ante campo vacio responde `422` que nombra el campo faltante, sin
+    almacenar nada. En caso valido anexa la entrada (recortada) a
+    `content/qa.json` sin indexarla ni consumirla (Req 5.1, 5.3) y registra
+    `content/qa.json` en `Site_Config.modules.chatweb.knowledgeSource` via
+    load-merge-save (Req 5.2).
+    """
+    project = project_root()
+    try:
+        entry = validate_qa_entry(body.model_dump())
+        _append_qa_entry(project, entry)
+        site_config = _register_knowledge_source(project, _QA_RELPATH)
+    except _QA_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_QA_FILENAME),
+        )
+
+    return _redact_value(
+        {
+            "entry": entry,
+            "knowledgeSource": _QA_RELPATH,
+            "document": site_config,
+        }
+    )
+
+
+# --- Generacion con progreso en vivo (Req 8, DD-2) ---------------------------
+#
+# `WS /ws/build` dispara la generacion del sitio (`Puriq.build`, opcionalmente
+# precedida de `Puriq.collect`) y transmite cada hito de `Build_Progress` al
+# navegador (Req 8.2). El pipeline del core es **sincrono y bloqueante**; para no
+# congelar el event loop de FastAPI se ejecuta en un hilo (`asyncio.to_thread`) y
+# el progreso se comunica via una `queue.Queue` que el consumidor asincrono drena
+# y reenvia por el socket (DD-2). El wizard delega en el core y **nunca**
+# reimplementa las tools (Req 8.5).
+#
+# Secuencia (DD-2): se maneja `build(progress=cb)` como caso base, ya que
+# `build` carga el `tourism-data.json` persistido, geocodifica, valida, enriquece
+# (si `use_llm`) y ensambla el sitio a partir del contrato ya intake-ado por los
+# pasos previos del wizard. Solo si el cliente aporta un directorio de recursos
+# crudos (`resources`) se ejecuta antes `collect(...)` para escanear/enriquecer y
+# regenerar el contrato; asi el flujo normal del wizard (que ya persistio los 3
+# JSON via los endpoints REST) no exige recursos en disco. El callback `progress`
+# encola `config.redact(msg)` para que ningun secreto viaje por el socket (Req 12.2).
+
+# Intervalo de sondeo de la cola de progreso mientras el build corre en el hilo.
+# Un valor pequeno mantiene el progreso fluido sin ocupar la CPU en busy-wait.
+_WS_POLL_SECONDS = 0.05
+
+
+def _flatten_error_message(error: dict) -> str:
+    """Aplana la respuesta de `wizard_error_response` a un unico string (Req 8.4).
+
+    `wizard_error_response` ya viene redactado (Req 12.2). Para un error de
+    esquema devuelve ``{documento, campo, sugerencia}``; para el resto,
+    ``{causa, accion}``. Aqui se combinan sus partes no vacias en un mensaje
+    legible de causa + accion sugerida para emitir por el WebSocket.
+    """
+    if "causa" in error:
+        partes = [error.get("causa"), error.get("accion")]
+    else:
+        documento = error.get("documento")
+        campo = error.get("campo")
+        partes = [
+            f"Documento: {documento}" if documento else None,
+            f"Campo: {campo}" if campo else None,
+            error.get("sugerencia"),
+        ]
+    return " ".join(parte for parte in partes if parte)
+
+
+@app.websocket("/ws/build")
+async def ws_build(ws: WebSocket) -> None:
+    """Dispara la generacion en segundo plano y transmite el progreso (Req 8.1-8.5).
+
+    Acepta el socket, lee un mensaje inicial opcional con opciones
+    (``{"enrich": bool, "use_llm": bool, "resources": str}``; por defecto
+    ``use_llm=True``, ``enrich=False`` y sin `resources`), crea una `queue.Queue`
+    y un callback `progress(msg)` que encola `config.redact(msg)`. Lanza
+    `collect()` (solo si se dio `resources`) + `build(progress=cb)` en un hilo via
+    `asyncio.to_thread` para no bloquear el event loop (Req 8.1, 8.2). Drena la
+    cola emitiendo ``{"type":"progress","message":...}`` mientras corre; al
+    terminar emite ``{"type":"done","distPath":...}`` (Req 8.3) o, si una fase
+    lanza, ``{"type":"error","message": redact(causa+accion)}`` reutilizando
+    `wizard_error_response` (Req 8.4). No reimplementa tools: delega en el core
+    (Req 8.5).
+    """
+    await ws.accept()
+    project = project_root()
+
+    # Mensaje inicial opcional con las opciones de build. Si el cliente no envia
+    # nada valido, se usan los valores por defecto. Un disconnect aqui termina.
+    options: dict = {}
+    try:
+        recibido = await ws.receive_json()
+        if isinstance(recibido, dict):
+            options = recibido
+    except WebSocketDisconnect:
+        return
+    except Exception:
+        # Cuerpo inicial no-JSON o vacio: seguir con los valores por defecto.
+        options = {}
+
+    use_llm = bool(options.get("use_llm", True))
+    enrich = bool(options.get("enrich", False))
+    resources = options.get("resources")
+
+    # Puente sincrono->asincrono: el hilo del build encola hitos redactados; el
+    # event loop los drena y reenvia por el socket (DD-2).
+    progreso: "queue.Queue[str]" = queue.Queue()
+
+    def emitir_progreso(mensaje: str) -> None:
+        progreso.put(config.redact(str(mensaje)))
+
+    def correr_pipeline() -> str:
+        proyecto = Puriq(project)
+        # collect() solo si el cliente aporto recursos crudos (DD-2); el flujo
+        # normal del wizard ya persistio el contrato via los endpoints REST.
+        if resources:
+            proyecto.collect(
+                Path(resources), enrich=enrich, progress=emitir_progreso
+            )
+        dist = proyecto.build(use_llm=use_llm, progress=emitir_progreso)
+        return str(dist)
+
+    async def drenar_cola() -> None:
+        """Envia por el socket todos los hitos encolados hasta el momento."""
+        while True:
+            try:
+                mensaje = progreso.get_nowait()
+            except queue.Empty:
+                return
+            await ws.send_json({"type": "progress", "message": mensaje})
+
+    tarea_build = asyncio.ensure_future(asyncio.to_thread(correr_pipeline))
+
+    try:
+        # Bucle de progreso: drena la cola y cede el control hasta que el build
+        # (que corre en el hilo) termina.
+        while not tarea_build.done():
+            await drenar_cola()
+            await asyncio.sleep(_WS_POLL_SECONDS)
+        # Vaciar los hitos que pudieran quedar tras completarse el build.
+        await drenar_cola()
+
+        try:
+            dist_path = tarea_build.result()
+        except Exception as exc:  # noqa: BLE001 - se traduce y redacta abajo
+            error = wizard_error_response(exc)
+            await ws.send_json(
+                {"type": "error", "message": _flatten_error_message(error)}
+            )
+        else:
+            await ws.send_json(
+                {"type": "done", "distPath": config.redact(dist_path)}
+            )
+    except WebSocketDisconnect:
+        # El cliente cerro el socket; el hilo del build se desliga (no se puede
+        # cancelar de forma cooperativa) y no se emite nada mas.
+        return
+    finally:
+        try:
+            await ws.close()
+        except Exception:
+            pass
+
+
+# --- Previsualizacion del sitio construido (Req 9) ---------------------------
+#
+# `POST /api/preview` expone el sitio ya construido (`<project>/dist`) delegando
+# en `core.preview()` (que a su vez usa `build_site.serve`, un servidor estatico
+# **bloqueante**). Como `serve()` no retorna hasta que se detiene, se corre en un
+# hilo *daemon* para que el endpoint responda de inmediato con el enlace local
+# (Req 9.1, 9.3) sin congelar el event loop de FastAPI. Un registro a nivel de
+# modulo (`_preview_servers`) evita levantar dos servidores en el mismo puerto:
+# si ya hay una preview activa en ese puerto, se devuelve su enlace en vez de
+# reintentar el bind (que fallaria). Si no existe `dist/`, se responde con un
+# mensaje que pide generar el sitio primero (Req 9.2), sin arrancar nada.
+
+# Puerto por defecto de la preview (coherente con `core.preview`/`build_site.serve`).
+_DEFAULT_PREVIEW_PORT = 4322
+
+# Registro de previews activas: puerto -> enlace local. Protegido por un lock
+# porque se consulta/actualiza desde el endpoint (event loop) y desde el hilo
+# daemon del servidor. Un puerto presente significa "ya hay un serve() corriendo".
+_preview_lock = threading.Lock()
+_preview_servers: dict[int, str] = {}
+
+
+class PreviewBody(BaseModel):
+    """Cuerpo opcional de `POST /api/preview` (Req 9.1, 9.3): el puerto local."""
+
+    port: int = _DEFAULT_PREVIEW_PORT
+
+
+@app.post("/api/preview")
+def start_preview(body: PreviewBody | None = None) -> dict:
+    """Sirve `<project>/dist` en local y devuelve el enlace (Req 9.1-9.3).
+
+    Si `<project>/dist` existe, arranca `Puriq(project).preview(port)` —que es
+    bloqueante— en un hilo *daemon* y responde de inmediato con el enlace
+    `http://localhost:<port>` (Req 9.1, 9.3). Un registro a nivel de modulo evita
+    levantar dos servidores en el mismo puerto: si ya hay una preview activa en
+    ese puerto, se reutiliza su enlace. Si no hay build (`dist/` ausente), no se
+    arranca nada y se devuelve un mensaje que pide generar el sitio primero
+    (Req 9.2).
+    """
+    project = project_root()
+    port = body.port if body is not None else _DEFAULT_PREVIEW_PORT
+
+    dist = project / "dist"
+    if not dist.is_dir():
+        return _redact_value(
+            {
+                "message": (
+                    "Aun no hay un sitio construido para previsualizar. "
+                    "Genera el sitio primero (paso Generar) y volve a intentarlo."
+                )
+            }
+        )
+
+    url = f"http://localhost:{port}"
+    with _preview_lock:
+        ya_activo = port in _preview_servers
+        if not ya_activo:
+            # Se registra ANTES de arrancar para que peticiones concurrentes al
+            # mismo puerto no disparen un segundo serve() (bind duplicado).
+            _preview_servers[port] = url
+
+    if not ya_activo:
+        def _serve_preview() -> None:
+            try:
+                Puriq(project).preview(port=port)
+            except Exception:
+                # Si el servidor no pudo arrancar o termino, liberar el puerto
+                # del registro para permitir un reintento posterior.
+                with _preview_lock:
+                    _preview_servers.pop(port, None)
+
+        hilo = threading.Thread(
+            target=_serve_preview, name=f"puriq-preview-{port}", daemon=True
+        )
+        hilo.start()
+
+    return _redact_value({"url": url})
+
+
+# --- Publicacion del sitio en un destino soportado (Req 10) ------------------
+#
+# `POST /api/deploy` valida el `target` contra el catalogo (`validate_deploy_target`,
+# unica fuente de verdad = adaptadores del core, Req 10.2), exige un build previo
+# (`dist/`, Req 10.3), persiste `Site_Config.deploy.target` via load-merge-save
+# (Req 10.5) y delega la publicacion en `core.deploy(target)` (Req 10.1), sin
+# reimplementar los adaptadores (capa fina). Cualquier fallo de proveedor o de
+# credenciales (`DeployError`, `MissingEnvVarError`, errores de boto3/httpx, etc.)
+# se traduce a un mensaje accionable **redactado** con `wizard_error_response`
+# (Req 10.4, 12.2), de modo que ningun valor de secreto ni traza cruda se filtre.
+
+
+class DeployBody(BaseModel):
+    """Cuerpo de `POST /api/deploy` (Req 10.1, 10.2): el destino de publicacion."""
+
+    target: str
+
+
+@app.post("/api/deploy")
+def start_deploy(body: DeployBody):
+    """Publica `<project>/dist` en el destino elegido y devuelve la URL (Req 10.1-10.5).
+
+    Flujo: (1) valida `target` contra el catalogo soportado
+    (`validate_deploy_target`, Req 10.2); destino invalido -> `422` que lista los
+    validos. (2) Exige un build previo; sin `dist/` responde un mensaje que pide
+    generar primero (Req 10.3), sin publicar. (3) Persiste
+    `Site_Config.deploy.target` via load-merge-save —destino soportado e intento
+    de publicacion— (Req 10.5). (4) Delega en `Puriq(project).deploy(target)`
+    (Req 10.1) y devuelve la URL publica. Un fallo del proveedor o de
+    credenciales se traduce a un mensaje accionable redactado con
+    `wizard_error_response` (Req 10.4), sin exponer secretos ni trazas (Req 12.2).
+    """
+    project = project_root()
+
+    # (1) Destino soportado (Req 10.2). Invalido -> 422 que lista los validos.
+    try:
+        target = validate_deploy_target(body.target)
+    except _CONFIG_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_SITE_CONFIG_FILE),
+        )
+
+    # (2) Exigir un build previo (Req 10.3); sin dist/ no se publica ni persiste.
+    dist = project / "dist"
+    if not dist.is_dir():
+        return _redact_value(
+            {
+                "message": (
+                    "Aun no hay un sitio construido para publicar. "
+                    "Genera el sitio primero (paso Generar) y volve a intentarlo."
+                )
+            }
+        )
+
+    # (3) Persistir el destino elegido (soportado + intento de publicacion, Req 10.5).
+    try:
+        site_config = _save_patch(project, _SITE_CONFIG_DOC, {"deploy": {"target": target}})
+    except _CONFIG_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_SITE_CONFIG_FILE),
+        )
+
+    # (4) Publicar delegando en el core (Req 10.1). Cualquier fallo de proveedor,
+    # credenciales faltantes o error de red se traduce a un mensaje redactado
+    # (Req 10.4, 12.2): se captura de forma amplia para que ni una traza cruda ni
+    # un valor de secreto lleguen a la respuesta HTTP.
+    try:
+        url = Puriq(project).deploy(target)
+    except Exception as exc:  # noqa: BLE001 - se traduce y redacta a continuacion
+        return JSONResponse(
+            status_code=502,
+            content=wizard_error_response(exc),
+        )
+
+    return _redact_value({"url": url, "target": target, "document": site_config})
+
+
+def serve(port: int = 4321) -> None:
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=port)

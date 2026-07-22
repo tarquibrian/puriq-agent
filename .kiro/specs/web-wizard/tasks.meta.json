@@ -1,0 +1,448 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Extraer la descripción de errores del CLI a una utilidad compartida y componer `wizard_error_response`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406386
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665430285
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665905417
+      }
+    ],
+    "2.1 Implementar `_load_contract` y `save_contract` en un helper del wizard (p. ej. `wizard/contracts.py`)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406489
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665432273
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665908151
+      }
+    ],
+    "2.2 Implementar `merge_document(base, patch)` puro y no destructivo (misma capa `wizard/contracts.py`)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406542
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666091458
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666347753
+      }
+    ],
+    "3.1 Implementar constructores puros de Place/Event y validación de coordenadas (p. ej. `wizard/intake.py`)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406574
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665433297
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665908478
+      }
+    ],
+    "4.1 Implementar el constructor puro de `Site_Config.modules` (p. ej. `wizard/modules.py`)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406604
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665434270
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665909425
+      }
+    ],
+    "5.1 Implementar `normalize_asset_name` y `resolve_within_assets` (p. ej. `wizard/assets.py`)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406641
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665435332
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665911380
+      }
+    ],
+    "6.1 Implementar validación de `QA_Entry` y del catálogo de `Deploy_Target` (p. ej. `wizard/validation.py`)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406668
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665912429
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666082892
+      }
+    ],
+    "7. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406719
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666371409
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784668824148
+      }
+    ],
+    "8.1 Agregar `progress: Callable[[str], None] | None = None` a `Puriq.collect()` y `Puriq.build()`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406746
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665913451
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666083846
+      }
+    ],
+    "9.1 Implementar `GET /api/state`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406784
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784668824868
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669025629
+      }
+    ],
+    "9.2 Implementar el intake de sitio, Places y Events": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406811
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669026647
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669254300
+      }
+    ],
+    "9.3 Implementar `PUT /api/site-config`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406836
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669394615
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669536607
+      }
+    ],
+    "9.4 Implementar `PUT /api/theme-tokens`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406860
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669394672
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669537629
+      }
+    ],
+    "10.1 Implementar `POST /api/assets`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406885
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669538586
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670011381
+      }
+    ],
+    "10.2 Implementar `POST /api/qa`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406912
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669540586
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670013356
+      }
+    ],
+    "11.1 Implementar `WS /ws/build`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406937
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670014363
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670167157
+      }
+    ],
+    "12.1 Implementar `POST /api/preview`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406962
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670168158
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670370656
+      }
+    ],
+    "12.2 Implementar `POST /api/deploy`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665406995
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670169192
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670373316
+      }
+    ],
+    "13.1 Confirmar el enlace a Loopback y cablear el servido de la UI": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665407017
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670373700
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670606900
+      }
+    ],
+    "14.1 Implementar el flujo por pasos y la sincronización con el backend (`index.html` + JS)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665407040
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670607910
+      }
+    ],
+    "14.2 Mostrar errores accionables en el paso correspondiente (estilos + manejo de errores en la UI)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665407062
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670609871
+      }
+    ],
+    "15. Checkpoint final - Asegurar que todas las pruebas pasan": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665407084
+      },
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676639641
+      }
+    ],
+    "1. Reutilización de la traducción de errores y `redact` (DD-4)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665905456
+      }
+    ],
+    "3. Lógica pura de intake: slug de ids, coords y dirección": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665908508
+      }
+    ],
+    "4. Lógica pura de catálogo y orden de módulos": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665909465
+      }
+    ],
+    "5. Lógica pura de assets: normalización de nombre y contención (DD-3)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784665911413
+      }
+    ],
+    "6. Lógica pura de validación de Q&A y catálogo de deploy": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666082934
+      }
+    ],
+    "8. Callback de progreso aditivo en el core (DD-2)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666083885
+      }
+    ],
+    "2. Capa de contrato pura: load-merge-save (DD-1)": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784666347812
+      }
+    ],
+    "9. Endpoints REST de estado e intake de contenido en `wizard/server.py`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784669537664
+      }
+    ],
+    "10. Endpoints de Assets y Q&A en `wizard/server.py`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670013410
+      }
+    ],
+    "11. WebSocket de generación con progreso en vivo en `wizard/server.py`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670167193
+      }
+    ],
+    "12. Endpoints de preview y deploy en `wizard/server.py`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670373350
+      }
+    ],
+    "13. Postura de seguridad local y montaje de la UI en `wizard/server.py`": [
+      {
+        "executionId": "f1449b60-7bdd-4211-bb1a-537189ce7341",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784670606945
+      }
+    ]
+  }
+}
