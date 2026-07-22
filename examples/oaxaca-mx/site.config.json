@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schemas/site-config.schema.json",
+  "layout": "moderno",
+  "modules": {
+    "map": { "enabled": true, "order": 1, "label": "Mapa" },
+    "places": { "enabled": true, "order": 2, "label": "Qué visitar" },
+    "events": { "enabled": true, "order": 3, "label": "Fiestas" },
+    "chatweb": {
+      "enabled": true,
+      "order": 4,
+      "label": "Asistente",
+      "persona": "cálido y festivo",
+      "knowledgeSource": "content/faq/"
+    },
+    "blog": { "enabled": true, "order": 5, "label": "Noticias" }
+  },
+  "hero": {
+    "type": "image",
+    "asset": "assets/hero-oaxaca.jpg",
+    "headline": "Oaxaca te abraza",
+    "subheadline": "Culturas vivas, sabor y color todo el año."
+  },
+  "contact": { "email": "turismo@oaxaca.gob.mx", "phone": "" },
+  "deploy": { "target": "aws-amplify", "domain": "" }
+}

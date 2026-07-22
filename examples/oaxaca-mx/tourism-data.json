@@ -1,0 +1,93 @@
+{
+  "$schema": "../../schemas/tourism-data.schema.json",
+  "site": {
+    "name": "Turismo Oaxaca",
+    "region": "Estado de Oaxaca, México",
+    "description": "Culturas vivas, arqueología milenaria y color: del Centro Histórico a los Pueblos Mágicos.",
+    "defaultLocale": "es",
+    "locales": ["es", "en"],
+    "center": { "lat": 17.05, "lng": -96.55, "zoom": 8 }
+  },
+  "categories": [
+    { "id": "arqueologia", "label": "Arqueología", "icon": "landmark" },
+    { "id": "naturaleza", "label": "Naturaleza", "icon": "mountain" },
+    { "id": "cultura", "label": "Cultura", "icon": "palette" },
+    { "id": "gastronomia", "label": "Gastronomía", "icon": "utensils" }
+  ],
+  "places": [
+    {
+      "id": "monte-alban",
+      "name": "Monte Albán",
+      "category": "arqueologia",
+      "coords": { "lat": 17.0439, "lng": -96.7677 },
+      "address": "San Pedro Ixtlahuaca, Oaxaca",
+      "shortDescription": "Antigua capital zapoteca sobre las montañas; Patrimonio de la Humanidad.",
+      "description": "",
+      "images": ["assets/monte-alban-01.jpg"],
+      "hours": "08:00 - 17:00",
+      "tags": ["zapoteca", "unesco", "arqueologia"],
+      "source": "user"
+    },
+    {
+      "id": "hierve-el-agua",
+      "name": "Hierve el Agua",
+      "category": "naturaleza",
+      "coords": { "lat": 16.8664, "lng": -96.2758 },
+      "address": "San Lorenzo Albarradas, Oaxaca",
+      "shortDescription": "Cascadas petrificadas y pozas naturales con vista al valle.",
+      "description": "",
+      "images": ["assets/hierve-agua-01.jpg"],
+      "hours": "08:00 - 18:00",
+      "tags": ["cascadas", "pozas", "paisaje"],
+      "source": "user"
+    },
+    {
+      "id": "centro-historico-oaxaca",
+      "name": "Centro Histórico de Oaxaca",
+      "category": "cultura",
+      "coords": { "lat": 17.0606, "lng": -96.7255 },
+      "address": "Oaxaca de Juárez",
+      "shortDescription": "Calles de cantera, mercados y el Templo de Santo Domingo; Patrimonio UNESCO.",
+      "description": "",
+      "images": ["assets/centro-oaxaca-01.jpg"],
+      "hours": "Todo el día",
+      "tags": ["colonial", "mercados", "unesco"],
+      "source": "user"
+    },
+    {
+      "id": "mitla",
+      "name": "Zona Arqueológica de Mitla",
+      "category": "arqueologia",
+      "coords": { "lat": 16.9222, "lng": -96.3597 },
+      "address": "San Pablo Villa de Mitla (Pueblo Mágico), Oaxaca",
+      "shortDescription": "Grecas mixtecas únicas en un Pueblo Mágico famoso por sus textiles.",
+      "description": "",
+      "images": ["assets/mitla-01.jpg"],
+      "hours": "09:00 - 17:00",
+      "tags": ["mixteca", "pueblo-magico", "textiles"],
+      "source": "user"
+    }
+  ],
+  "events": [
+    {
+      "id": "guelaguetza-2026",
+      "name": "Guelaguetza",
+      "startDate": "2026-07-20",
+      "endDate": "2026-07-27",
+      "placeId": "centro-historico-oaxaca",
+      "description": "",
+      "images": [],
+      "recurring": "yearly"
+    },
+    {
+      "id": "dia-de-muertos-2026",
+      "name": "Día de Muertos",
+      "startDate": "2026-10-31",
+      "endDate": "2026-11-02",
+      "placeId": "centro-historico-oaxaca",
+      "description": "",
+      "images": [],
+      "recurring": "yearly"
+    }
+  ]
+}

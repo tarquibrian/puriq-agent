@@ -1,0 +1,15 @@
+{
+  "site": {
+    "name": "Turismo Potosí",
+    "region": "Departamento de Potosí, Bolivia",
+    "description": "Del Salar de Uyuni al Cerro Rico: naturaleza extrema, plata y herencia viva.",
+    "defaultLocale": "es",
+    "locales": ["es", "en"],
+    "center": { "lat": -20.6, "lng": -66.8, "zoom": 6 }
+  },
+  "categories": [
+    { "id": "naturaleza", "label": "Naturaleza", "icon": "mountain" },
+    { "id": "cultura", "label": "Cultura", "icon": "landmark" },
+    { "id": "historia", "label": "Historia", "icon": "clock" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/theme-tokens.schema.json",
+  "colors": {
+    "primary": "#C0392B",
+    "secondary": "#16A085",
+    "background": "#FFF9F0",
+    "text": "#2B2119",
+    "accent": "#E8A33D"
+  },
+  "typography": {
+    "headingFont": "Poppins",
+    "bodyFont": "Inter",
+    "baseSize": "16px"
+  },
+  "voice": {
+    "tone": "cálido y festivo",
+    "formality": "informal"
+  },
+  "logo": "assets/logo-oaxaca.svg",
+  "radius": "16px"
+}

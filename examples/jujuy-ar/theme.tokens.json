@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/theme-tokens.schema.json",
+  "colors": {
+    "primary": "#C1440E",
+    "secondary": "#F2A900",
+    "background": "#FBF7F0",
+    "text": "#2B2119",
+    "accent": "#5B8C5A"
+  },
+  "typography": {
+    "headingFont": "Playfair Display",
+    "bodyFont": "Inter",
+    "baseSize": "16px"
+  },
+  "voice": {
+    "tone": "calido y cercano",
+    "formality": "informal"
+  },
+  "logo": "assets/logo-jujuy.svg",
+  "radius": "12px"
+}

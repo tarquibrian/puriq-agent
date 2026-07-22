@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schemas/site-config.schema.json",
+  "layout": "moderno",
+  "modules": {
+    "map": { "enabled": true, "order": 1, "label": "Mapa" },
+    "places": { "enabled": true, "order": 2, "label": "Que visitar" },
+    "events": { "enabled": true, "order": 3, "label": "Eventos" },
+    "chatweb": {
+      "enabled": true,
+      "order": 4,
+      "label": "Asistente",
+      "persona": "calido y cercano",
+      "knowledgeSource": "content/faq/"
+    },
+    "blog": { "enabled": false, "order": 5, "label": "Noticias" }
+  },
+  "hero": {
+    "type": "image",
+    "asset": "assets/hero-quebrada.jpg",
+    "headline": "Jujuy te espera",
+    "subheadline": "Colores, cultura y altura."
+  },
+  "contact": { "email": "turismo@jujuy.gob.ar", "phone": "" },
+  "deploy": { "target": "aws-amplify", "domain": "" }
+}

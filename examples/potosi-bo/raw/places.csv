@@ -1,0 +1,5 @@
+name,category,address,lat,lng,short_description,hours,tags,image
+Salar de Uyuni,naturaleza,"Uyuni, Potosí",-20.2,-67.6,"El salar mas grande del mundo, un espejo infinito a 3660 msnm.",Todo el dia,salar;fotografia;paisaje,uyuni-01.jpg
+Cerro Rico de Potosí,historia,Potosí,-19.617,-65.751,"La montaña de plata que financio imperios; Patrimonio de la Humanidad.",Visitas guiadas a minas,mineria;unesco;historia,cerro-rico-01.jpg
+Casa Nacional de la Moneda,cultura,"Calle Ayacucho, Potosí",-19.588,-65.754,"Uno de los museos mas importantes de Sudamerica, donde se acuñaba la plata.",Mar-Dom 09:00 - 17:00,museo;colonial;cultura,moneda-01.jpg
+Laguna Colorada,naturaleza,"Reserva Eduardo Avaroa, Sud Lípez",-22.19,-67.79,"Laguna roja con flamencos andinos en plena Puna.",Todo el dia,puna;flamencos;reserva,laguna-colorada-01.jpg

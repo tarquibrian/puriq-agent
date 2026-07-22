@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schemas/site-config.schema.json",
+  "layout": "clasico",
+  "modules": {
+    "map": { "enabled": true, "order": 1, "label": "Mapa" },
+    "places": { "enabled": true, "order": 2, "label": "Qué visitar" },
+    "events": { "enabled": true, "order": 3, "label": "Festividades" },
+    "chatweb": {
+      "enabled": true,
+      "order": 4,
+      "label": "Asistente",
+      "persona": "institucional y cálido",
+      "knowledgeSource": "content/faq/"
+    },
+    "blog": { "enabled": false, "order": 5, "label": "Noticias" }
+  },
+  "hero": {
+    "type": "image",
+    "asset": "assets/hero-uyuni.jpg",
+    "headline": "Potosí, plata y sal",
+    "subheadline": "Del espejo del Salar al corazón del Cerro Rico."
+  },
+  "contact": { "email": "turismo@potosi.gob.bo", "phone": "" },
+  "deploy": { "target": "aws-amplify", "domain": "" }
+}
