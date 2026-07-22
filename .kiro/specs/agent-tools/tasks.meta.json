@@ -1,0 +1,946 @@
+{
+  "pbtResults": {
+    "4.3 Prueba de propiedad: solo sobreviven filas con nombre no vacío": {
+      "status": "passed",
+      "lastRunTimestamp": 1784605500489
+    },
+    "4.2 Prueba de propiedad: ids son slugs bien formados": {
+      "status": "passed",
+      "lastRunTimestamp": 1784605575288
+    },
+    "2.3 Prueba de propiedad: coords garantizadas tras geocode o error accionable": {
+      "status": "passed",
+      "lastRunTimestamp": 1784605622470
+    },
+    "2.4 Prueba de propiedad: el contrato se valida después de geocode y antes de escribir/construir": {
+      "status": "passed",
+      "lastRunTimestamp": 1784605721309
+    },
+    "4.6 Prueba de propiedad: eventos incluidos o vacíos según events.csv": {
+      "status": "passed",
+      "lastRunTimestamp": 1784605823158
+    },
+    "4.5 Prueba de propiedad: integridad referencial de eventos": {
+      "status": "passed",
+      "lastRunTimestamp": 1784605849679
+    },
+    "4.4 Prueba de propiedad: coords del CSV preservadas/ausentes": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606030121
+    },
+    "5.3 Prueba de propiedad: geocode solo completa lo faltante (idempotencia)": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606030651
+    },
+    "5.4 Prueba de propiedad: coordenadas asignadas en rango válido": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606273516
+    },
+    "6.4 Prueba de propiedad: unicidad de ids tras la importación": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606830239
+    },
+    "6.5 Prueba de propiedad: la importación no duplica y preserva lo existente": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606288359
+    },
+    "6.3 Prueba de propiedad: procedencia de los datos importados": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606493748
+    },
+    "7.3 Prueba de propiedad: completitud de descripciones tras la generación": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606813010
+    },
+    "7.4 Prueba de propiedad: preservación del contenido existente": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606814154
+    },
+    "6.6 Prueba de propiedad: un fallo de fuente externa preserva el documento": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606816154
+    },
+    "7.5 Prueba de propiedad: el prompt refleja la voz de marca": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606993230
+    },
+    "7.7 Prueba de propiedad: robustez ante fallo del LLM por ítem": {
+      "status": "passed",
+      "lastRunTimestamp": 1784606997243
+    },
+    "7.6 Prueba de propiedad: traducciones por locale configurado": {
+      "status": "passed",
+      "lastRunTimestamp": 1784607005109
+    },
+    "9.4 Prueba de propiedad: resolución de módulos habilitados y ordenados": {
+      "status": "passed",
+      "lastRunTimestamp": 1784607194197
+    },
+    "9.5 Prueba de propiedad: tokens de marca como variables CSS": {
+      "status": "passed",
+      "lastRunTimestamp": 1784607375669
+    },
+    "11.3 Prueba de propiedad: deploy rechaza destinos no soportados": {
+      "status": "passed",
+      "lastRunTimestamp": 1784607376237
+    },
+    "13.2 Prueba de propiedad: no exposición de secretos": {
+      "status": "passed",
+      "lastRunTimestamp": 1784607936759
+    }
+  },
+  "executionHistory": {
+    "1.1 Crear `agent/puriq/config.py` con acceso seguro al entorno": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594343920
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594355354
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784595135250
+      }
+    ],
+    "1.2 Extraer `slugify` a un módulo utilitario compartido (DD-2)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594343998
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784595141223
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784595279475
+      }
+    ],
+    "1.3 Agregar helper de comprobación de coords accionable en el pipeline": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344064
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784595284007
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784595828105
+      }
+    ],
+    "2.1 Reordenar `Puriq.collect()` en `core.py`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344090
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784595848870
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596040578
+      }
+    ],
+    "2.2 Hacer tolerante la carga del `tourism-data.json` en `Puriq.build()`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344116
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596045111
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596169870
+      }
+    ],
+    "3. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344144
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596181044
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596470752
+      }
+    ],
+    "4.1 Endurecer lectura y normalización de recursos": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344171
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596500414
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596779163
+      }
+    ],
+    "5.1 Definir el protocolo `GeocodeProvider` y la fábrica `get_provider`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344208
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596501293
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596781081
+      }
+    ],
+    "5.2 Implementar `fill_missing_coords`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344232
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596793095
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597395798
+      }
+    ],
+    "6.1 Aislar las fronteras de red de fuentes abiertas": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344258
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596502193
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596781339
+      }
+    ],
+    "6.2 Implementar `merge` con mapeo, deduplicación y marcado": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344283
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596793410
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597396115
+      }
+    ],
+    "7.1 Definir el protocolo `LLMProvider` y la fábrica `get_provider`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344308
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596507361
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596786361
+      }
+    ],
+    "7.2 Implementar `enrich` sobre contenido faltante": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344330
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596797939
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597397019
+      }
+    ],
+    "8. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344357
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597402765
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597788422
+      }
+    ],
+    "9.1 Preparar directorio de trabajo y escribir el contrato": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344377
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597794501
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598559929
+      }
+    ],
+    "9.2 Resolver módulos y materializar la marca": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344405
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598576179
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598926196
+      }
+    ],
+    "9.3 Ejecutar el build de Astro y devolver la ruta": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344439
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598931325
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784599956109
+      }
+    ],
+    "10.1 Servir `dist/` con manejo de puerto y ausencia de build": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344465
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784599960776
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784600173233
+      }
+    ],
+    "11.1 Definir el protocolo `DeployAdapter` y el registro `ADAPTERS`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344484
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597794772
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598560046
+      }
+    ],
+    "11.2 Implementar adaptadores AWS y export estático": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344510
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598576697
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598926516
+      }
+    ],
+    "12.1 Registrar y cablear las tools en `mcp/server.py`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344534
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597800055
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598566181
+      }
+    ],
+    "13.1 Capturar excepciones de tool en `cli.py` y presentarlas con `rich`": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344559
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597800702
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598566936
+      }
+    ],
+    "14. Checkpoint final - Asegurar que todas las pruebas pasan": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784594344583
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784600187192
+      },
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784601252730
+      }
+    ],
+    "1. Fundamentos transversales de configuración y utilidades": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784595828143
+      }
+    ],
+    "2. Ajustar el pipeline del core según DD-1 (geocode antes de validar en ambos puntos)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596169914
+      }
+    ],
+    "4. Robustecer `scan_resources` (Req 1)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784596779204
+      }
+    ],
+    "5. Implementar `geocode` real con adaptadores de proveedor (Req 4)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597395846
+      }
+    ],
+    "6. Implementar `import_open_data` (Req 2)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597396149
+      }
+    ],
+    "7. Implementar `generate_content` con proveedores de LLM (Req 3)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784597397059
+      }
+    ],
+    "12. Exponer las tools vía MCP (Req 8)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598566224
+      }
+    ],
+    "13. Manejo de errores transversal en el CLI (Req 9)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598566981
+      }
+    ],
+    "11. Implementar `deploy` con adaptadores por destino (Req 7)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784598926575
+      }
+    ],
+    "9. Implementar `build_site.assemble` (Req 5)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784599956152
+      }
+    ],
+    "10. Implementar `build_site.serve` para previsualización (Req 6)": [
+      {
+        "executionId": "3c680a40-b9f5-4a53-81d0-d8bd42e2c156",
+        "chatSessionId": "sess_f995d17f-0682-453c-9438-9b98b25b043b",
+        "timestamp": 1784600173277
+      }
+    ],
+    "1.4 Escribir prueba unitaria para `config.py`": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605282687
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605746712
+      }
+    ],
+    "2.3 Prueba de propiedad: coords garantizadas tras geocode o error accionable": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605283693
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605747707
+      }
+    ],
+    "2.4 Prueba de propiedad: el contrato se valida después de geocode y antes de escribir/construir": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605284714
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605748714
+      }
+    ],
+    "4.2 Prueba de propiedad: ids son slugs bien formados": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605286677
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605750615
+      }
+    ],
+    "4.3 Prueba de propiedad: solo sobreviven filas con nombre no vacío": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605286810
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605750727
+      }
+    ],
+    "4.4 Prueba de propiedad: coords del CSV preservadas/ausentes": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605757492
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606050521
+      }
+    ],
+    "4.5 Prueba de propiedad: integridad referencial de eventos": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605758507
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606051509
+      }
+    ],
+    "4.6 Prueba de propiedad: eventos incluidos o vacíos según events.csv": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605759524
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606052515
+      }
+    ],
+    "4.7 Pruebas unitarias de condiciones de error de scan": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605761470
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606054327
+      }
+    ],
+    "5.3 Prueba de propiedad: geocode solo completa lo faltante (idempotencia)": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784605761700
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606054574
+      }
+    ],
+    "5.4 Prueba de propiedad: coordenadas asignadas en rango válido": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606059380
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606539919
+      }
+    ],
+    "5.5 Pruebas unitarias de selección de proveedor de geocoding": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606061148
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606537875
+      }
+    ],
+    "6.3 Prueba de propiedad: procedencia de los datos importados": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606062253
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606540795
+      }
+    ],
+    "6.4 Prueba de propiedad: unicidad de ids tras la importación": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606063351
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606850294
+      }
+    ],
+    "6.5 Prueba de propiedad: la importación no duplica y preserva lo existente": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606064257
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606541178
+      }
+    ],
+    "6.6 Prueba de propiedad: un fallo de fuente externa preserva el documento": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606547982
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606851311
+      }
+    ],
+    "6.7 Prueba de integración de consulta a Overpass/Wikidata": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606549904
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606853156
+      }
+    ],
+    "7.3 Prueba de propiedad: completitud de descripciones tras la generación": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606550963
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606854289
+      }
+    ],
+    "7.4 Prueba de propiedad: preservación del contenido existente": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606551080
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606854568
+      }
+    ],
+    "7.5 Prueba de propiedad: el prompt refleja la voz de marca": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606860366
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607211300
+      }
+    ],
+    "7.6 Prueba de propiedad: traducciones por locale configurado": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606861351
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607212377
+      }
+    ],
+    "7.7 Prueba de propiedad: robustez ante fallo del LLM por ítem": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606863355
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607213408
+      }
+    ],
+    "7.8 Pruebas unitarias de selección de proveedor de LLM": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606864229
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607214392
+      }
+    ],
+    "9.4 Prueba de propiedad: resolución de módulos habilitados y ordenados": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784606864680
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607214992
+      }
+    ],
+    "9.5 Prueba de propiedad: tokens de marca como variables CSS": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607221010
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607676323
+      }
+    ],
+    "9.6 Prueba de integración del build de Astro": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607222865
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607677290
+      }
+    ],
+    "10.2 Pruebas unitarias de preview": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607223987
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607678398
+      }
+    ],
+    "11.3 Prueba de propiedad: deploy rechaza destinos no soportados": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607225020
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607680178
+      }
+    ],
+    "11.4 Prueba de integración de adaptadores AWS y export estático": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607225707
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607680362
+      }
+    ],
+    "12.2 Pruebas unitarias del registro y esquemas MCP": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607685362
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607963919
+      }
+    ],
+    "13.2 Prueba de propiedad: no exposición de secretos": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607686344
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607964917
+      }
+    ],
+    "13.3 Pruebas unitarias de mensajes de error del CLI": [
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607687975
+      },
+      {
+        "executionId": "18d524ba-5748-42ed-aaae-696aa3dc014c",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784607965306
+      }
+    ]
+  }
+}
