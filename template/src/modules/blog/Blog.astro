@@ -1,0 +1,43 @@
+---
+// Modulo BLOG: noticias/articulos desde markdown (Content Collection `blog`).
+// Los Articles los inyecta el build (build_site._inject_articles) copiando
+// <project>/content/*.md a src/content/blog/. Aqui se leen con getCollection,
+// se ordenan por fecha descendente y se renderiza el cuerpo markdown real.
+// TODO(v2): panel admin con roles editor/admin. Ver PROYECTO seccion 7 (roadmap).
+import { getCollection } from "astro:content";
+
+const entries = (await getCollection("blog")).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+
+// Pre-render del cuerpo markdown de cada Article (Astro compila el markdown).
+const posts = await Promise.all(
+  entries.map(async (entry) => {
+    const { Content } = await entry.render();
+    return { data: entry.data, Content };
+  })
+);
+
+const fmt = (d: Date) =>
+  new Date(d).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
+---
+<h2>Noticias</h2>
+{posts.length === 0 ? (
+  <p style="color:#666;">Aún no hay artículos publicados.</p>
+) : (
+  <div style="display:grid; gap:1.2rem;">
+    {posts.map((post) => {
+      const Content = post.Content;
+      return (
+        <article style="border:1px solid #eee; border-radius:12px; background:#fff; padding:1rem 1.2rem;">
+          <h3 style="margin:.2rem 0;">{post.data.title}</h3>
+          <div style="color:#666; font-size:.9rem;">{fmt(post.data.date)}</div>
+          {post.data.summary && (
+            <p style="color:#555; font-style:italic; margin:.5rem 0;">{post.data.summary}</p>
+          )}
+          <div style="color:#333;"><Content /></div>
+        </article>
+      );
+    })}
+  </div>
+)}

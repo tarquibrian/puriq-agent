@@ -1,0 +1,26 @@
+---
+// Home: renderiza el hero y compone los modulos activos en el orden configurado.
+import Base from "../layouts/Base.astro";
+import { siteConfig, activeModules } from "../lib/data";
+import Map from "../modules/map/Map.astro";
+import Places from "../modules/places/Places.astro";
+import Events from "../modules/events/Events.astro";
+import Blog from "../modules/blog/Blog.astro";
+import Chat from "../modules/chatweb/Chat.astro";
+
+const registry: Record<string, any> = {
+  map: Map, places: Places, events: Events, blog: Blog, chatweb: Chat,
+};
+const hero = siteConfig.hero ?? {};
+const mods = activeModules();
+---
+<Base>
+  <section style="text-align:center; padding:2rem 0;">
+    <h1>{hero.headline}</h1>
+    <p>{hero.subheadline}</p>
+  </section>
+  {mods.map((m) => {
+    const Comp = registry[m.key];
+    return Comp ? <section id={m.key}><Comp /></section> : null;
+  })}
+</Base>

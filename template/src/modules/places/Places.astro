@@ -1,0 +1,20 @@
+---
+// Modulo PLACES: fichas de lugares turisticos. Alimenta y complementa al mapa.
+import { places, categories } from "../../lib/data";
+const labelOf = (id: string) =>
+  categories.find((c: any) => c.id === id)?.label ?? id;
+---
+<h2>Que visitar</h2>
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1rem;">
+  {places.map((p) => (
+    <article style="border:1px solid #eee; border-radius:12px; overflow:hidden; background:#fff;">
+      {p.images?.[0] && <img src={p.images[0]} alt={p.name} style="width:100%; height:150px; object-fit:cover;" />}
+      <div style="padding:.8rem;">
+        <small style="color:var(--primary); text-transform:uppercase;">{labelOf(p.category)}</small>
+        <h3 style="margin:.3rem 0;">{p.name}</h3>
+        <p style="font-size:.9rem; color:#555;">{p.shortDescription}</p>
+        {p.hours && <small>Horario: {p.hours}</small>}
+      </div>
+    </article>
+  ))}
+</div>

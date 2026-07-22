@@ -1,0 +1,40 @@
+---
+// Layout base: aplica los design tokens del tema como CSS variables.
+import { site, themeTokens, activeModules } from "../lib/data";
+const c = themeTokens.colors;
+const t = themeTokens.typography;
+const nav = activeModules();
+---
+<!doctype html>
+<html lang={site.defaultLocale ?? "es"}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{site.name}</title>
+    <meta name="description" content={site.description ?? ""} />
+    <style define:vars={{
+      primary: c.primary, secondary: c.secondary ?? c.primary,
+      bg: c.background, text: c.text, accent: c.accent ?? c.primary,
+      radius: themeTokens.radius ?? "12px",
+      headingFont: t.headingFont, bodyFont: t.bodyFont,
+    }}>
+      :root { color-scheme: light; }
+      body { margin: 0; background: var(--bg); color: var(--text);
+             font-family: var(--bodyFont), system-ui, sans-serif; }
+      h1, h2, h3 { font-family: var(--headingFont), Georgia, serif; }
+      header { display: flex; gap: 1.2rem; padding: 1rem 1.5rem;
+               background: var(--primary); color: #fff; }
+      header a { color: #fff; text-decoration: none; }
+      main { max-width: 1080px; margin: 0 auto; padding: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>{site.name}</strong>
+      {nav.map((m) => <a href={`#${m.key}`}>{m.label}</a>)}
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+---
+// Modulo EVENTS: calendario turistico con fechas clave.
+import { events } from "../../lib/data";
+const sorted = [...events].sort((a, b) => a.startDate.localeCompare(b.startDate));
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
+---
+<h2>Eventos y fechas clave</h2>
+<ul style="list-style:none; padding:0; display:grid; gap:.6rem;">
+  {sorted.map((e) => (
+    <li style="border-left:4px solid var(--primary); background:#fff; padding:.8rem 1rem; border-radius:8px;">
+      <strong>{e.name}</strong>
+      <div style="color:#666; font-size:.9rem;">
+        {fmt(e.startDate)}{e.endDate ? ` - ${fmt(e.endDate)}` : ""}
+      </div>
+    </li>
+  ))}
+</ul>

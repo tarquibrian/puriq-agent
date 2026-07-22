@@ -1,0 +1,30 @@
+---
+// Modulo MAP: mapa interactivo con Leaflet + OpenStreetMap (sin API key).
+// Modulo core pre-construido y probado; el agente NO lo reescribe, solo lo alimenta.
+import { site, places } from "../../lib/data";
+const points = places.filter((p) => p.coords);
+---
+<h2>Mapa turistico</h2>
+<div id="puriq-map" style="height:420px; border-radius:12px; overflow:hidden;"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script is:inline define:vars={{ center: site.center, points }}>
+  const load = () =>
+    new Promise((res) => {
+      const s = document.createElement("script");
+      s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      s.onload = res;
+      document.head.appendChild(s);
+    });
+  load().then(() => {
+    const map = L.map("puriq-map").setView([center.lat, center.lng], center.zoom ?? 8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap",
+    }).addTo(map);
+    for (const p of points) {
+      L.marker([p.coords.lat, p.coords.lng])
+        .addTo(map)
+        .bindPopup(`<strong>${p.name}</strong><br>${p.shortDescription ?? ""}`);
+    }
+  });
+</script>

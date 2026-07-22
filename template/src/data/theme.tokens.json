@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/theme-tokens.schema.json",
+  "colors": {
+    "primary": "#7A1F2B",
+    "secondary": "#B08D57",
+    "background": "#F5F1EA",
+    "text": "#241C1C",
+    "accent": "#3E5C76"
+  },
+  "typography": {
+    "headingFont": "Playfair Display",
+    "bodyFont": "Inter",
+    "baseSize": "16px"
+  },
+  "voice": {
+    "tone": "institucional y cálido",
+    "formality": "formal"
+  },
+  "logo": "assets/logo-potosi.svg",
+  "radius": "8px"
+}
