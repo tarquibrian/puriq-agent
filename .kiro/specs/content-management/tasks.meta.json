@@ -1,0 +1,463 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Crear `schemas/article.schema.json`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769057
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676793683
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677679911
+      }
+    ],
+    "1.2 Registrar `\"article\"` en `puriq.schemas`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769126
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677693594
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677752744
+      }
+    ],
+    "2.1 Implementar `parse` y `serialize`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769187
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676794738
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677681104
+      }
+    ],
+    "3.1 Implementar el helper de merge a nivel de campo (tools/_merge.py)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769222
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676795861
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677682050
+      }
+    ],
+    "3.2 Implementar el helper de escritura atómica validada (tools/_persist.py)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769273
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677778482
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678009523
+      }
+    ],
+    "4.1 Implementar `read_all`, `read`, `write`, `delete`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769316
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678011365
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678244474
+      }
+    ],
+    "5.1 Implementar `create_article`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769373
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678249432
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678400613
+      }
+    ],
+    "5.4 Implementar `list_articles` (filtros + orden)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769415
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678250415
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678401608
+      }
+    ],
+    "5.8 Implementar `edit_article`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769454
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678251378
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678402608
+      }
+    ],
+    "5.9 Implementar `delete_article`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769495
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678252379
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678403609
+      }
+    ],
+    "6. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769541
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678405584
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678532977
+      }
+    ],
+    "7.1 Implementar `query` (solo lectura)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769585
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676797538
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677683033
+      }
+    ],
+    "8.1 Implementar `edit`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769620
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678013224
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678245440
+      }
+    ],
+    "9.1 Implementar `delete`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769660
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678014168
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678247303
+      }
+    ],
+    "10.1 Extraer los helpers de parseo CSV a un módulo neutro compartido (tools/_csv.py)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769711
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676797693
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677684054
+      }
+    ],
+    "10.2 Implementar `bulk_update`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769780
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678014275
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678248427
+      }
+    ],
+    "11.1 Implementar `analyze_seo`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769815
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677780438
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678010355
+      }
+    ],
+    "12. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769867
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678406590
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678533940
+      }
+    ],
+    "13.1 Añadir los métodos de orquestación en `core.py`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769916
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678535961
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678716460
+      }
+    ],
+    "14.1 Registrar y cablear las tools en `mcp/server.py`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676769964
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678718437
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678971542
+      }
+    ],
+    "14.2 Añadir los subcomandos del CLI en `cli.py`": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676770011
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678719580
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678972535
+      }
+    ],
+    "15. Checkpoint final - Asegurar que todas las pruebas pasan": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784676770050
+      },
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678974495
+      },
+      {
+        "executionId": "35322e9e-9747-4f93-ac90-788172b2a07e",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784689630769
+      }
+    ],
+    "2. Implementar el `FrontmatterCodec` (tools/_frontmatter.py, DD-2)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677681151
+      }
+    ],
+    "7. Implementar `query_content` (tools/query_content.py, Req 6)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677683085
+      }
+    ],
+    "1. Definir y registrar el Article_Schema (Req 1)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784677752771
+      }
+    ],
+    "3. Implementar helpers compartidos de mutación (DD-5, DD-6)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678009560
+      }
+    ],
+    "11. Implementar `analyze_seo` de solo lectura (tools/analyze_seo.py, Req 10)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678010403
+      }
+    ],
+    "4. Implementar el `ArticleStore` escaneando `/content` (tools/_article_store.py, DD-1)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678244527
+      }
+    ],
+    "8. Implementar `edit_content` (tools/edit_content.py, Req 7)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678245486
+      }
+    ],
+    "9. Implementar `delete_content` con integridad referencial (tools/delete_content.py, Req 8)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678247353
+      }
+    ],
+    "10. Extraer los helpers CSV y implementar `bulk_update` (Req 9, DD-4)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678248458
+      }
+    ],
+    "5. Implementar `manage_articles` CRUD (tools/manage_articles.py, Req 2–5)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678403646
+      }
+    ],
+    "13. Cablear las seis tools en `puriq.core.Puriq` (Req 11)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678716512
+      }
+    ],
+    "14. Exponer las tools vía MCP y CLI (Req 11)": [
+      {
+        "executionId": "ac97d6fa-743a-4cf1-a33d-82c2a48d8ba8",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784678972571
+      }
+    ]
+  }
+}
