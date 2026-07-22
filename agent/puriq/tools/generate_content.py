@@ -11,6 +11,21 @@ Este modulo aisla la seleccion del proveedor de LLM detras del protocolo
 resuelve el proveedor por configuracion (DD-4) segun `PURIQ_LLM_MODE`:
   - `local`   -> `OllamaProvider` (fallback local, extra `local`).
   - `bedrock` -> `BedrockProvider` (Amazon Bedrock, por defecto).
+  - `openai`  -> `OpenAICompatibleProvider` (API compatible con OpenAI: OpenAI,
+    Azure OpenAI, Groq, OpenRouter, servidores locales tipo vLLM/LM Studio).
+
+Modo `openai` (proveedor compatible con OpenAI, con soporte para Azure):
+  Se selecciona con `PURIQ_LLM_MODE=openai` y se configura por entorno:
+    - `PURIQ_OPENAI_API_KEY`    (requerida; se registra como secreto).
+    - `PURIQ_OPENAI_BASE_URL`   (default `https://api.openai.com/v1`).
+    - `PURIQ_OPENAI_MODEL`      (nombre del modelo; en Azure es el DEPLOYMENT;
+       default `gpt-4o-mini` para OpenAI estandar).
+    - `PURIQ_OPENAI_API_VERSION`(solo Azure; default `2024-10-21`).
+  Deteccion de Azure: si `base_url` contiene `azure.com`, se usa el estilo Azure
+  (cabecera `api-key`, URL `/openai/deployments/<deployment>/chat/completions?
+  api-version=...`, sin `model` en la URL). En caso contrario se usa el estilo
+  OpenAI estandar (cabecera `Authorization: Bearer`, URL `<base>/chat/completions`
+  con `model` en el cuerpo). La E/S usa `httpx` (dependencia ya presente).
 
 `enrich(data, voice=None)` consume el proveedor via `get_provider()` (una vez por
 invocacion) para completar SOLO lo faltante: descripciones vacias de
@@ -86,11 +101,20 @@ class BedrockProvider:
         self._client = None  # cliente boto3 perezoso (se crea al primer uso)
 
     def _get_client(self):
-        """Crea (una sola vez) y devuelve el cliente `bedrock-runtime` de boto3."""
+        """Crea (una sola vez) y devuelve el cliente `bedrock-runtime` de boto3.
+
+        Resuelve la region via `AWS_REGION` (como hace `geocode`) y la pasa como
+        `region_name`. Si no esta definida, se omite para que boto3 use su propia
+        cadena de configuracion (p. ej. `AWS_DEFAULT_REGION` o el perfil).
+        """
         if self._client is None:
             import boto3  # import diferido: solo si se usa Bedrock
 
-            self._client = boto3.client("bedrock-runtime")
+            region = get_env("AWS_REGION")
+            kwargs = {}
+            if region:
+                kwargs["region_name"] = region
+            self._client = boto3.client("bedrock-runtime", **kwargs)
         return self._client
 
     def complete(self, prompt: str) -> str:
@@ -154,11 +178,146 @@ class OllamaProvider:
         return (response.get("response") or "").strip()
 
 
+# Valores por defecto del proveedor compatible con OpenAI.
+_DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
+_DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+# Version de API por defecto para Azure OpenAI (estable actual).
+_DEFAULT_OPENAI_API_VERSION = "2024-10-21"
+# Timeout prudente para las llamadas HTTP al servicio de LLM.
+_OPENAI_TIMEOUT_SECONDS = 60.0
+
+
+class OpenAICompatibleProvider:
+    """Proveedor de LLM sobre cualquier API compatible con OpenAI (con Azure).
+
+    Cubre dos estilos de la API `chat/completions` detectados por la `base_url`:
+
+    - Azure OpenAI (si `base_url` contiene ``azure.com``):
+        * Autenticacion con la cabecera ``api-key: <clave>``.
+        * URL con el deployment en la ruta:
+          ``<base>/openai/deployments/<deployment>/chat/completions?api-version=<v>``
+          (si `base_url` ya termina en ``/openai`` no se duplica ese segmento).
+          El modelo/deployment va en la URL, no en el cuerpo.
+    - OpenAI estandar y compatibles (OpenAI, Groq, OpenRouter, vLLM/LM Studio):
+        * Autenticacion con la cabecera ``Authorization: Bearer <clave>``.
+        * URL ``<base>/chat/completions`` con ``"model"`` en el cuerpo.
+
+    La clave se lee con `get_env(..., secret=True)`, de modo que `config.redact`
+    enmascara su valor en cualquier salida o mensaje de error; este proveedor
+    nunca la registra ni la imprime. La E/S usa `httpx` (dependencia existente).
+    """
+
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
+        api_version: str | None = None,
+        max_tokens: int = _MAX_TOKENS,
+    ):
+        """Configura el proveedor leyendo la configuracion por entorno.
+
+        Args:
+            api_key: clave de API. Si es None, se lee de `PURIQ_OPENAI_API_KEY`
+                (requerida; ausente -> `MissingEnvVarError`) y se registra como
+                secreto para el enmascarado de `redact`.
+            base_url: endpoint base. Si es None, se lee de `PURIQ_OPENAI_BASE_URL`
+                (default `https://api.openai.com/v1`).
+            model: nombre del modelo (en Azure, el nombre del DEPLOYMENT). Si es
+                None, se lee de `PURIQ_OPENAI_MODEL` (default `gpt-4o-mini`).
+            api_version: version de API para Azure. Si es None, se lee de
+                `PURIQ_OPENAI_API_VERSION` (default `2024-10-21`).
+            max_tokens: tope de tokens de la respuesta generada.
+        """
+        # `secret=True` registra la clave para que `redact` la enmascare; si
+        # falta, `get_env(required=True)` lanza `MissingEnvVarError` nombrandola.
+        self._api_key = api_key or get_env(
+            "PURIQ_OPENAI_API_KEY", required=True, secret=True
+        )
+        self._base_url = (
+            base_url or get_env("PURIQ_OPENAI_BASE_URL") or _DEFAULT_OPENAI_BASE_URL
+        )
+        self._model = (
+            model or get_env("PURIQ_OPENAI_MODEL") or _DEFAULT_OPENAI_MODEL
+        )
+        self._api_version = (
+            api_version
+            or get_env("PURIQ_OPENAI_API_VERSION")
+            or _DEFAULT_OPENAI_API_VERSION
+        )
+        self._max_tokens = max_tokens
+
+    @property
+    def is_azure(self) -> bool:
+        """True si la `base_url` apunta a Azure OpenAI (contiene `azure.com`)."""
+        return "azure.com" in self._base_url.lower()
+
+    def _build_request(self, prompt: str) -> tuple[str, dict, dict]:
+        """Construye ``(url, headers, body)`` segun el estilo (Azure vs estandar).
+
+        En Azure el deployment viaja en la URL y la autenticacion usa `api-key`;
+        en el estilo estandar el modelo viaja en el cuerpo y la autenticacion usa
+        `Authorization: Bearer`.
+        """
+        base = self._base_url.rstrip("/")
+        body: dict = {
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": self._max_tokens,
+            "temperature": 0.7,
+        }
+        if self.is_azure:
+            # Evitar duplicar `/openai` si la base ya lo incluye.
+            prefix = base if base.endswith("/openai") else f"{base}/openai"
+            url = (
+                f"{prefix}/deployments/{self._model}/chat/completions"
+                f"?api-version={self._api_version}"
+            )
+            headers = {
+                "api-key": self._api_key,
+                "Content-Type": "application/json",
+            }
+        else:
+            url = f"{base}/chat/completions"
+            body["model"] = self._model
+            headers = {
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+            }
+        return url, headers, body
+
+    def complete(self, prompt: str) -> str:
+        """Invoca `chat/completions` via httpx y devuelve el texto de la respuesta.
+
+        Hace POST con timeout prudente, propaga los errores HTTP (los traducen y
+        enmascaran los manejadores del CLI/wizard) y extrae
+        `choices[0].message.content`.
+        """
+        import httpx  # import diferido: solo si se usa el modo openai
+
+        url, headers, body = self._build_request(prompt)
+        response = httpx.post(
+            url, headers=headers, json=body, timeout=_OPENAI_TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        return self._extract_text(response.json())
+
+    @staticmethod
+    def _extract_text(payload: dict) -> str:
+        """Extrae `choices[0].message.content` de la respuesta chat.completions."""
+        choices = payload.get("choices") or []
+        if not choices:
+            return ""
+        message = choices[0].get("message") or {}
+        return (message.get("content") or "").strip()
+
+
 def get_provider() -> LLMProvider:
     """Fabrica del proveedor de LLM segun configuracion (DD-4).
 
     Selecciona por la env `PURIQ_LLM_MODE`:
       - `local`   -> `OllamaProvider` (fallback local).
+      - `openai`  -> `OpenAICompatibleProvider` (OpenAI/Azure/Groq/OpenRouter...).
       - `bedrock` (o cualquier otro valor / ausente) -> `BedrockProvider`.
 
     Returns:
@@ -168,6 +327,9 @@ def get_provider() -> LLMProvider:
     if mode == "local":
         logger.debug("LLM mode: local (Ollama)")
         return OllamaProvider()
+    if mode == "openai":
+        logger.debug("LLM mode: openai (proveedor compatible con OpenAI/Azure)")
+        return OpenAICompatibleProvider()
     logger.debug("LLM mode: bedrock (Amazon Bedrock)")
     return BedrockProvider()
 
@@ -398,7 +560,7 @@ def contract_view(data: dict) -> dict:
     return {k: v for k, v in data.items() if k != I18N_KEY}
 
 
-def enrich(data: dict, voice: dict | None = None) -> dict:
+def enrich(data: dict, voice: dict | None = None, *, translate: bool = True) -> dict:
     """Rellena contenido faltante usando el LLM, respetando la voz de marca.
 
     Comportamiento (Req 3):
@@ -435,10 +597,15 @@ def enrich(data: dict, voice: dict | None = None) -> dict:
     Args:
         data: documento Tourism_Data (se modifica in situ y se devuelve).
         voice: subdocumento `voice` de Theme_Tokens (`tone`, `formality`).
+        translate: keyword-only. Si es True (por defecto) se ejecuta el paso 4
+            (generacion de traducciones a los Locales extra bajo `i18n`). Si es
+            False se OMITE ese paso: util cuando el consumidor del contrato aun
+            no renderiza `i18n` y esas llamadas al LLM serian coste desperdiciado.
+            El resto del enriquecimiento (descripciones, SEO) no cambia.
 
     Returns:
-        El mismo `data`, con descripciones/SEO completados y, si corresponde,
-        las traducciones bajo la clave companion `i18n`.
+        El mismo `data`, con descripciones/SEO completados y, si corresponde y
+        `translate` es True, las traducciones bajo la clave companion `i18n`.
     """
     provider = get_provider()
     site = data.get("site", {}) or {}
@@ -483,8 +650,12 @@ def enrich(data: dict, voice: dict | None = None) -> dict:
     # 4) Traducciones para cada Locale distinto del `defaultLocale` (Req 3.6).
     #    Se guardan en la clave companion `i18n` (fuera del contrato); usar
     #    `contract_view(data)` para obtener la vista conforme al esquema.
-    traducciones = generate_translations(data, voice, provider)
-    if traducciones:
-        data[I18N_KEY] = traducciones
+    #    Solo se ejecuta cuando `translate` es True: si el consumidor del
+    #    contrato aun no renderiza `i18n`, generar traducciones seria coste
+    #    desperdiciado, asi que el llamador puede desactivarlo con translate=False.
+    if translate:
+        traducciones = generate_translations(data, voice, provider)
+        if traducciones:
+            data[I18N_KEY] = traducciones
 
     return data

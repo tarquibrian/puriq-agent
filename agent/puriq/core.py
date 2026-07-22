@@ -148,7 +148,30 @@ class Puriq:
 
         if use_llm:
             _emit(progress, "Generando contenido con IA...")
-            data = generate_content.enrich(data, theme.get("voice", {}))
+            # Traducciones OFF: la plantilla Astro actual NO renderiza el
+            # companion `i18n`, así que generarlas sería coste de LLM
+            # desperdiciado. Cuando el render de i18n aterrice en build_site,
+            # cambiar esto a `translate=True`.
+            data = generate_content.enrich(
+                data, theme.get("voice", {}), translate=False
+            )
+            # Persistir el contrato enriquecido de vuelta a tourism-data.json,
+            # SOLO en la rama use_llm=True. Sin esto, cada build re-llamaría al
+            # LLM (re-pago) y el texto generado no sería revisable/editable.
+            # Se persiste AQUÍ (justo tras enrich, antes de assemble): la escritura
+            # es barata y garantiza que el contrato guardado coincide exactamente
+            # con lo que se construye. Se escribe la vista conforme al esquema
+            # (`contract_view`, sin `i18n`) con escritura atómica y validación
+            # ESTRICTA: es segura porque geocode ya completó las coords y
+            # check_places_have_coords se ejecutó más arriba. NO se persiste en
+            # la rama use_llm=False, para no alterar el comportamiento existente
+            # (Property 19 asume que el draft en disco sigue siendo inválido).
+            _emit(progress, "Guardando contenido generado...")
+            _persist.validate_then_write(
+                generate_content.contract_view(data),
+                "tourism-data",
+                self.project / DATA,
+            )
 
         _emit(progress, "Construyendo el sitio estático...")
         dist = build_site.assemble(self.project, data, config, theme)
