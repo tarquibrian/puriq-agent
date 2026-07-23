@@ -662,6 +662,57 @@ def _inject_faq(work: Path, project: Path) -> int:
     return len(normalizados)
 
 
+# Subdirectorio del proyecto con los recursos estaticos del usuario (imagenes
+# de places/events, logo, hero, ...). El contrato los referencia con rutas
+# relativas tipo `assets/<archivo>` (ver tourism-data.json), por lo que deben
+# quedar servidos en el mismo prefijo `/assets/` del sitio construido.
+ASSETS_DIRNAME = "assets"
+
+# Astro copia tal cual el contenido de `public/` a la raiz de `dist/`. Para que
+# `assets/<archivo>` resuelva en la preview, los recursos del proyecto se copian
+# a `<work>/public/assets/`.
+PUBLIC_ASSETS_SUBDIR = Path("public") / "assets"
+
+
+def _inject_assets(work: Path, project: Path) -> int:
+    """Copia los recursos estaticos del proyecto para que queden servidos en `/assets/`.
+
+    El contrato referencia imagenes con rutas relativas `assets/<archivo>` (p.
+    ej. `places[].images`), pero la Template no incluye esos recursos. Astro
+    publica el contenido de `public/` en la raiz de `dist/`, asi que se copia
+    `<project>/assets/` a `<work>/public/assets/` para que esas rutas resuelvan
+    en la preview y el sitio construido.
+
+    Es tolerante a la ausencia de `assets/` (no todos los proyectos tienen
+    recursos propios): en ese caso no hace nada y devuelve 0. No genera ni
+    transforma imagenes, solo las copia (invariante de arquitectura).
+
+    Args:
+        work: directorio de trabajo (copia parametrizable de la Template).
+        project: raiz del proyecto Puriq, donde vive `assets/`.
+
+    Returns:
+        La cantidad de archivos de recursos copiados (0 si no hay `assets/`).
+    """
+    origen = Path(project) / ASSETS_DIRNAME
+    if not origen.is_dir():
+        return 0
+
+    destino = work / PUBLIC_ASSETS_SUBDIR
+    destino.mkdir(parents=True, exist_ok=True)
+
+    copiados = 0
+    for archivo in sorted(origen.rglob("*")):
+        if not archivo.is_file():
+            continue
+        rel = archivo.relative_to(origen)
+        salida = destino / rel
+        salida.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(archivo, salida)
+        copiados += 1
+    return copiados
+
+
 def _npm(args: list[str], work: Path, *, paso: str) -> subprocess.CompletedProcess[str]:
     """Ejecuta `npm <args>` en el directorio de trabajo y verifica el resultado.
 
@@ -788,6 +839,7 @@ def assemble(project: Path, data: dict, config: dict, theme: dict) -> Path:
     _materialize_brand(work, config, theme)
     _inject_articles(work, Path(project))
     _inject_faq(work, Path(project))
+    _inject_assets(work, Path(project))
     return _run_astro_build(work, Path(project))
 
 

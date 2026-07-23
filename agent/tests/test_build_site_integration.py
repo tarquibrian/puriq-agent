@@ -252,5 +252,43 @@ def test_write_contract_accepts_valid_landing_and_expanded_tokens(tmp_path):
     assert '"landing"' in config_path.read_text()
 
 
+# --- Recursos estaticos del proyecto: `_inject_assets` ----------------------
+#
+# El contrato referencia imagenes con rutas relativas `assets/<archivo>`. Astro
+# publica el contenido de `public/` en la raiz de `dist/`, asi que
+# `_inject_assets` copia `<project>/assets/` a `<work>/public/assets/` para que
+# esas rutas resuelvan en la preview. Es tolerante a la ausencia de `assets/`.
+
+def test_inject_assets_copies_project_assets_into_public(tmp_path):
+    """Los recursos de `<project>/assets/` se copian a `<work>/public/assets/`
+    (incluyendo subdirectorios), preservando las rutas relativas."""
+    project = tmp_path / "project"
+    (project / build_site.ASSETS_DIRNAME).mkdir(parents=True)
+    (project / build_site.ASSETS_DIRNAME / "uyuni-01.jpg").write_bytes(b"\xff\xd8\xff")
+    (project / build_site.ASSETS_DIRNAME / "gallery").mkdir()
+    (project / build_site.ASSETS_DIRNAME / "gallery" / "cerro.jpg").write_bytes(b"\xff\xd8")
+
+    work = tmp_path / "work"
+    work.mkdir()
+
+    copiados = build_site._inject_assets(work, project)
+
+    assert copiados == 2
+    public_assets = work / build_site.PUBLIC_ASSETS_SUBDIR
+    assert (public_assets / "uyuni-01.jpg").read_bytes() == b"\xff\xd8\xff"
+    assert (public_assets / "gallery" / "cerro.jpg").exists()
+
+
+def test_inject_assets_tolerates_missing_assets_dir(tmp_path):
+    """Un proyecto sin `assets/` no rompe el build: no copia nada y devuelve 0."""
+    project = tmp_path / "project"
+    project.mkdir()
+    work = tmp_path / "work"
+    work.mkdir()
+
+    assert build_site._inject_assets(work, project) == 0
+    assert not (work / build_site.PUBLIC_ASSETS_SUBDIR).exists()
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

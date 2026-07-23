@@ -11,7 +11,15 @@ import { resolveTokens, tokensToCssVars } from "../design-system/defaults";
 import { site, themeTokens, siteConfig, activeModules } from "../lib/data";
 
 // Conjunto completo de variables CSS a partir del tema del usuario + defaults.
-const vars = tokensToCssVars(resolveTokens(themeTokens));
+// `tokensToCssVars` devuelve claves ya prefijadas con `--` (p.ej. "--color-primary"),
+// forma canonica que coincide con el emisor Python (build_site._theme_to_css).
+// Pero `define:vars` de Astro AGREGA su propio `--` a cada clave, por lo que hay que
+// quitar el `--` inicial aqui para que resulte exactamente un `--` (`--color-primary`)
+// y no `----color-primary` (cuatro guiones), que dejaria todas las variables sin definir.
+const cssVars = tokensToCssVars(resolveTokens(themeTokens));
+const vars = Object.fromEntries(
+  Object.entries(cssVars).map(([k, v]) => [k.replace(/^--/, ""), v]),
+);
 // Layout_Variant resuelta: valor configurado o el default del sistema (Req 7.5).
 const variant = siteConfig.layout ?? "clasico";
 const nav = activeModules();
