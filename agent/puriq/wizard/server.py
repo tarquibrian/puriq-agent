@@ -804,6 +804,45 @@ def add_qa(body: QABody):
 _WS_POLL_SECONDS = 0.05
 
 
+# Mensajes de progreso (en espanol) por documento del contrato que se
+# materializa con su default cuando el paso opcional del wizard se salto. Se
+# emiten por el stream del WebSocket para que el usuario sepa que se uso un
+# valor por defecto en vez de fallar el build (Req 1.5, 8.2).
+_DEFAULT_DOC_MESSAGES: dict[str, str] = {
+    "theme-tokens": "Marca no configurada: usando tema por defecto.",
+    "site-config": "Estructura no configurada: usando modulos por defecto.",
+    "tourism-data": "Contenido no configurado: usando datos por defecto.",
+}
+
+
+def _ensure_contract_defaults(project: Path, progress) -> None:
+    """Materializa en disco los documentos del contrato que aun no existen (Req 1.5).
+
+    El build del core (`Puriq.build`) carga los 3 JSON del contrato de forma
+    estricta desde disco y falla si alguno falta. En el wizard, cada documento
+    solo se escribe cuando el usuario envia el formulario de su paso; si el
+    usuario **salta** un paso opcional (p. ej. Marca), el archivo nunca se crea y
+    el build reventaria con un FileNotFoundError. Para que el wizard sea tolerante
+    a pasos salteados, aqui se recorren los 3 documentos y, **solo si el archivo
+    falta**, se escribe su documento base valido (`contracts._base_document`) via
+    la capa de contrato (load->validate->save, DD-1): nunca se escribe un JSON a
+    mano ni se sobreescribe un archivo existente.
+
+    Cada default materializado emite un hito de progreso en espanol via el
+    callback `progress` (el mismo `emitir_progreso` del WebSocket, que ya redacta
+    con `config.redact`, Req 12.2), para que el usuario vea en el stream que se
+    uso un valor por defecto. Esta tolerancia vive SOLO en la capa del wizard: el
+    `core.build` headless sigue fallando de forma explicita ante un proyecto
+    hecho a mano incompleto.
+    """
+    for doc in ("tourism-data", "site-config", "theme-tokens"):
+        if contracts._doc_path(project, doc).exists():
+            continue
+        base = contracts._base_document(doc)
+        contracts.save_contract(project, doc, base)
+        progress(_DEFAULT_DOC_MESSAGES[doc])
+
+
 def _flatten_error_message(error: dict) -> str:
     """Aplana la respuesta de `wizard_error_response` a un unico string (Req 8.4).
 
@@ -876,6 +915,11 @@ async def ws_build(ws: WebSocket) -> None:
             proyecto.collect(
                 Path(resources), enrich=enrich, progress=emitir_progreso
             )
+        # Tolerancia a pasos salteados: materializar los defaults de los
+        # documentos del contrato que aun no existan ANTES del build, para que
+        # un paso opcional omitido (p. ej. Marca) no reviente la generacion
+        # (Req 1.5). Solo escribe los que faltan y avisa por el stream.
+        _ensure_contract_defaults(project, emitir_progreso)
         dist = proyecto.build(use_llm=use_llm, progress=emitir_progreso)
         return str(dist)
 
