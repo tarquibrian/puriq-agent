@@ -7,43 +7,131 @@
 // Base.astro) con un fallback a tokens, de modo que la tarjeta luce distinta en
 // `clasico` (borde fino) y `moderno` (sombra elevada) sin fijar marca (Req 7.3).
 // El contenido se recibe por slots/props conservando los estilos del sistema.
+//
+// Direccion editorial/nature: superficie suave PRESENTE (borde sutil + sombra
+// en reposo), elevacion generosa en hover y area de medios opcional (`image`)
+// que recorta la imagen arriba con zoom en hover para un acabado tipo revista.
+// Ademas admite un `icon` (chip con tinte de acento sobre el titulo) y un modo
+// `featured` para destacar una tarjeta como la protagonista.
+import Icon from "./Icon.astro";
 interface Props {
   /** Titulo opcional (Req 4.4). */
   title?: string;
   /** Destino del enlace; convierte la tarjeta en <a>. */
   href?: string;
+  /** Imagen opcional; se renderiza como area de medios recortada arriba. */
+  image?: string;
+  /** Texto alternativo de la imagen (accesibilidad). */
+  imageAlt?: string;
+  /** Icono opcional; renderiza un chip de acento sobre el titulo. */
+  icon?: string;
+  /** Marca la tarjeta como destacada (borde + tinte de acento). */
+  featured?: boolean;
   /** Clase(s) adicionales opcionales. */
   class?: string;
 }
-const { title, href, class: className } = Astro.props;
+const {
+  title,
+  href,
+  image,
+  imageAlt = "",
+  icon,
+  featured = false,
+  class: className,
+} = Astro.props;
 const Tag = href ? "a" : "article";
 ---
-<Tag class:list={["ds-card", className]} href={href}>
-  {title && <h3 class="ds-card-title">{title}</h3>}
-  <slot />
+<Tag
+  class:list={[
+    "ds-card",
+    image && "has-media",
+    featured && "is-featured",
+    className,
+  ]}
+  href={href}
+>
+  {image && (
+    <div class="ds-card-media">
+      <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
+    </div>
+  )}
+  <div class="ds-card-body">
+    {icon && (
+      <span class="ds-card-icon-chip" aria-hidden="true">
+        <Icon name={icon} />
+      </span>
+    )}
+    {title && <h3 class="ds-card-title">{title}</h3>}
+    <slot />
+    {href && <span class="ds-card-arrow" aria-hidden="true">&rarr;</span>}
+  </div>
 </Tag>
 
 <style>
   .ds-card {
     display: block;
-    padding: var(--space-lg);
-    border-radius: var(--radius-md);
     background: var(--color-background);
     color: var(--color-text);
-    /* Ganchos de Layout_Variant con fallback a tokens (Req 7.3, 4.5). */
-    border: var(--card-border, 1px solid var(--color-secondary));
-    box-shadow: var(--card-shadow, var(--shadow-sm));
+    border-radius: var(--card-radius, var(--radius-lg));
+    /* Superficie mas presente en reposo: borde sutil pero visible + sombra
+     * media, con ganchos de Layout_Variant que pueden sobreescribir (Req 7.3). */
+    border: var(--card-border, 1px solid color-mix(in srgb, var(--color-text) 8%, transparent));
+    box-shadow: var(--card-shadow, var(--shadow-md));
     text-decoration: none;
+    overflow: hidden;
     transition:
       transform var(--motion-duration-base) var(--motion-easing),
       box-shadow var(--motion-duration-base) var(--motion-easing);
   }
 
-  /* Elevacion sutil al pasar el puntero/foco en tarjetas enlazables (Req 6.1). */
+  .ds-card-body { padding: var(--space-lg); }
+
+  /* Chip de icono: cuadrado redondeado con tinte de acento y glifo de acento. */
+  .ds-card-icon-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-bottom: var(--space-md);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-background));
+    color: var(--color-accent);
+    font-size: 1.35rem;
+    line-height: 1;
+  }
+
+  /* Tarjeta destacada: borde de acento + tinte suave; la protagonista. */
+  .ds-card.is-featured {
+    border: 1.5px solid var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-background));
+  }
+
+  /* Area de medios: recorta la imagen y respeta el radio superior de la card. */
+  .ds-card-media {
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+  }
+  .ds-card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--motion-duration-base) var(--motion-easing);
+  }
+
+  /* Elevacion al pasar el puntero/foco en tarjetas enlazables (Req 6.1). */
   a.ds-card:hover,
   a.ds-card:focus-visible {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+  }
+  /* Zoom de la imagen cuando la card enlazable esta en hover/foco. */
+  a.ds-card:hover .ds-card-media img,
+  a.ds-card:focus-visible .ds-card-media img {
+    transform: scale(1.05);
   }
   a.ds-card:focus-visible {
     outline: 3px solid var(--color-accent);
@@ -52,9 +140,26 @@ const Tag = href ? "a" : "article";
 
   .ds-card-title { margin-bottom: var(--space-sm); }
 
+  /* Flecha afordancia solo en tarjetas enlazables. */
+  .ds-card-arrow {
+    display: inline-block;
+    margin-top: var(--space-sm);
+    color: var(--color-accent);
+    font-weight: 600;
+    transition: transform var(--motion-duration-fast) var(--motion-easing);
+  }
+  a.ds-card:hover .ds-card-arrow,
+  a.ds-card:focus-visible .ds-card-arrow { transform: translateX(3px); }
+
   @media (prefers-reduced-motion: reduce) {
-    .ds-card { transition: none; }
+    .ds-card,
+    .ds-card-media img,
+    .ds-card-arrow { transition: none; }
     a.ds-card:hover,
     a.ds-card:focus-visible { transform: none; }
+    a.ds-card:hover .ds-card-media img,
+    a.ds-card:focus-visible .ds-card-media img { transform: none; }
+    a.ds-card:hover .ds-card-arrow,
+    a.ds-card:focus-visible .ds-card-arrow { transform: none; }
   }
 </style>

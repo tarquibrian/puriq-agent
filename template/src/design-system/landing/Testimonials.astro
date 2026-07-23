@@ -1,0 +1,175 @@
+---
+// Landing_Section: Testimonials / Testimonios (Req 12.x).
+//
+// Direccion editorial/nature (estilo Nourish): cabecera con `eyebrow` + titulo
+// (via UI_Component `Section`) y una cuadricula (`Grid` + `Card`) de tarjetas de
+// testimonio. Cada tarjeta muestra una cita destacada (con una comilla de apertura
+// tipografica a escala de titular) y, al pie, el autor (en negrita) con su rol
+// (muted). Si el testimonio trae `avatar` (url de imagen) se muestra un avatar
+// redondo (~44px, object-fit cover) junto al autor; si no, un chip redondo con la
+// inicial del autor tenido con el color de acento.
+//
+// Toda la apariencia deriva de variables CSS de Design_Tokens (sin marca fija).
+//
+// Render defensivo (Req 12.5): se descartan los items sin `quote` no vacio; si no
+// queda ninguno, la seccion se omite por completo (no se renderiza nada).
+import Section from "../ui/Section.astro";
+import Grid from "../ui/Grid.astro";
+import Card from "../ui/Card.astro";
+
+interface TestimonialItem {
+  /** Texto de la cita (campo esencial). */
+  quote?: string;
+  /** Nombre del autor de la cita. */
+  author?: string;
+  /** Rol / cargo / ubicacion del autor (opcional, muted). */
+  role?: string;
+  /** URL de imagen para el avatar redondo (opcional). */
+  avatar?: string;
+}
+interface TestimonialsContent {
+  /** Etiqueta editorial opcional sobre el titulo (kicker). */
+  eyebrow?: string;
+  title?: string;
+  items?: TestimonialItem[];
+}
+interface Props {
+  content?: TestimonialsContent;
+}
+
+const { content } = Astro.props;
+
+const eyebrow = content?.eyebrow?.trim() || "Testimonios";
+const title = content?.title?.trim();
+
+// Testimonios con una cita no vacia; los vacios se descartan para no renderizar
+// tarjetas huecas (Req 12.5).
+const items = Array.isArray(content?.items)
+  ? content!.items!.filter((item) => Boolean(item?.quote?.trim()))
+  : [];
+const hasItems = items.length > 0;
+
+/** Inicial del autor para el chip de fallback (mayuscula, o "?" si no hay autor). */
+function initialOf(author?: string): string {
+  const name = author?.trim();
+  return name ? name.charAt(0).toUpperCase() : "?";
+}
+---
+
+{hasItems && (
+  <Section eyebrow={eyebrow} title={title}>
+    <Grid min="300px">
+      {items.map((item) => {
+        const quote = item.quote!.trim();
+        const author = item.author?.trim();
+        const role = item.role?.trim();
+        const avatar = item.avatar?.trim();
+        return (
+          <Card>
+            <blockquote class="ds-testimonial-quote">
+              <span class="ds-testimonial-mark" aria-hidden="true">&ldquo;</span>
+              <p class="ds-testimonial-text">{quote}</p>
+            </blockquote>
+            {(author || avatar) && (
+              <figcaption class="ds-testimonial-author">
+                {avatar ? (
+                  <img
+                    class="ds-testimonial-avatar"
+                    src={avatar}
+                    alt={author ? `Foto de ${author}` : ""}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <span class="ds-testimonial-initial" aria-hidden="true">
+                    {initialOf(author)}
+                  </span>
+                )}
+                <span class="ds-testimonial-meta">
+                  {author && <span class="ds-testimonial-name">{author}</span>}
+                  {role && <span class="ds-testimonial-role">{role}</span>}
+                </span>
+              </figcaption>
+            )}
+          </Card>
+        );
+      })}
+    </Grid>
+  </Section>
+)}
+
+<style>
+  .ds-testimonial-quote {
+    margin: 0;
+    /* La comilla y el texto comparten un ritmo interno comodo. */
+    position: relative;
+  }
+
+  /* Comilla de apertura tipografica a escala de titular, tenida con el acento. */
+  .ds-testimonial-mark {
+    display: block;
+    font-family: var(--font-heading), Georgia, serif;
+    font-size: var(--fs-h1);
+    line-height: 0.6;
+    font-weight: 800;
+    color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+
+  /* Texto de la cita a escala destacada (~h3 / lead). */
+  .ds-testimonial-text {
+    margin: var(--space-sm) 0 0;
+    font-family: var(--font-heading), Georgia, serif;
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  /* Pie del testimonio: avatar/chip + metadatos del autor. */
+  .ds-testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+  }
+
+  /* Avatar redondo con recorte cover (~44px). */
+  .ds-testimonial-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+    display: block;
+  }
+
+  /* Chip redondo con la inicial cuando no hay avatar (tinte de acento). */
+  .ds-testimonial-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    flex: none;
+    background: color-mix(in srgb, var(--color-accent) 16%, var(--color-background));
+    color: var(--color-accent);
+    font-family: var(--font-heading), Georgia, serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .ds-testimonial-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .ds-testimonial-name { font-weight: 700; }
+  .ds-testimonial-role {
+    font-size: var(--fs-small);
+    color: color-mix(in srgb, currentColor 65%, transparent);
+  }
+</style>

@@ -6,37 +6,96 @@
 // Container para respetar el ancho maximo. Todo deriva de variables CSS de
 // Design_Tokens (Req 4.5); el contenido se recibe por slots/props conservando
 // los estilos del sistema (Req 4.4).
+//
+// Direccion editorial/nature: cabecera con `eyebrow` (etiqueta reutilizando la
+// utilidad global), titulo h2, `intro` (parrafo lead muted), alineacion
+// configurable y una variante `dark` para bandas de enfasis estilo RiverSide.
 import Container from "./Container.astro";
 interface Props {
   /** Ancla para navegacion (`id` del elemento <section>). */
   id?: string;
+  /** Etiqueta editorial opcional sobre el titulo (usa la utilidad global). */
+  eyebrow?: string;
   /** Titulo opcional; se renderiza como <h2> con la Type_Scale. */
   title?: string;
+  /** Parrafo lead opcional bajo el titulo (color muted, ancho limitado). */
+  intro?: string;
   /** Token de ancho de contenedor interno. */
   size?: "sm" | "md" | "lg" | "xl";
-  /** Variante de enfasis: default | muted (fondo sutil). */
-  variant?: "default" | "muted";
+  /** Variante de enfasis: default | muted (fondo sutil) | dark (banda oscura). */
+  variant?: "default" | "muted" | "dark";
+  /** Alineacion de la cabecera. */
+  align?: "left" | "center";
   /** Clase(s) adicionales opcionales. */
   class?: string;
 }
-const { id, title, size = "lg", variant = "default", class: className } = Astro.props;
+const {
+  id,
+  eyebrow,
+  title,
+  intro,
+  size = "lg",
+  variant = "default",
+  align = "left",
+  class: className,
+} = Astro.props;
+const hasHeader = Boolean(eyebrow || title || intro);
 ---
-<section id={id} class:list={["ds-section", className]} data-variant={variant}>
+<section
+  id={id}
+  class:list={["ds-section", className]}
+  data-variant={variant}
+  data-align={align}
+>
   <Container size={size}>
-    {title && <h2 class="ds-section-title">{title}</h2>}
+    {hasHeader && (
+      <header class="ds-section-header">
+        {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+        {title && <h2 class="ds-section-title">{title}</h2>}
+        {intro && <p class="ds-section-intro">{intro}</p>}
+      </header>
+    )}
     <slot />
   </Container>
 </section>
 
 <style>
-  /* Ritmo vertical entre secciones consecutivas (Req 3.2, 3.3). */
-  .ds-section { padding-block: var(--space-xl); }
-  .ds-section + .ds-section { padding-top: 0; }
+  /* Ritmo vertical generoso y fluido entre secciones (Req 3.2, 3.3). */
+  .ds-section { padding-block: clamp(3rem, 8vw, 7rem); }
 
-  /* Variante con fondo sutil derivado del color de marca. */
+  /* Variante con fondo sutil derivado del texto de marca (~4%). */
   .ds-section[data-variant="muted"] {
-    background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-background));
+    background: color-mix(in srgb, var(--color-text) 4%, var(--color-background));
   }
 
-  .ds-section-title { margin-bottom: var(--space-lg); }
+  /* Variante oscura: banda de enfasis (mezcla primario/texto, texto claro). */
+  .ds-section[data-variant="dark"] {
+    background: color-mix(in srgb, var(--color-primary) 55%, var(--color-text));
+    color: var(--color-background);
+  }
+  .ds-section[data-variant="dark"] :global(h1),
+  .ds-section[data-variant="dark"] :global(h2),
+  .ds-section[data-variant="dark"] :global(h3) {
+    color: var(--color-background);
+  }
+
+  /* Cabecera de seccion: ritmo interno y alineacion configurable. */
+  .ds-section-header { margin-bottom: var(--space-xl); }
+  .ds-section[data-align="center"] .ds-section-header {
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  .ds-section-title { margin-bottom: var(--space-md); }
+  .ds-section-header .eyebrow { margin-bottom: var(--space-sm); }
+
+  /* Parrafo lead: color muted y ancho de lectura comodo (~60ch). */
+  .ds-section-intro {
+    max-width: 60ch;
+    margin: 0;
+    color: color-mix(in srgb, currentColor 70%, transparent);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+  }
+  .ds-section[data-align="center"] .ds-section-intro { margin-inline: auto; }
 </style>

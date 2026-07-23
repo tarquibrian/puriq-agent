@@ -141,6 +141,68 @@ def test_site_config_with_valid_landing_validates():
     schemas.validate(config, "site-config")  # no debe lanzar
 
 
+def test_site_config_with_testimonials_section_validates():
+    """Un Site_Config con una seccion `testimonials` valida es aceptado (Req 13.1)."""
+    config = _base_site_config()
+    config["landing"] = [
+        {
+            "type": "testimonials",
+            "enabled": True,
+            "order": 1,
+            "content": {
+                "eyebrow": "Voces",
+                "title": "Lo que dicen quienes nos visitan",
+                "items": [
+                    {"quote": "Un viaje inolvidable.", "author": "Ana", "role": "Turista"},
+                    {"quote": "Volveria sin dudarlo.", "author": "Luis"},
+                ],
+            },
+        }
+    ]
+    schemas.validate(config, "site-config")  # no debe lanzar
+
+
+def test_site_config_with_faq_section_validates():
+    """Un Site_Config con una seccion `faq` valida es aceptado (Req 13.1)."""
+    config = _base_site_config()
+    config["landing"] = [
+        {
+            "type": "faq",
+            "enabled": True,
+            "order": 1,
+            "content": {
+                "eyebrow": "Ayuda",
+                "title": "Preguntas frecuentes",
+                "items": [
+                    {"question": "Como llego?", "answer": "En bus o auto desde la capital."},
+                    {"question": "Cuando ir?", "answer": "La mejor epoca es la estacion seca."},
+                ],
+            },
+        }
+    ]
+    schemas.validate(config, "site-config")  # no debe lanzar
+
+
+def test_site_config_with_testimonials_and_faq_sections_validates():
+    """Un Site_Config con `testimonials` y `faq` juntas es aceptado (Req 13.1)."""
+    config = _base_site_config()
+    config["landing"] = [
+        {
+            "type": "testimonials",
+            "enabled": True,
+            "order": 1,
+            "content": {"items": [{"quote": "Genial.", "author": "Ana"}]},
+        },
+        {
+            "type": "faq",
+            "enabled": True,
+            "order": 2,
+            "content": {"items": [{"question": "Como llego?", "answer": "En bus."}]},
+        },
+    ]
+    schemas.validate(config, "site-config")  # no debe lanzar
+
+
 def test_site_config_without_landing_validates_legacy():
     """Un Site_Config sin `landing` sigue validando: retrocompatibilidad (Req 16.1)."""
     schemas.validate(_base_site_config(), "site-config")  # no debe lanzar

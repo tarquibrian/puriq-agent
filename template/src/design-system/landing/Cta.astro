@@ -1,9 +1,13 @@
 ---
 // Landing_Section: Call-to-Action (Req 12.2).
 //
-// Renderiza un mensaje y un boton que enlaza al destino configurado
-// (`content.cta.{label, href}`), reutilizando los UI_Component `Section` y
-// `Button`. Toda la apariencia deriva de variables CSS de Design_Tokens.
+// Direccion editorial/nature (estilo Nourish "Ignite..."): banner prominente a
+// todo el ancho sobre una banda oscura (`Section` variant="dark"), con un
+// mensaje grande (~escala h2), un `eyebrow` opcional y un boton primario con
+// flecha (`content.cta.{label, href}`). Si `content.image` esta presente, el
+// banner es de dos columnas (texto + imagen redondeada) que se apilan en movil;
+// en su defecto, texto centrado a todo el ancho. Reutiliza los UI_Component
+// `Section` y `Button`; toda la apariencia deriva de variables CSS de tokens.
 //
 // Render defensivo (Req 12.5): si falta el mensaje o el CTA (etiqueta+destino),
 // la seccion se omite por completo (no se renderiza nada).
@@ -15,7 +19,13 @@ interface CtaLink {
   href?: string;
 }
 interface CtaContent {
+  /** Etiqueta editorial opcional sobre el mensaje (kicker). */
+  eyebrow?: string;
   message?: string;
+  /** Imagen opcional para el banner de dos columnas. */
+  image?: string;
+  /** Texto alternativo de la imagen. */
+  imageAlt?: string;
   cta?: CtaLink;
 }
 interface Props {
@@ -24,6 +34,7 @@ interface Props {
 
 const { content } = Astro.props;
 
+const eyebrow = content?.eyebrow?.trim();
 const message = content?.message?.trim();
 
 const cta = content?.cta;
@@ -31,17 +42,30 @@ const ctaLabel = cta?.label?.trim();
 const ctaHref = cta?.href?.trim();
 const hasCta = Boolean(ctaLabel && ctaHref);
 
+// Imagen opcional para el layout de dos columnas.
+const image = content?.image?.trim();
+const imageAlt = content?.imageAlt?.trim() ?? "";
+const hasImage = Boolean(image);
+
 // Contenido esencial: mensaje y CTA valido (Req 12.5).
 const hasEssentials = Boolean(message && hasCta);
 ---
 
 {hasEssentials && (
-  <Section variant="muted" size="md">
-    <div class="ds-cta">
-      <p class="ds-cta-message">{message}</p>
-      <p class="ds-cta-actions">
-        <Button href={ctaHref} variant="primary">{ctaLabel}</Button>
-      </p>
+  <Section variant="dark" align={hasImage ? "left" : "center"}>
+    <div class="ds-cta" data-layout={hasImage ? "split" : "center"}>
+      <div class="ds-cta-body">
+        {eyebrow && <p class="eyebrow ds-cta-eyebrow">{eyebrow}</p>}
+        <p class="ds-cta-message">{message}</p>
+        <p class="ds-cta-actions">
+          <Button href={ctaHref} variant="primary" arrow>{ctaLabel}</Button>
+        </p>
+      </div>
+      {hasImage && (
+        <figure class="ds-cta-media">
+          <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
+        </figure>
+      )}
     </div>
   </Section>
 )}
@@ -50,15 +74,60 @@ const hasEssentials = Boolean(message && hasCta);
   .ds-cta {
     display: flex;
     flex-direction: column;
+    gap: var(--space-xl);
+  }
+  /* Banner de una columna: texto centrado a todo el ancho. */
+  .ds-cta[data-layout="center"] {
     align-items: center;
-    gap: var(--space-lg);
     text-align: center;
   }
+  .ds-cta-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+  .ds-cta[data-layout="center"] .ds-cta-body { align-items: center; }
+  .ds-cta-eyebrow {
+    margin: 0;
+    /* Sobre el fondo oscuro el kicker usa el texto claro para leerse bien. */
+    color: color-mix(in srgb, var(--color-background) 88%, transparent);
+  }
+  /* Mensaje grande a la escala de titulares (h2). */
   .ds-cta-message {
     margin: 0;
-    font-size: var(--fs-h3);
-    line-height: var(--lh-h3);
-    max-width: 60ch;
+    font-family: var(--font-heading), Georgia, serif;
+    font-size: var(--fs-h2);
+    line-height: var(--lh-h2);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    max-width: 22ch;
   }
+  .ds-cta[data-layout="center"] .ds-cta-message { max-width: 30ch; }
   .ds-cta-actions { margin: 0; }
+
+  /* Imagen del banner de dos columnas. */
+  .ds-cta-media {
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  .ds-cta-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    aspect-ratio: 16 / 10;
+  }
+
+  /* Dos columnas en desktop cuando hay imagen; se apilan en movil. */
+  @media (min-width: 768px) {
+    .ds-cta[data-layout="split"] {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-2xl);
+    }
+    .ds-cta[data-layout="split"] .ds-cta-body { flex: 1 1 0; }
+    .ds-cta[data-layout="split"] .ds-cta-media { flex: 1 1 0; }
+  }
 </style>

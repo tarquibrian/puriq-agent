@@ -10,6 +10,8 @@ import Features from "./Features.astro";
 import Cta from "./Cta.astro";
 import Gallery from "./Gallery.astro";
 import Stats from "./Stats.astro";
+import Testimonials from "./Testimonials.astro";
+import Faq from "./Faq.astro";
 
 /**
  * Registro `type -> componente Astro`. El valor es un componente Astro
@@ -22,4 +24,6 @@ export const SECTION_REGISTRY: Record<LandingType, unknown> = {
   cta: Cta,
   gallery: Gallery,
   stats: Stats,
+  testimonials: Testimonials,
+  faq: Faq,
 };

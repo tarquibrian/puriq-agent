@@ -1,20 +1,32 @@
 ---
 // Landing_Section: Hero (Req 11.1-11.5, 8.5).
 //
-// Hero_Section enriquecido: fondo de imagen o video, overlay que preserva el
-// contraste del texto, titular/subtitulo y un boton CTA. Toda la apariencia
-// deriva de variables CSS de Design_Tokens y de los ganchos de Layout_Variant
-// (--hero-radius / --hero-margin / --hero-min-height) definidos por DD-4 en
-// Base.astro, de modo que `clasico` (hero enmarcado) y `moderno` (hero a
-// sangre) difieren sin fijar marca.
+// Hero_Section enriquecido, direccion editorial/nature (estilo RiverSide). Elige
+// uno de TRES modos segun el contenido, priorizando el editorial con imagenes:
+//   1) IMAGE-ROW: si `content.images[]` trae imagenes, se muestra primero un
+//      bloque de texto (kicker `.eyebrow`, h1, lead y CTA[s]) y DEBAJO una fila
+//      full-width de imagenes con esquinas redondeadas y zoom sutil en hover.
+//      Sin overlay: el texto va sobre el fondo de la pagina.
+//   2) BACKGROUND: si hay `content.background.asset`, fondo a sangre (imagen o
+//      video) + scrim que preserva el contraste (~4.5:1) con texto claro.
+//   3) GRADIENT: en su defecto, fondo con degradado de marca y texto claro.
 //
-// Render defensivo (Req 12.5): si no hay titular, el contenido esencial del
-// hero esta ausente y la seccion se omite por completo (no se renderiza nada).
+// Toda la apariencia deriva de variables CSS de Design_Tokens y de los ganchos
+// de Layout_Variant (--hero-radius / --hero-margin / --hero-min-height, DD-4 en
+// Base.astro). Se reutiliza el UI_Component `Button` y la utilidad global
+// `.eyebrow`.
+//
+// Render defensivo (Req 12.5): sin titular no hay contenido esencial y la
+// seccion se omite por completo (no se renderiza nada).
 import Button from "../ui/Button.astro";
 
 interface HeroCta {
   label?: string;
   href?: string;
+}
+interface HeroImage {
+  src?: string;
+  alt?: string;
 }
 interface HeroBackground {
   /** Tipo de recurso de fondo: imagen o video. */
@@ -22,13 +34,43 @@ interface HeroBackground {
   /** Ruta del recurso (relativa a `public/` o absoluta). */
   asset?: string;
 }
+interface HeroMedia {
+  /** Ruta de la imagen principal (modo SPLIT). */
+  src?: string;
+  alt?: string;
+}
+interface HeroStat {
+  /** Valor destacado (p. ej. "10 582 km²"). */
+  value?: string;
+  /** Etiqueta pequena bajo el valor. */
+  label?: string;
+}
 interface HeroContent {
+  /** Etiqueta editorial opcional sobre el titular (kicker). */
+  eyebrow?: string;
   headline?: string;
   subheadline?: string;
+  /**
+   * Modo de layout EXPLICITO. Si se define, se fuerza ese modo (con caida
+   * elegante si falta el recurso necesario). Si NO se define, se conserva el
+   * comportamiento AUTO historico (images -> image-row, background -> background,
+   * en su defecto gradient).
+   */
+  layout?: "split" | "imageRow" | "background" | "gradient";
+  /** Imagen principal del modo SPLIT (opcional; hay fallbacks). */
+  media?: HeroMedia;
+  /** Fila de imagenes editoriales (modo IMAGE-ROW). Opcional. */
+  images?: HeroImage[];
+  /** Etiquetas flotantes tipo "chip" sobre la imagen (modo SPLIT). Opcional. */
+  badges?: string[];
+  /** Tarjeta flotante de estadistica sobre la imagen (modo SPLIT). Opcional. */
+  stat?: HeroStat;
   background?: HeroBackground;
   /** Opacidad del overlay [0..1]; por defecto un scrim que asegura contraste. */
   overlay?: number;
   cta?: HeroCta;
+  /** CTA secundario opcional (se renderiza como boton ghost). */
+  cta2?: HeroCta;
 }
 interface Props {
   content?: HeroContent;
@@ -42,6 +84,17 @@ const hasHeadline = Boolean(headline);
 
 const subheadline = content?.subheadline?.trim();
 
+// Kicker editorial: valor configurado o un default sensato.
+const eyebrow = content?.eyebrow?.trim() || "Bienvenido";
+
+// Imagenes editoriales validas (con `src`); el `alt` cae a cadena vacia.
+const images = Array.isArray(content?.images)
+  ? content!.images!
+      .filter((img) => img?.src?.trim())
+      .map((img) => ({ src: img.src!.trim(), alt: img.alt?.trim() ?? "" }))
+  : [];
+const hasImages = images.length > 0;
+
 // Recurso de fondo valido: requiere `asset`. El tipo por defecto es imagen.
 const background = content?.background;
 const bgAsset = background?.asset?.trim();
@@ -50,31 +103,144 @@ const bgType = background?.type ?? "image";
 const isVideo = hasBackground && bgType === "video";
 const isImage = hasBackground && !isVideo;
 
-// Overlay: se clampa a [0..1]. Con imagen/video se usa un scrim oscuro que
-// preserva ~4.5:1 de contraste del texto claro sobre el fondo (Req 11.4, 8.5);
+// Imagen principal del modo SPLIT: media.src -> images[0].src -> background.asset.
+const splitMediaSrc =
+  content?.media?.src?.trim() || images[0]?.src || bgAsset || "";
+const splitMediaAlt = content?.media?.alt?.trim() || images[0]?.alt || headline || "";
+const hasSplitMedia = Boolean(splitMediaSrc);
+
+// Chips flotantes: hasta 3 etiquetas de texto no vacias.
+const badges = Array.isArray(content?.badges)
+  ? content!.badges!.map((b) => (typeof b === "string" ? b.trim() : "")).filter(Boolean).slice(0, 3)
+  : [];
+const hasBadges = badges.length > 0;
+
+// Tarjeta de estadistica flotante: requiere al menos un valor.
+const statValue = content?.stat?.value?.trim();
+const statLabel = content?.stat?.label?.trim();
+const hasStat = Boolean(statValue);
+
+// Modo de render.
+//  - Si `content.layout` esta definido, se FUERZA ese modo con caida elegante:
+//    * "split" requiere una imagen usable; si no la hay, cae a gradient.
+//    * "imageRow" requiere images[]; si no, cae a background o gradient.
+//    * "background" requiere background.asset; si no, cae a gradient.
+//  - Si NO esta definido, se conserva el AUTO historico (image-row/background/gradient).
+const explicitLayout = content?.layout;
+let mode: "split" | "image-row" | "background" | "gradient";
+if (explicitLayout === "split") {
+  mode = hasSplitMedia ? "split" : "gradient";
+} else if (explicitLayout === "imageRow") {
+  mode = hasImages ? "image-row" : hasBackground ? "background" : "gradient";
+} else if (explicitLayout === "background") {
+  mode = hasBackground ? "background" : "gradient";
+} else if (explicitLayout === "gradient") {
+  mode = "gradient";
+} else {
+  // AUTO: la fila editorial tiene prioridad; luego fondo; luego degradado.
+  mode = hasImages ? "image-row" : hasBackground ? "background" : "gradient";
+}
+
+// Overlay (solo modos con fondo): se clampa a [0..1]. Con imagen/video se usa un
+// scrim oscuro que preserva ~4.5:1 de contraste del texto claro (Req 11.4, 8.5);
 // el minimo de 0.45 evita que un overlay demasiado tenue degrade el contraste.
 const rawOverlay = typeof content?.overlay === "number" ? content.overlay : 0.45;
 const overlay = Math.min(1, Math.max(hasBackground ? 0.45 : 0, rawOverlay));
 
-// CTA valido: requiere etiqueta y destino (Req 11.3).
+// CTA primario valido: requiere etiqueta y destino (Req 11.3).
 const cta = content?.cta;
 const ctaLabel = cta?.label?.trim();
 const ctaHref = cta?.href?.trim();
 const hasCta = Boolean(ctaLabel && ctaHref);
 
-// Estilo del fondo: la imagen se aplica como background-image; el video usa un
-// elemento <video>. Sin recurso, el fondo se deriva de los colores de marca
-// (Req 11.5) mediante un degradado de tokens.
-const sectionStyle = isImage
+// CTA secundario opcional (ghost): requiere etiqueta y destino.
+const cta2 = content?.cta2;
+const cta2Label = cta2?.label?.trim();
+const cta2Href = cta2?.href?.trim();
+const hasCta2 = Boolean(cta2Label && cta2Href);
+
+// Estilo del fondo (modos background/gradient). La imagen se aplica como
+// background-image; el video usa un elemento <video>. Sin recurso, el fondo se
+// deriva de los colores de marca (Req 11.5) via degradado de tokens.
+const bgStyle = isImage
   ? `background-image: url(${JSON.stringify(bgAsset)}); --hero-overlay: ${overlay};`
   : `--hero-overlay: ${overlay};`;
 ---
 
-{hasHeadline && (
+{hasHeadline && mode === "image-row" && (
+  /* Modo editorial: texto sobre el fondo de la pagina + fila de imagenes. */
+  <section class="ds-hero ds-hero--editorial" aria-label={headline}>
+    <div class="ds-hero-text">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1 class="ds-hero-title">{headline}</h1>
+      {subheadline && <p class="ds-hero-lead">{subheadline}</p>}
+      {(hasCta || hasCta2) && (
+        <p class="ds-hero-actions">
+          {hasCta && (
+            <Button href={ctaHref} variant="primary" arrow>{ctaLabel}</Button>
+          )}
+          {hasCta2 && (
+            <Button href={cta2Href} variant="ghost">{cta2Label}</Button>
+          )}
+        </p>
+      )}
+    </div>
+    <div class="ds-hero-gallery" data-count={images.length}>
+      {images.map((img) => (
+        <figure class="ds-hero-shot">
+          <img src={img.src} alt={img.alt} loading="eager" decoding="async" />
+        </figure>
+      ))}
+    </div>
+  </section>
+)}
+
+{hasHeadline && mode === "split" && (
+  /* Modo SPLIT: texto a la izquierda + imagen grande redondeada a la derecha,
+   * con chips flotantes y una tarjeta de estadistica superpuestos. */
+  <section class="ds-hero ds-hero--split" aria-label={headline}>
+    <div class="ds-hero-split-text">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1 class="ds-hero-title">{headline}</h1>
+      {subheadline && <p class="ds-hero-lead">{subheadline}</p>}
+      {(hasCta || hasCta2) && (
+        <p class="ds-hero-actions">
+          {hasCta && (
+            <Button href={ctaHref} variant="primary" arrow>{ctaLabel}</Button>
+          )}
+          {hasCta2 && (
+            <Button href={cta2Href} variant="ghost">{cta2Label}</Button>
+          )}
+        </p>
+      )}
+    </div>
+    <div class="ds-hero-split-media">
+      <figure class="ds-hero-split-figure">
+        <img src={splitMediaSrc} alt={splitMediaAlt} loading="eager" decoding="async" />
+      </figure>
+      {hasBadges && (
+        <ul class="ds-hero-chips" aria-hidden="false">
+          {badges.map((b) => (
+            <li class="ds-hero-chip"><span class="ds-hero-chip-dot" aria-hidden="true"></span>{b}</li>
+          ))}
+        </ul>
+      )}
+      {hasStat && (
+        <div class="ds-hero-stat">
+          <span class="ds-hero-stat-value">{statValue}</span>
+          {statLabel && <span class="ds-hero-stat-label">{statLabel}</span>}
+        </div>
+      )}
+    </div>
+  </section>
+)}
+
+{hasHeadline && (mode === "background" || mode === "gradient") && (
+  /* Modos background / gradient: fondo a sangre + scrim + texto claro centrado. */
   <section
-    class="ds-hero"
+    class="ds-hero ds-hero--cover"
     data-has-bg={hasBackground ? "true" : "false"}
-    style={sectionStyle}
+    style={bgStyle}
     aria-label={headline}
   >
     {isVideo && (
@@ -91,11 +257,17 @@ const sectionStyle = isImage
     {/* Overlay/scrim que garantiza el contraste del texto (Req 11.4, 8.5). */}
     <div class="ds-hero-overlay" aria-hidden="true"></div>
     <div class="ds-hero-content">
+      <p class="eyebrow ds-hero-eyebrow">{eyebrow}</p>
       <h1 class="ds-hero-title">{headline}</h1>
       {subheadline && <p class="ds-hero-subtitle">{subheadline}</p>}
-      {hasCta && (
+      {(hasCta || hasCta2) && (
         <p class="ds-hero-actions">
-          <Button href={ctaHref} variant="primary">{ctaLabel}</Button>
+          {hasCta && (
+            <Button href={ctaHref} variant="primary" arrow>{ctaLabel}</Button>
+          )}
+          {hasCta2 && (
+            <Button href={cta2Href} variant="ghost">{cta2Label}</Button>
+          )}
         </p>
       )}
     </div>
@@ -103,19 +275,239 @@ const sectionStyle = isImage
 )}
 
 <style>
-  /* El Hero usa los ganchos de Layout_Variant (Req 7.3): en `clasico` queda
-   * enmarcado (radio + margen), en `moderno` va a sangre (radio/margen 0). */
+  /* Ganchos de Layout_Variant compartidos (Req 7.3): margen/radio del marco. */
   .ds-hero {
+    margin: var(--hero-margin, 0);
+    border-radius: var(--hero-radius, 0);
+  }
+
+  /* -------------------------------------------------------------------------
+   * Modo editorial (IMAGE-ROW): texto sobre el fondo de la pagina, sin scrim.
+   * ----------------------------------------------------------------------- */
+  .ds-hero--editorial {
+    max-width: var(--container-xl);
+    margin-inline: auto;
+    padding: clamp(2.5rem, 7vw, 6rem) clamp(var(--space-md), 5vw, var(--space-2xl));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+  }
+  .ds-hero-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+    max-width: 22ch;
+  }
+  .ds-hero-text .eyebrow { margin: 0; }
+  .ds-hero-text .ds-hero-title {
+    margin: 0;
+    max-width: 16ch;
+  }
+  .ds-hero-lead {
+    margin: 0;
+    max-width: 60ch;
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    color: color-mix(in srgb, var(--color-text) 75%, transparent);
+  }
+  .ds-hero-actions {
+    margin: 0;
+    margin-top: var(--space-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  /* Fila full-width de imagenes: 1 columna en movil, hasta 3 en desktop.
+   * Los `alt` viajan en cada <img>; las imagenes recortan sin desbordar. */
+  .ds-hero-gallery {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+  .ds-hero-shot {
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  .ds-hero-shot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    aspect-ratio: 3 / 4;
+    transition: transform var(--motion-duration-base) var(--motion-easing);
+  }
+  .ds-hero-shot:hover img { transform: scale(1.05); }
+
+  @media (min-width: 640px) {
+    .ds-hero-gallery { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 900px) {
+    /* Con 3 o mas imagenes, tres columnas de alto uniforme. */
+    .ds-hero-gallery[data-count="1"] { grid-template-columns: 1fr; }
+    .ds-hero-gallery[data-count="2"] { grid-template-columns: repeat(2, 1fr); }
+    .ds-hero-gallery:not([data-count="1"]):not([data-count="2"]) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .ds-hero-shot img { aspect-ratio: 4 / 5; }
+  }
+
+  /* -------------------------------------------------------------------------
+   * Modo SPLIT: dos columnas (texto | media). Movil: una columna, texto arriba.
+   * ----------------------------------------------------------------------- */
+  .ds-hero--split {
+    max-width: var(--container-xl);
+    margin-inline: auto;
+    padding: clamp(2.5rem, 7vw, 6rem) clamp(var(--space-md), 5vw, var(--space-2xl));
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-2xl);
+    align-items: center;
+  }
+  .ds-hero-split-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+  .ds-hero-split-text .eyebrow { margin: 0; }
+  .ds-hero-split-text .ds-hero-title {
+    margin: 0;
+    max-width: 16ch;
+  }
+  .ds-hero--split .ds-hero-lead {
+    margin: 0;
+    max-width: 52ch;
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    color: color-mix(in srgb, var(--color-text) 75%, transparent);
+  }
+  .ds-hero--split .ds-hero-actions {
+    margin: 0;
+    margin-top: var(--space-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  /* Contenedor de la media: posiciona los elementos flotantes (chips/stat). */
+  .ds-hero-split-media {
+    position: relative;
+    width: 100%;
+  }
+  .ds-hero-split-figure {
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+  .ds-hero-split-figure img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: clamp(20rem, 60vh, 34rem);
+    object-fit: cover;
+    aspect-ratio: 4 / 5;
+  }
+
+  /* Chips flotantes: pills solidos legibles sobre la imagen. En movil se
+   * muestran en flujo (debajo, envueltos) para evitar desbordes. */
+  .ds-hero-chips {
+    list-style: none;
+    margin: var(--space-md) 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .ds-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-md);
+    background: var(--color-background);
+    color: var(--color-text);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-md);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ds-hero-chip-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    flex: none;
+  }
+
+  /* Tarjeta de estadistica flotante. En movil va en flujo (debajo de la imagen). */
+  .ds-hero-stat {
+    margin-top: var(--space-md);
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--space-2xs, 0.25rem);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--color-background);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+  }
+  .ds-hero-stat-value {
+    font-family: var(--font-heading), system-ui, sans-serif;
+    font-size: var(--fs-h3);
+    line-height: 1.1;
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+  .ds-hero-stat-label {
+    font-size: var(--fs-small);
+    color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  }
+
+  /* Desktop (>= md): dos columnas y elementos flotantes superpuestos. */
+  @media (min-width: 768px) {
+    .ds-hero--split {
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(var(--space-xl), 5vw, var(--space-3xl, 4rem));
+    }
+    .ds-hero-chips {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      pointer-events: none;
+      display: block;
+    }
+    .ds-hero-chip {
+      position: absolute;
+      pointer-events: auto;
+    }
+    /* Colocacion en esquinas variadas (hasta 3 chips). */
+    .ds-hero-chip:nth-child(1) { top: var(--space-md); left: var(--space-md); }
+    .ds-hero-chip:nth-child(2) { top: var(--space-md); right: var(--space-md); }
+    .ds-hero-chip:nth-child(3) { bottom: 28%; left: var(--space-md); }
+
+    .ds-hero-stat {
+      position: absolute;
+      right: calc(-1 * var(--space-md));
+      bottom: var(--space-lg);
+      margin: 0;
+    }
+  }
+
+  /* -------------------------------------------------------------------------
+   * Modos con fondo (BACKGROUND / GRADIENT): a sangre + scrim + texto claro.
+   * ----------------------------------------------------------------------- */
+  .ds-hero--cover {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: var(--hero-min-height, 48vh);
-    margin: var(--hero-margin, 0);
-    border-radius: var(--hero-radius, 0);
     overflow: hidden;
     padding: var(--space-xl) var(--space-lg);
-    /* Texto claro sobre fondo oscurecido por el overlay. */
     color: #ffffff;
     text-align: center;
     background-size: cover;
@@ -124,7 +516,7 @@ const sectionStyle = isImage
   }
 
   /* Sin recurso de fondo: degradado derivado de los colores de marca (Req 11.5). */
-  .ds-hero[data-has-bg="false"] {
+  .ds-hero--cover[data-has-bg="false"] {
     background-image: linear-gradient(
       135deg,
       var(--color-primary),
@@ -160,10 +552,12 @@ const sectionStyle = isImage
     align-items: center;
     gap: var(--space-md);
   }
+  /* En fondo oscuro, el kicker usa el texto claro (no el acento) para leerse. */
+  .ds-hero-eyebrow { color: inherit; }
 
   /* El titular y el subtitulo heredan la Type_Scale; el color se fuerza a claro
    * porque van sobre el fondo oscurecido. */
-  .ds-hero-title {
+  .ds-hero-content .ds-hero-title {
     color: inherit;
     margin: 0;
   }
@@ -174,12 +568,15 @@ const sectionStyle = isImage
     line-height: var(--lh-h3);
     max-width: 60ch;
   }
-  .ds-hero-actions {
-    margin: 0;
-    margin-top: var(--space-sm);
-  }
+  .ds-hero-content .ds-hero-actions { justify-content: center; }
 
   @media (min-width: 768px) {
-    .ds-hero { padding: var(--space-2xl) var(--space-xl); }
+    .ds-hero--cover { padding: var(--space-2xl) var(--space-xl); }
+  }
+
+  /* Reduced_Motion: sin zoom en las imagenes editoriales (Req 6.2). */
+  @media (prefers-reduced-motion: reduce) {
+    .ds-hero-shot img { transition: none; }
+    .ds-hero-shot:hover img { transform: none; }
   }
 </style>

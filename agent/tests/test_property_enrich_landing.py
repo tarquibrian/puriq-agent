@@ -38,7 +38,7 @@ from puriq.tools import generate_content
 _SENTINEL = "TEXTO_GENERADO"
 
 # Catalogo de tipos soportados (DD-3), tal como los reconoce `enrich_landing`.
-_TYPES = ["hero", "features", "cta", "gallery", "stats"]
+_TYPES = ["hero", "features", "cta", "gallery", "stats", "testimonials", "faq"]
 
 
 def _is_blank(value: object) -> bool:
@@ -79,6 +79,14 @@ def _collect_copy(section: dict) -> dict:
         for i, image in enumerate(content.get("images") or []):
             if isinstance(image, dict) and "alt" in image:
                 out[f"images[{i}].alt"] = image["alt"]
+    elif t == "testimonials":
+        for i, item in enumerate(content.get("items") or []):
+            if isinstance(item, dict) and "quote" in item:
+                out[f"items[{i}].quote"] = item["quote"]
+    elif t == "faq":
+        for i, item in enumerate(content.get("items") or []):
+            if isinstance(item, dict) and "answer" in item:
+                out[f"items[{i}].answer"] = item["answer"]
     return out
 
 
@@ -119,6 +127,19 @@ def _content(draw, t: str, *, all_blank: bool):
         n = draw(st.integers(min_value=1, max_value=3))
         return {"metrics": [
             {"value": "", "label": draw(field)} for _ in range(n)
+        ]}
+    if t == "testimonials":
+        n = draw(st.integers(min_value=1, max_value=3))
+        # `author`/`role` son contexto, no campos de copy; `quote` es el copy.
+        return {"items": [
+            {"quote": draw(field), "author": "", "role": ""} for _ in range(n)
+        ]}
+    if t == "faq":
+        n = draw(st.integers(min_value=1, max_value=3))
+        # `question` siempre no vacia para que `answer` (el copy) se complete.
+        return {"items": [
+            {"question": f"Como llego {i}", "answer": draw(field)}
+            for i in range(n)
         ]}
     # gallery
     n = draw(st.integers(min_value=1, max_value=3))
@@ -178,6 +199,8 @@ _TYPE_KEYWORDS = {
     "cta": "llamada a la accion",
     "stats": "metrica",
     "gallery": "galeria",
+    "testimonials": "testimonio",
+    "faq": "pregunta frecuente",
 }
 
 

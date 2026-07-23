@@ -1,47 +1,58 @@
 ---
 // Modulo PLACES: fichas de lugares turisticos. Alimenta y complementa al mapa.
 //
-// Uplift de presentacion (DD-7, Req 9): el marcado se reescribe para usar los
-// UI_Component `Grid` y `Card` y variables CSS de Design_Tokens en lugar de
-// estilos inline hardcodeados. Los datos de entrada (`places`, `categories`) y
-// el comportamiento no cambian (Req 9.4, 16.3).
+// Uplift de presentacion (DD-7, Req 9): el marcado usa los UI_Component
+// `Section`, `Grid` y `Card` y variables CSS de Design_Tokens en lugar de
+// estilos inline hardcodeados. La imagen del lugar viaja por el prop `image` de
+// Card (recorte + zoom en hover) y la categoria se muestra como chip/pill con
+// tinte de acento via color-mix. Los datos de entrada (`places`, `categories`)
+// y el comportamiento no cambian: se preserva el lookup `labelOf` y el orden
+// original de `places` (Req 9.4, 16.3).
 import { places, categories } from "../../lib/data";
+import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Card from "../../design-system/ui/Card.astro";
 const labelOf = (id: string) =>
   categories.find((c: any) => c.id === id)?.label ?? id;
+// Icono de la categoria del lugar (p. ej. mountain/landmark/clock) para el chip
+// de icono de la Card; si la categoria no define icono, la Card usa su fallback.
+const iconOf = (id: string) =>
+  categories.find((c: any) => c.id === id)?.icon ?? undefined;
 ---
-<h2>Que visitar</h2>
-{/* Cuadricula responsive de tarjetas (Req 5.3, 9.3); columnas segun el ancho. */}
-<Grid min="260px">
-  {places.map((p) => (
-    <Card class="place-card">
-      {p.images?.[0] && (
-        <img class="place-img" src={p.images[0]} alt={p.name} />
-      )}
-      <small class="place-cat">{labelOf(p.category)}</small>
-      <h3 class="place-name">{p.name}</h3>
-      <p class="place-desc">{p.shortDescription}</p>
-      {p.hours && <small class="place-hours">Horario: {p.hours}</small>}
-    </Card>
-  ))}
-</Grid>
+{/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
+<Section id="places" eyebrow="Qué visitar" title="Lugares para descubrir">
+  {/* Cuadricula responsive de tarjetas (Req 5.3, 9.3); columnas segun ancho. */}
+  <Grid min="260px">
+    {places.map((p) => (
+      <Card class="place-card" icon={iconOf(p.category)} image={p.images?.[0]} imageAlt={p.name}>
+        {/* Categoria como chip/pill con tinte de acento derivado por color-mix. */}
+        <span class="place-cat">{labelOf(p.category)}</span>
+        <h3 class="place-name">{p.name}</h3>
+        <p class="place-desc">{p.shortDescription}</p>
+        {p.hours && <small class="place-hours">Horario: {p.hours}</small>}
+      </Card>
+    ))}
+  </Grid>
+</Section>
 
 <style>
   /* Toda la apariencia deriva de variables CSS de Design_Tokens (Req 9.1). */
-  .place-img {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    margin-bottom: var(--space-sm);
-  }
+
+  /* Chip/pill de categoria: tinte de acento sutil, texto de acento, radio pill. */
   .place-cat {
-    color: var(--color-primary);
+    display: inline-block;
+    margin-bottom: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+    font-size: var(--fs-small);
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+    line-height: 1;
   }
-  .place-name { margin: var(--space-xs) 0; }
+  .place-name { margin: 0 0 var(--space-sm); }
   .place-desc {
     font-size: var(--fs-small);
     line-height: var(--lh-small);
@@ -49,6 +60,7 @@ const labelOf = (id: string) =>
     color: color-mix(in srgb, var(--color-text) 70%, var(--color-background));
   }
   .place-hours {
+    display: block;
     color: color-mix(in srgb, var(--color-text) 60%, var(--color-background));
   }
 </style>

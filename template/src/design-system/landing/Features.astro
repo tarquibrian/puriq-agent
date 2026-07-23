@@ -1,9 +1,13 @@
 ---
 // Landing_Section: Features / Destacados (Req 12.1).
 //
-// Renderiza un titulo opcional y una cuadricula responsive de tarjetas, una por
-// destacado (`content.items[]`), reutilizando los UI_Component `Section`, `Grid`
-// y `Card`. Toda la apariencia deriva de variables CSS de Design_Tokens.
+// Direccion editorial/nature (estilo Nourish): cabecera con `eyebrow` + titulo
+// + `intro` opcional (via UI_Component `Section`) y una cuadricula de tarjetas
+// (`Grid` + `Card`), una por destacado (`content.items[]`). Cada item puede
+// traer una `image` (se usa el area de medios de la Card) y marcarse como
+// `highlight` para un realce sutil de acento basado en tokens.
+//
+// Toda la apariencia deriva de variables CSS de Design_Tokens.
 //
 // Render defensivo (Req 12.5): si no hay destacados con contenido, la seccion
 // se omite por completo (no se renderiza nada).
@@ -14,9 +18,21 @@ import Card from "../ui/Card.astro";
 interface FeatureItem {
   title?: string;
   description?: string;
+  /** Imagen opcional del destacado (area de medios de la Card). */
+  image?: string;
+  /** Texto alternativo de la imagen. */
+  imageAlt?: string;
+  /** Icono opcional del destacado (chip de acento en la Card). */
+  icon?: string;
+  /** Marca el destacado como resaltado (realce de acento sutil). */
+  highlight?: boolean;
 }
 interface FeaturesContent {
+  /** Etiqueta editorial opcional sobre el titulo (kicker). */
+  eyebrow?: string;
   title?: string;
+  /** Parrafo lead opcional bajo el titulo. */
+  intro?: string;
   items?: FeatureItem[];
 }
 interface Props {
@@ -25,7 +41,9 @@ interface Props {
 
 const { content } = Astro.props;
 
+const eyebrow = content?.eyebrow?.trim() || "Qué te espera";
 const title = content?.title?.trim();
+const intro = content?.intro?.trim();
 
 // Destacados con al menos un titulo o descripcion no vacios; los vacios se
 // descartan para no renderizar tarjetas huecas.
@@ -38,10 +56,16 @@ const hasItems = items.length > 0;
 ---
 
 {hasItems && (
-  <Section title={title}>
+  <Section eyebrow={eyebrow} title={title} intro={intro}>
     <Grid min="260px">
       {items.map((item) => (
-        <Card title={item.title?.trim()}>
+        <Card
+          icon={item.icon?.trim() || undefined}
+          featured={item.highlight === true}
+          title={item.title?.trim()}
+          image={item.image?.trim() || undefined}
+          imageAlt={item.imageAlt?.trim() ?? ""}
+        >
           {item.description?.trim() && <p>{item.description.trim()}</p>}
         </Card>
       ))}

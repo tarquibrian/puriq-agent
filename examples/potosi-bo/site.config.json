@@ -20,6 +20,113 @@
     "headline": "Potosí, plata y sal",
     "subheadline": "Del espejo del Salar al corazón del Cerro Rico."
   },
+  "landing": [
+    {
+      "type": "hero",
+      "enabled": true,
+      "order": 1,
+      "content": {
+        "layout": "split",
+        "eyebrow": "Departamento de Potosí",
+        "headline": "Potosí, plata y sal",
+        "subheadline": "Del espejo infinito del Salar de Uyuni al corazón del Cerro Rico.",
+        "cta": { "label": "Ver el mapa", "href": "#map" },
+        "cta2": { "label": "Festividades", "href": "#events" },
+        "badges": ["Patrimonio UNESCO", "4000 msnm", "Salar de Uyuni"],
+        "stat": { "value": "10 582 km²", "label": "Salar de Uyuni" },
+        "images": [
+          { "src": "assets/minas-de-potosi-01.jpg", "alt": "Cerro Rico de Potosí" },
+          { "src": "assets/minas-de-potosi-02.jpg", "alt": "Minas de Potosí" },
+          { "src": "assets/minas-de-potosi-03.jpg", "alt": "Altiplano potosino" }
+        ]
+      }
+    },
+    {
+      "type": "features",
+      "enabled": true,
+      "order": 2,
+      "content": {
+        "eyebrow": "Qué te espera",
+        "title": "Experiencias imperdibles",
+        "intro": "Naturaleza extrema, plata colonial y herencia viva: Potosí combina los paisajes más altos de Bolivia con siglos de historia minera.",
+        "items": [
+          { "title": "Salar de Uyuni", "description": "El salar más grande del mundo, un espejo infinito a 3660 msnm.", "icon": "mountain", "highlight": true },
+          { "title": "Cerro Rico", "description": "La montaña de plata que financió imperios; Patrimonio de la Humanidad.", "icon": "landmark" },
+          { "title": "Casa Nacional de la Moneda", "description": "Uno de los museos más importantes de Sudamérica, donde se acuñaba la plata.", "icon": "landmark" },
+          { "title": "Laguna Colorada", "description": "Laguna roja con flamencos andinos en plena Puna.", "icon": "camera" }
+        ]
+      }
+    },
+    {
+      "type": "stats",
+      "enabled": true,
+      "order": 3,
+      "content": {
+        "eyebrow": "Potosí en números",
+        "title": "Cifras del altiplano",
+        "metrics": [
+          { "value": "3660 m", "label": "de altitud" },
+          { "value": "1545", "label": "fundación de Potosí" },
+          { "value": "10 582 km²", "label": "Salar de Uyuni" },
+          { "value": "2", "label": "sitios UNESCO" }
+        ]
+      }
+    },
+    {
+      "type": "testimonials",
+      "enabled": true,
+      "order": 4,
+      "content": {
+        "eyebrow": "Voces del destino",
+        "title": "Lo que dicen quienes visitan Potosí",
+        "items": [
+          { "quote": "El amanecer en el Salar de Uyuni es la experiencia más impresionante que viví; un espejo infinito hasta el horizonte.", "author": "María Fernández", "role": "Viajera, Argentina" },
+          { "quote": "Bajar a las minas del Cerro Rico y entender su historia te cambia la forma de ver Potosí.", "author": "James Carter", "role": "Fotógrafo de viajes" },
+          { "quote": "La Casa de la Moneda es una joya; la mejor visita guiada de patrimonio que hicimos en Bolivia.", "author": "Lucía Rojas", "role": "Guía de turismo local" }
+        ]
+      }
+    },
+    {
+      "type": "gallery",
+      "enabled": true,
+      "order": 5,
+      "content": {
+        "eyebrow": "Galería",
+        "title": "Paisajes de Potosí",
+        "images": [
+          { "src": "assets/minas-de-potosi-01.jpg", "alt": "Vista del Cerro Rico de Potosí" },
+          { "src": "assets/minas-de-potosi-02.jpg", "alt": "Interior de las minas de Potosí" },
+          { "src": "assets/minas-de-potosi-03.jpg", "alt": "Paisaje del altiplano potosino" },
+          { "src": "assets/minas-de-potosi-04.jpg", "alt": "Panorámica de las minas y la ciudad de Potosí" }
+        ]
+      }
+    },
+    {
+      "type": "faq",
+      "enabled": true,
+      "order": 6,
+      "content": {
+        "eyebrow": "Antes de viajar",
+        "title": "Preguntas frecuentes",
+        "items": [
+          { "question": "¿Cómo llego al Salar de Uyuni?", "answer": "La puerta de entrada es el pueblo de Uyuni, conectado por bus y avión desde La Paz, Sucre y Potosí. Desde Uyuni se contratan tours de 1 a 3 días al salar y las lagunas." },
+          { "question": "¿Necesito aclimatarme por la altura?", "answer": "Sí. Potosí (~4000 msnm) y el salar (~3660 msnm) están a gran altura. Se recomienda hidratarse, descansar el primer día y mate de coca para el soroche." },
+          { "question": "¿Se puede entrar a las minas del Cerro Rico?", "answer": "Sí, con tours guiados por cooperativas mineras. Es una experiencia histórica intensa; consultá condiciones y respetá las indicaciones del guía." },
+          { "question": "¿Cuál es la mejor época para el salar?", "answer": "En temporada seca (mayo-noviembre) para recorrerlo; en época de lluvias (diciembre-marzo) se forma el famoso efecto espejo." }
+        ]
+      }
+    },
+    {
+      "type": "cta",
+      "enabled": true,
+      "order": 7,
+      "content": {
+        "eyebrow": "Planificá tu viaje",
+        "message": "Planificá tu viaje al altiplano boliviano y viví Potosí todo el año.",
+        "cta": { "label": "Explorar festividades", "href": "#events" }
+      }
+    }
+  ],
   "contact": { "email": "turismo@potosi.gob.bo", "phone": "" },
   "deploy": { "target": "aws-amplify", "domain": "" }
 }

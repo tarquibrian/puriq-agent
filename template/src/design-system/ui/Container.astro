@@ -25,15 +25,12 @@ const Tag = as as any;
   .ds-container {
     width: 100%;
     margin-inline: auto;
-    padding-inline: var(--space-md);
+    /* Relleno horizontal fluido: comodo en movil y generoso en desktop. */
+    padding-inline: clamp(var(--space-md), 5vw, var(--space-lg));
     max-width: var(--container-lg);
   }
   .ds-container[data-size="sm"] { max-width: var(--container-sm); }
   .ds-container[data-size="md"] { max-width: var(--container-md); }
   .ds-container[data-size="lg"] { max-width: var(--container-lg); }
   .ds-container[data-size="xl"] { max-width: var(--container-xl); }
-
-  @media (min-width: 768px) {
-    .ds-container { padding-inline: var(--space-lg); }
-  }
 </style>

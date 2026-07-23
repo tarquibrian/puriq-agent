@@ -1,0 +1,158 @@
+---
+// Landing_Section: FAQ / Preguntas frecuentes (Req 12.x).
+//
+// Direccion editorial/nature: cabecera con `eyebrow` + titulo (via UI_Component
+// `Section`) y un acordeon accesible construido con <details>/<summary> nativos
+// (teclado y lectores de pantalla por defecto, sin JS). Cada item muestra la
+// `question` en el <summary> con un indicador +/x que rota al abrir, y la
+// `answer` en el cuerpo. El ancho se limita (Container size "md") para una
+// lectura comoda.
+//
+// Toda la apariencia deriva de variables CSS de Design_Tokens: separadores con
+// color-mix del texto, relleno comodo, radio y una transicion suave de apertura
+// que respeta `prefers-reduced-motion`.
+//
+// Render defensivo (Req 12.5): se descartan los items sin `question` no vacia; si
+// no queda ninguno, la seccion se omite por completo (no se renderiza nada).
+import Section from "../ui/Section.astro";
+
+interface FaqItem {
+  /** Pregunta (campo esencial). */
+  question?: string;
+  /** Respuesta asociada a la pregunta. */
+  answer?: string;
+}
+interface FaqContent {
+  /** Etiqueta editorial opcional sobre el titulo (kicker). */
+  eyebrow?: string;
+  title?: string;
+  items?: FaqItem[];
+}
+interface Props {
+  content?: FaqContent;
+}
+
+const { content } = Astro.props;
+
+const eyebrow = content?.eyebrow?.trim() || "Preguntas frecuentes";
+const title = content?.title?.trim();
+
+// Items con una pregunta no vacia; los vacios se descartan (Req 12.5).
+const items = Array.isArray(content?.items)
+  ? content!.items!.filter((item) => Boolean(item?.question?.trim()))
+  : [];
+const hasItems = items.length > 0;
+---
+
+{hasItems && (
+  <Section eyebrow={eyebrow} title={title} size="md">
+    <div class="ds-faq">
+      {items.map((item) => (
+        <details class="ds-faq-item">
+          <summary class="ds-faq-question">
+            <span class="ds-faq-question-text">{item.question!.trim()}</span>
+            <span class="ds-faq-indicator" aria-hidden="true"></span>
+          </summary>
+          {item.answer?.trim() && (
+            <div class="ds-faq-answer">
+              <p>{item.answer.trim()}</p>
+            </div>
+          )}
+        </details>
+      ))}
+    </div>
+  </Section>
+)}
+
+<style>
+  /* Lista de items con separadores sutiles derivados del color de texto. */
+  .ds-faq {
+    border-top: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  }
+  .ds-faq-item {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  }
+
+  /* Pregunta: fila clicable con relleno comodo; se elimina el marcador nativo. */
+  .ds-faq-question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-block: var(--space-lg);
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-heading), Georgia, serif;
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  /* Oculta el triangulo por defecto en WebKit y en el estandar. */
+  .ds-faq-question::-webkit-details-marker { display: none; }
+  .ds-faq-question::marker { content: ""; }
+
+  .ds-faq-question-text { min-width: 0; }
+
+  /* Indicador +/x tipo cruz: dos trazos; el vertical rota al abrir. */
+  .ds-faq-indicator {
+    position: relative;
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+    border-radius: var(--radius-sm);
+    color: var(--color-accent);
+  }
+  .ds-faq-indicator::before,
+  .ds-faq-indicator::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    transform: translateY(-50%);
+    transition: transform var(--motion-duration-base) var(--motion-easing);
+  }
+  /* Trazo vertical: rotado 90deg en reposo (forma "+"). */
+  .ds-faq-indicator::after {
+    transform: translateY(-50%) rotate(90deg);
+  }
+  /* Al abrir, el trazo vertical se alinea con el horizontal (forma "-"). */
+  .ds-faq-item[open] .ds-faq-indicator::after {
+    transform: translateY(-50%) rotate(0deg);
+  }
+
+  /* Cuerpo de la respuesta: color muted y ancho de lectura comodo, con una
+   * animacion sutil de entrada al abrir el <details>. */
+  .ds-faq-answer {
+    padding-bottom: var(--space-lg);
+    color: color-mix(in srgb, currentColor 72%, transparent);
+    max-width: 62ch;
+  }
+  .ds-faq-answer p {
+    margin: 0;
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+  }
+  .ds-faq-item[open] .ds-faq-answer {
+    animation: ds-faq-reveal var(--motion-duration-base) var(--motion-easing);
+  }
+  @keyframes ds-faq-reveal {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Foco visible accesible sobre la fila de pregunta. */
+  .ds-faq-question:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ds-faq-indicator::before,
+    .ds-faq-indicator::after { transition: none; }
+    .ds-faq-item[open] .ds-faq-answer { animation: none; }
+  }
+</style>

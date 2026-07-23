@@ -23,6 +23,16 @@ const vars = Object.fromEntries(
 // Layout_Variant resuelta: valor configurado o el default del sistema (Req 7.5).
 const variant = siteConfig.layout ?? "clasico";
 const nav = activeModules();
+
+// CTA del header (data-driven): se prefiere un modulo de contacto/chat; si no
+// existe, se enlaza al ultimo modulo activo; si no hay modulos, cae a "#" de
+// forma elegante. La etiqueta reutiliza el label del modulo elegido.
+const ctaTarget =
+  nav.find((m) => ["chatweb", "chat", "contacto", "contact"].includes(m.key)) ??
+  nav[nav.length - 1] ??
+  null;
+const ctaHref = ctaTarget ? `#${ctaTarget.key}` : "#";
+const ctaLabel = ctaTarget?.label ?? "Contacto";
 ---
 <!doctype html>
 <html lang={site.defaultLocale ?? "es"} data-variant={variant}>
@@ -34,11 +44,16 @@ const nav = activeModules();
     <style define:vars={vars}>
       /* --------------------------------------------------------------------
        * Reset y base mobile-first. Todo deriva de variables de Design_Tokens.
+       * Direccion editorial/nature: aire generoso, titulares fluidos, sombras
+       * suaves, color de acento usado con moderacion.
        * ------------------------------------------------------------------ */
       :root { color-scheme: light; }
       *, *::before, *::after { box-sizing: border-box; }
 
-      html { font-size: var(--font-base-size); }
+      html {
+        font-size: var(--font-base-size);
+        scroll-behavior: smooth;
+      }
 
       body {
         margin: 0;
@@ -47,18 +62,31 @@ const nav = activeModules();
         font-family: var(--font-body), system-ui, sans-serif;
         font-size: var(--fs-body);
         line-height: var(--lh-body);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
         /* Evita el desbordamiento horizontal en el viewport mas pequeno (Req 5.4). */
         overflow-x: hidden;
       }
 
       /* Type_Scale aplicada a titulos y cuerpo, ordenada de mayor a menor
-       * de h1 a h3 (Req 3.1). Los tamanos vienen de la escala tipografica. */
-      h1, h2, h3 { font-family: var(--font-heading), Georgia, serif; margin: 0 0 var(--space-md); }
+       * de h1 a h3 (Req 3.1). Titulares confiados: peso alto y tracking
+       * ligeramente negativo en los tamanos grandes. */
+      h1, h2, h3 {
+        font-family: var(--font-heading), Georgia, serif;
+        margin: 0 0 var(--space-md);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
       h1 { font-size: var(--fs-h1); line-height: var(--lh-h1); }
-      h2 { font-size: var(--fs-h2); line-height: var(--lh-h2); }
-      h3 { font-size: var(--fs-h3); line-height: var(--lh-h3); }
+      h2 { font-size: var(--fs-h2); line-height: var(--lh-h2); letter-spacing: -0.015em; }
+      h3 { font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: 700; letter-spacing: -0.01em; }
       p { margin: 0 0 var(--space-md); }
       small { font-size: var(--fs-small); line-height: var(--lh-small); }
+
+      ::selection {
+        background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+        color: var(--color-text);
+      }
 
       /* Imagenes fluidas: nunca desbordan su contenedor (Req 5.5). */
       img { max-width: 100%; height: auto; }
@@ -66,6 +94,7 @@ const nav = activeModules();
       /* Enlaces con transicion sobria de motion (Req 6.1). */
       a {
         color: var(--color-accent);
+        text-underline-offset: 0.2em;
         transition: color var(--motion-duration-fast) var(--motion-easing);
       }
       a:hover { color: var(--color-primary); }
@@ -78,37 +107,106 @@ const nav = activeModules();
       }
 
       /* --------------------------------------------------------------------
+       * Eyebrow / kicker: etiqueta editorial reutilizable (secciones, hero).
+       * Punto pequeno via ::before usando currentColor. Color de acento.
+       * ------------------------------------------------------------------ */
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: var(--fs-small);
+        font-weight: 600;
+        color: var(--color-accent);
+      }
+      .eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-pill);
+        background: currentColor;
+        flex: none;
+      }
+
+      /* --------------------------------------------------------------------
+       * Ritmo vertical de secciones full-width: aire generoso y fluido para
+       * que la pagina respire. Las secciones pueden reutilizar esta clase.
+       * ------------------------------------------------------------------ */
+      .section {
+        padding-block: clamp(3rem, 8vw, 7rem);
+      }
+
+      /* --------------------------------------------------------------------
        * Contenedor principal: ancho limitado al token de contenedor y
        * centrado horizontalmente (Req 3.4). Ritmo con la Spacing_Scale.
        * ------------------------------------------------------------------ */
       main {
         max-width: var(--container-lg);
         margin: 0 auto;
-        padding: var(--space-lg) var(--space-md);
+        padding: var(--space-xl) var(--space-lg);
       }
 
       /* --------------------------------------------------------------------
-       * Header + navegacion accesible. Base mobile-first: la navegacion se
+       * Header sticky y translucido. Base mobile-first: la navegacion se
        * pliega en un disclosure (<details>) accesible por teclado y sin JS,
        * de modo que nunca desborda el viewport estrecho (Req 5.2, 8.1).
        * ------------------------------------------------------------------ */
-      .site-header { width: 100%; }
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100%;
+        background: color-mix(in srgb, var(--color-background) 82%, transparent);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+      }
       .header-inner {
-        max-width: var(--container-lg);
+        max-width: var(--container-xl);
         margin: 0 auto;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-sm);
-        padding: var(--space-md);
+        gap: var(--space-md);
+        padding: var(--space-md) var(--space-lg);
       }
       .brand {
         font-family: var(--font-heading), Georgia, serif;
         font-size: var(--fs-h3);
         font-weight: 700;
+        letter-spacing: -0.01em;
         text-decoration: none;
         color: inherit;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+      }
+
+      /* CTA compacto del header: superficie de acento, radio pill. */
+      .header-cta {
+        display: none;
+        align-items: center;
+        padding: var(--space-xs) var(--space-md);
+        border-radius: var(--radius-pill);
+        background: var(--color-accent);
+        color: var(--color-background);
+        font-size: var(--fs-small);
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: var(--shadow-sm);
+        transition:
+          transform var(--motion-duration-fast) var(--motion-easing),
+          box-shadow var(--motion-duration-base) var(--motion-easing);
+      }
+      .header-cta:hover {
+        color: var(--color-background);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
       }
 
       .nav-disclosure { position: relative; }
@@ -116,7 +214,7 @@ const nav = activeModules();
         cursor: pointer;
         list-style: none;
         padding: var(--space-xs) var(--space-sm);
-        border: 1px solid currentColor;
+        border: 1px solid color-mix(in srgb, var(--color-text) 24%, transparent);
         border-radius: var(--radius-sm);
         font-size: var(--fs-small);
         user-select: none;
@@ -131,23 +229,73 @@ const nav = activeModules();
       .site-nav a {
         color: inherit;
         text-decoration: none;
+        font-weight: 500;
         padding: var(--space-xs) 0;
       }
-      .site-nav a:hover { text-decoration: underline; }
+      .site-nav a:hover { color: var(--color-accent); }
 
       /* --------------------------------------------------------------------
-       * Footer semantico.
+       * Footer editorial multi-columna. Superficie oscura derivada del texto
+       * de marca, texto claro derivado del fondo; todo via color-mix (Req 8).
        * ------------------------------------------------------------------ */
       .site-footer {
-        border-top: 1px solid var(--color-secondary);
-        margin-top: var(--space-xl);
+        margin-top: var(--space-3xl);
+        background: color-mix(in srgb, var(--color-text) 92%, black);
+        color: var(--color-background);
       }
       .footer-inner {
-        max-width: var(--container-lg);
+        max-width: var(--container-xl);
         margin: 0 auto;
-        padding: var(--space-lg) var(--space-md);
+        padding: clamp(2.5rem, 6vw, 5rem) var(--space-lg) var(--space-xl);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-xl);
+      }
+      .footer-brand-name {
+        font-family: var(--font-heading), Georgia, serif;
+        font-size: var(--fs-h3);
+        font-weight: 700;
+        margin: 0 0 var(--space-sm);
+      }
+      .footer-tagline {
+        margin: 0;
+        max-width: 42ch;
+        color: color-mix(in srgb, var(--color-background) 78%, transparent);
         font-size: var(--fs-small);
         line-height: var(--lh-small);
+      }
+      .footer-col h2 {
+        font-family: var(--font-body), system-ui, sans-serif;
+        font-size: var(--fs-small);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 0 0 var(--space-md);
+        color: color-mix(in srgb, var(--color-background) 70%, transparent);
+      }
+      .footer-nav {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+      }
+      .footer-nav a {
+        color: color-mix(in srgb, var(--color-background) 88%, transparent);
+        text-decoration: none;
+        font-size: var(--fs-small);
+      }
+      .footer-nav a:hover { color: var(--color-background); }
+      .footer-contact {
+        font-size: var(--fs-small);
+        line-height: var(--lh-small);
+        color: color-mix(in srgb, var(--color-background) 78%, transparent);
+      }
+      .footer-bottom {
+        max-width: var(--container-xl);
+        margin: 0 auto;
+        padding: var(--space-md) var(--space-lg) var(--space-xl);
+        border-top: 1px solid color-mix(in srgb, var(--color-background) 14%, transparent);
+        font-size: var(--fs-small);
+        color: color-mix(in srgb, var(--color-background) 62%, transparent);
       }
 
       /* --------------------------------------------------------------------
@@ -166,7 +314,11 @@ const nav = activeModules();
           gap: var(--space-lg);
           padding: 0;
         }
-        main { padding: var(--space-xl) var(--space-lg); }
+        .header-cta { display: inline-flex; }
+        .footer-inner {
+          grid-template-columns: 2fr 1fr 1fr;
+          gap: var(--space-2xl);
+        }
       }
 
       /* --------------------------------------------------------------------
@@ -178,34 +330,25 @@ const nav = activeModules();
        * viaja por tokens sin duplicar la marca.
        * ------------------------------------------------------------------ */
 
-      /* Variante clasica: header sobrio con borde inferior, hero enmarcado,
-       * tarjetas con borde fino. */
-      [data-variant="clasico"] .site-header {
-        background: var(--color-background);
-        color: var(--color-text);
-        border-bottom: 3px solid var(--color-primary);
-      }
-      [data-variant="clasico"] .header-inner { justify-content: center; text-align: center; }
+      /* Variante clasica: hero enmarcado con radios grandes, tarjetas con borde
+       * fino y sombra suave; header translucido comun. */
       [data-variant="clasico"] {
-        --hero-radius: var(--radius-md);
+        --hero-radius: var(--radius-lg);
         --hero-margin: var(--space-lg);
-        --hero-min-height: 48vh;
-        --card-border: 1px solid var(--color-secondary);
-        --card-shadow: none;
+        --hero-min-height: 56vh;
+        --card-border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+        --card-radius: var(--radius-md);
+        --card-shadow: var(--shadow-sm);
       }
 
-      /* Variante moderna: header full-bleed con color primario, hero a sangre,
-       * tarjetas elevadas con sombra. */
-      [data-variant="moderno"] .site-header {
-        background: var(--color-primary);
-        color: var(--color-background);
-      }
-      [data-variant="moderno"] .header-inner { justify-content: space-between; }
+      /* Variante moderna: hero a sangre completa, tarjetas elevadas sin borde
+       * con sombra grande y radios amplios. */
       [data-variant="moderno"] {
         --hero-radius: 0;
         --hero-margin: 0;
-        --hero-min-height: 68vh;
+        --hero-min-height: 74vh;
         --card-border: none;
+        --card-radius: var(--radius-lg);
         --card-shadow: var(--shadow-lg);
       }
 
@@ -213,6 +356,7 @@ const nav = activeModules();
        * Reduced_Motion: anula transiciones/animaciones no esenciales (Req 6.2).
        * ------------------------------------------------------------------ */
       @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
         *, *::before, *::after {
           animation-duration: 0.001ms !important;
           animation-iteration-count: 1 !important;
@@ -226,12 +370,15 @@ const nav = activeModules();
     <header class="site-header">
       <div class="header-inner">
         <a class="brand" href="/">{site.name}</a>
-        <details class="nav-disclosure">
-          <summary>Menú</summary>
-          <nav class="site-nav" aria-label="Navegación principal">
-            {nav.map((m) => <a href={`#${m.key}`}>{m.label}</a>)}
-          </nav>
-        </details>
+        <div class="header-actions">
+          <details class="nav-disclosure">
+            <summary>Menú</summary>
+            <nav class="site-nav" aria-label="Navegación principal">
+              {nav.map((m) => <a href={`#${m.key}`}>{m.label}</a>)}
+            </nav>
+          </details>
+          <a class="header-cta" href={ctaHref}>{ctaLabel}</a>
+        </div>
       </div>
     </header>
     <main>
@@ -239,7 +386,31 @@ const nav = activeModules();
     </main>
     <footer class="site-footer">
       <div class="footer-inner">
-        <p>&copy; {new Date().getFullYear()} {site.name}</p>
+        <div class="footer-col">
+          <p class="footer-brand-name">{site.name}</p>
+          {site.description && <p class="footer-tagline">{site.description}</p>}
+        </div>
+        {nav.length > 0 && (
+          <div class="footer-col">
+            <h2>Explorar</h2>
+            <nav class="footer-nav" aria-label="Navegación del pie de página">
+              {nav.map((m) => <a href={`#${m.key}`}>{m.label}</a>)}
+            </nav>
+          </div>
+        )}
+        <div class="footer-col">
+          <h2>Contacto</h2>
+          <p class="footer-contact">
+            {ctaTarget ? (
+              <a class="footer-nav" href={ctaHref}>{ctaLabel}</a>
+            ) : (
+              <span>{site.name}</span>
+            )}
+          </p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; {new Date().getFullYear()} {site.name}. Generado con Puriq.</p>
       </div>
     </footer>
   </body>

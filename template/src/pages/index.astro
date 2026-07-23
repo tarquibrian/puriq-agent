@@ -8,7 +8,6 @@
 // hero trivial inline: el Hero_Section (o su sintesis desde el `hero` heredado)
 // lo maneja el propio Landing_Module.
 import Base from "../layouts/Base.astro";
-import Section from "../design-system/ui/Section.astro";
 import { resolveLanding, SECTION_REGISTRY } from "../design-system/landing";
 import { siteConfig, activeModules } from "../lib/data";
 import Map from "../modules/map/Map.astro";
@@ -34,13 +33,11 @@ const mods = activeModules();
     return Comp ? <Comp content={s.content} /> : null;
   })}
 
-  {/* Content_Module activos, envueltos en Section para un ritmo consistente. */}
+  {/* Content_Module activos. Cada modulo aporta su propia Section (con el `id`
+      del anchor y su cabecera eyebrow+titulo), por lo que aqui se renderiza
+      directo sin envolver para no anidar Sections ni duplicar ids (Req 9.3). */}
   {mods.map((m) => {
     const Comp = moduleRegistry[m.key];
-    return Comp ? (
-      <Section id={m.key}>
-        <Comp />
-      </Section>
-    ) : null;
+    return Comp ? <Comp /> : null;
   })}
 </Base>

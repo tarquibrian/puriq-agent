@@ -10,12 +10,14 @@
 //      se agregara en el dia 4) y renderiza la respuesta devuelta. El endpoint
 //      es el UNICO lugar donde vivirian credenciales; el cliente nunca las ve.
 //
-// Uplift de presentacion (DD-7, Req 9): el marcado se reescribe para usar los
-// UI_Component `Card` y `Button` y variables CSS de Design_Tokens. La logica de
-// recuperacion client-side, el `faq` de entrada, el comportamiento de
-// `apiEndpoint` y los `id` del DOM (`chat-log`, `chat-form`, `chat-input`) se
-// conservan intactos (Req 9.4, 16.3).
+// Uplift de presentacion (DD-7, Req 9): el marcado usa los UI_Component
+// `Section`, `Card` y `Button` y variables CSS de Design_Tokens. Los mensajes
+// se presentan como burbujas comodas y el formulario con campos redondeados. La
+// logica de recuperacion client-side, el `faq` de entrada, el comportamiento de
+// `apiEndpoint` y los `id` del DOM (`chat-log`, `chat-form`, `chat-input`) y el
+// campo `name="question"` se conservan intactos (Req 9.4, 16.3).
 import { siteConfig, faq } from "../../lib/data";
+import Section from "../../design-system/ui/Section.astro";
 import Card from "../../design-system/ui/Card.astro";
 import Button from "../../design-system/ui/Button.astro";
 const persona = siteConfig.modules?.chatweb?.persona ?? "asistente turistico";
@@ -24,31 +26,33 @@ const hasKnowledge = Array.isArray(faq) && faq.length > 0;
 // Datos que se pasan al script del cliente (solo Q&A publico + config no secreta).
 const clientData = { persona, apiEndpoint, faq };
 ---
-<h2>Asistente turistico</h2>
-<Card class="chat-card">
-  <div id="chat-log" class="chat-log">
-    <div class="chat-msg chat-bot">
-      Hola, soy tu {persona}. Preguntame sobre lugares, eventos y como llegar.
-    </div>
-    {!hasKnowledge && !apiEndpoint && (
-      <div class="chat-msg chat-bot chat-muted">
-        Todavia no tengo informacion cargada. Volve a consultarme cuando el sitio
-        tenga sus preguntas frecuentes publicadas.
+{/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
+<Section id="chatweb" eyebrow="Pregúntanos" title="Asistente turístico">
+  <Card class="chat-card">
+    <div id="chat-log" class="chat-log">
+      <div class="chat-msg chat-bot">
+        Hola, soy tu {persona}. Preguntame sobre lugares, eventos y como llegar.
       </div>
-    )}
-  </div>
-  <form id="chat-form" class="chat-form">
-    <input
-      id="chat-input"
-      class="chat-input"
-      name="question"
-      autocomplete="off"
-      placeholder="Escribi tu pregunta..."
-    />
-    <Button type="submit">Enviar</Button>
-  </form>
-  <small class="chat-note">Responde con la informacion oficial publicada del destino.</small>
-</Card>
+      {!hasKnowledge && !apiEndpoint && (
+        <div class="chat-msg chat-bot chat-muted">
+          Todavia no tengo informacion cargada. Volve a consultarme cuando el sitio
+          tenga sus preguntas frecuentes publicadas.
+        </div>
+      )}
+    </div>
+    <form id="chat-form" class="chat-form">
+      <input
+        id="chat-input"
+        class="chat-input"
+        name="question"
+        autocomplete="off"
+        placeholder="Escribi tu pregunta..."
+      />
+      <Button type="submit">Enviar</Button>
+    </form>
+    <small class="chat-note">Responde con la informacion oficial publicada del destino.</small>
+  </Card>
+</Section>
 
 <script define:vars={{ clientData }}>
   // === Configuracion inyectada desde el servidor (Q&A publico, sin secretos) ===
@@ -190,14 +194,29 @@ const clientData = { persona, apiEndpoint, faq };
   .chat-card { max-width: var(--container-sm); }
   .chat-log {
     min-height: 5rem;
+    /* Alto comodo con desplazamiento cuando la conversacion crece. */
+    max-height: clamp(16rem, 40vh, 26rem);
+    overflow-y: auto;
     font-size: var(--fs-body);
     line-height: var(--lh-body);
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    color: color-mix(in srgb, var(--color-text) 80%, var(--color-background));
+    color: var(--color-text);
   }
-  .chat-msg { align-self: flex-start; }
+  /* Burbujas comodas: relleno generoso y radio grande (esquina inferior
+   * "hablante" mas ajustada para dar direccion a cada mensaje). */
+  .chat-msg {
+    align-self: flex-start;
+    max-width: 85%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+  /* Burbuja del asistente: superficie sutil derivada del texto de marca. */
+  .chat-bot {
+    background: color-mix(in srgb, var(--color-text) 6%, var(--color-background));
+    border-bottom-left-radius: var(--radius-sm);
+  }
   .chat-muted {
     color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
   }
@@ -208,15 +227,22 @@ const clientData = { persona, apiEndpoint, faq };
   }
   .chat-input {
     flex: 1;
-    padding: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
     border: 1px solid color-mix(in srgb, var(--color-text) 25%, var(--color-background));
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-pill);
     font-family: var(--font-body), system-ui, sans-serif;
     font-size: var(--fs-body);
     background: var(--color-background);
     color: var(--color-text);
+    transition: border-color var(--motion-duration-base) var(--motion-easing);
+  }
+  .chat-input:focus-visible {
+    outline: none;
+    border-color: var(--color-accent);
   }
   .chat-note {
+    display: block;
+    margin-top: var(--space-sm);
     color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
   }
 </style>

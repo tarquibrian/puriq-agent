@@ -40,6 +40,7 @@ export interface ResolvedSpacing {
   lg: string;
   xl: string;
   "2xl": string;
+  "3xl": string;
   [step: string]: string;
 }
 
@@ -170,26 +171,27 @@ export const DESIGN_DEFAULTS: ResolvedTokens = {
     xs: "0.25rem",
     sm: "0.5rem",
     md: "1rem",
-    lg: "2rem",
-    xl: "4rem",
-    "2xl": "8rem",
+    lg: "1.5rem",
+    xl: "3rem",
+    "2xl": "6rem",
+    "3xl": "9rem",
   },
   typeScale: {
-    h1: { size: "2.5rem", lineHeight: "1.15" },
-    h2: { size: "2rem", lineHeight: "1.25" },
-    h3: { size: "1.5rem", lineHeight: "1.3" },
-    body: { size: "1rem", lineHeight: "1.6" },
-    small: { size: "0.875rem", lineHeight: "1.5" },
+    h1: { size: "clamp(2.75rem, 6vw, 4.5rem)", lineHeight: "1.05" },
+    h2: { size: "clamp(2rem, 4vw, 3rem)", lineHeight: "1.1" },
+    h3: { size: "clamp(1.35rem, 2vw, 1.75rem)", lineHeight: "1.2" },
+    body: { size: "1.0625rem", lineHeight: "1.7" },
+    small: { size: "0.9375rem", lineHeight: "1.55" },
   },
   shadows: {
-    sm: "0 1px 2px rgba(0,0,0,.08)",
-    md: "0 4px 12px rgba(0,0,0,.12)",
-    lg: "0 12px 32px rgba(0,0,0,.18)",
+    sm: "0 1px 2px rgba(16,24,40,.04)",
+    md: "0 10px 30px -12px rgba(16,24,40,.14)",
+    lg: "0 30px 60px -20px rgba(16,24,40,.22)",
   },
   radii: {
-    sm: "4px",
-    md: "8px",
-    lg: "16px",
+    sm: "6px",
+    md: "14px",
+    lg: "28px",
     pill: "999px",
   },
   breakpoints: {
@@ -198,15 +200,15 @@ export const DESIGN_DEFAULTS: ResolvedTokens = {
     lg: "1024px",
   },
   motion: {
-    durationFast: "120ms",
-    durationBase: "240ms",
-    easing: "cubic-bezier(.4,0,.2,1)",
+    durationFast: "140ms",
+    durationBase: "260ms",
+    easing: "cubic-bezier(.22,1,.36,1)",
   },
   container: {
     sm: "640px",
-    md: "768px",
-    lg: "1080px",
-    xl: "1280px",
+    md: "820px",
+    lg: "1160px",
+    xl: "1320px",
   },
   radius: "12px",
 };

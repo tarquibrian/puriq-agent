@@ -22,7 +22,7 @@
       "address": "Uyuni, Potosí",
       "shortDescription": "El salar mas grande del mundo, un espejo infinito a 3660 msnm.",
       "description": "",
-      "images": ["assets/uyuni-01.jpg"],
+      "images": [],
       "hours": "Todo el dia",
       "tags": ["salar", "fotografia", "paisaje"],
       "source": "user"
@@ -35,7 +35,7 @@
       "address": "Potosí",
       "shortDescription": "La montaña de plata que financio imperios; Patrimonio de la Humanidad.",
       "description": "",
-      "images": ["assets/cerro-rico-01.jpg"],
+      "images": [],
       "hours": "Visitas guiadas a minas",
       "tags": ["mineria", "unesco", "historia"],
       "source": "user"
@@ -48,7 +48,7 @@
       "address": "Calle Ayacucho, Potosí",
       "shortDescription": "Uno de los museos mas importantes de Sudamerica, donde se acuñaba la plata.",
       "description": "",
-      "images": ["assets/moneda-01.jpg"],
+      "images": [],
       "hours": "Mar-Dom 09:00 - 17:00",
       "tags": ["museo", "colonial", "cultura"],
       "source": "user"
@@ -61,7 +61,7 @@
       "address": "Reserva Eduardo Avaroa, Sud Lípez",
       "shortDescription": "Laguna roja con flamencos andinos en plena Puna.",
       "description": "",
-      "images": ["assets/laguna-colorada-01.jpg"],
+      "images": [],
       "hours": "Todo el dia",
       "tags": ["puna", "flamencos", "reserva"],
       "source": "user"

@@ -675,7 +675,9 @@ def enrich(data: dict, voice: dict | None = None, *, translate: bool = True) -> 
 # Tipos de Landing_Section del catalogo soportado (DD-3). Un tipo fuera de este
 # conjunto se ignora (no se le genera copy), coherente con la omision con gracia
 # del render.
-_LANDING_TYPES = frozenset({"hero", "features", "cta", "gallery", "stats"})
+_LANDING_TYPES = frozenset(
+    {"hero", "features", "cta", "gallery", "stats", "testimonials", "faq"}
+)
 
 
 def _landing_data_context(data: dict) -> str:
@@ -828,6 +830,63 @@ def _enrich_gallery_content(provider, content, contexto, voice) -> None:
         )
 
 
+def _enrich_testimonials_content(provider, content, contexto, voice) -> None:
+    """Rellena el copy vacio de una seccion `testimonials`: quote por item.
+
+    Para cada item (dict) de `content["items"]`, si `quote` esta vacio, genera un
+    testimonio corto en primera persona (1 a 2 oraciones) sobre la visita al
+    destino, usando `author`/`role` del item como contexto si estan presentes.
+    Los testimonios ya escritos (no vacios) se conservan.
+    """
+    items = content.get("items")
+    if not isinstance(items, list):
+        return
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        author = item.get("author") or ""
+        role = item.get("role") or ""
+        detalles = []
+        if author.strip():
+            detalles.append(f"la persona se llama {author.strip()}")
+        if role.strip():
+            detalles.append(f"su perfil/rol es {role.strip()}")
+        sufijo = f" ({'; '.join(detalles)})" if detalles else ""
+        _fill_blank_field(
+            item, "quote", provider,
+            f"Escribi un testimonio breve en primera persona (1 a 2 oraciones) "
+            f"de alguien que visito el destino y quedo satisfecho{sufijo}. "
+            f"Devolve solo el texto, sin comillas.",
+            contexto, voice, f"copy de landing testimonials.items[{idx}].quote",
+        )
+
+
+def _enrich_faq_content(provider, content, contexto, voice) -> None:
+    """Rellena el copy vacio de una seccion `faq`: answer por item.
+
+    Para cada item (dict) de `content["items"]`, si `answer` esta vacio y
+    `question` no esta vacio, genera una respuesta concisa y util (2 a 3
+    oraciones) apoyada en el contexto del destino. Las respuestas ya escritas
+    (no vacias) se conservan; los items sin pregunta se omiten.
+    """
+    items = content.get("items")
+    if not isinstance(items, list):
+        return
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        pregunta = item.get("question") or ""
+        if _is_blank(pregunta):
+            continue
+        _fill_blank_field(
+            item, "answer", provider,
+            f"Escribi una respuesta concisa y util (2 a 3 oraciones) a la "
+            f"siguiente pregunta frecuente sobre el destino: "
+            f"'{pregunta.strip()}'. Devolve solo el texto, sin comillas.",
+            contexto, voice, f"copy de landing faq.items[{idx}].answer",
+        )
+
+
 # Despacho por tipo de seccion -> funcion que completa su copy vacio.
 _LANDING_ENRICHERS = {
     "hero": _enrich_hero_content,
@@ -835,6 +894,8 @@ _LANDING_ENRICHERS = {
     "cta": _enrich_cta_content,
     "stats": _enrich_stats_content,
     "gallery": _enrich_gallery_content,
+    "testimonials": _enrich_testimonials_content,
+    "faq": _enrich_faq_content,
 }
 
 

@@ -5,6 +5,10 @@
 // Color, radio y estados de foco/hover derivan exclusivamente de variables CSS
 // de Design_Tokens (Req 4.2, 4.5). La transicion usa las duraciones/curvas de
 // motion (Req 6.1, 6.3) y se anula bajo `prefers-reduced-motion: reduce` (Req 6.2).
+//
+// Direccion editorial/nature: botones confiados de radio pill, peso 600 y
+// microinteraccion de elevacion. El prop opcional `arrow` agrega una flecha
+// "→" para CTAs, que se desplaza levemente en hover.
 interface Props {
   /** Destino del enlace; si se define, se renderiza como <a>. */
   href?: string;
@@ -14,6 +18,8 @@ interface Props {
   type?: "button" | "submit" | "reset";
   /** Estado deshabilitado. */
   disabled?: boolean;
+  /** Agrega una flecha "→" al final (para CTAs). Opcional. */
+  arrow?: boolean;
   /** Clase(s) adicionales opcionales. */
   class?: string;
 }
@@ -22,6 +28,7 @@ const {
   variant = "primary",
   type = "button",
   disabled = false,
+  arrow = false,
   class: className,
 } = Astro.props;
 const Tag = href ? "a" : "button";
@@ -34,7 +41,8 @@ const Tag = href ? "a" : "button";
   aria-disabled={disabled ? "true" : undefined}
   {...disabled && !href ? { disabled: true } : {}}
 >
-  <slot />
+  <span class="ds-button-label"><slot /></span>
+  {arrow && <span class="ds-button-arrow" aria-hidden="true">&rarr;</span>}
 </Tag>
 
 <style>
@@ -45,9 +53,10 @@ const Tag = href ? "a" : "button";
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-lg);
     border-radius: var(--radius-pill);
-    border: 2px solid transparent;
+    border: 1.5px solid transparent;
     font-family: var(--font-body), system-ui, sans-serif;
     font-size: var(--fs-body);
+    font-weight: 600;
     line-height: 1;
     text-decoration: none;
     cursor: pointer;
@@ -59,30 +68,35 @@ const Tag = href ? "a" : "button";
       box-shadow var(--motion-duration-base) var(--motion-easing);
   }
 
-  /* Variante primaria: color de marca solido. */
+  /* Variante primaria: color de marca solido, texto de contraste claro. */
   .ds-button[data-variant="primary"] {
     background: var(--color-primary);
     color: var(--color-background);
     border-color: var(--color-primary);
   }
   .ds-button[data-variant="primary"]:hover {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
   }
 
-  /* Variante ghost: contorno de marca sobre fondo transparente. */
+  /* Variante ghost: contorno sutil (mezcla texto/primario) sobre transparente. */
   .ds-button[data-variant="ghost"] {
     background: transparent;
     color: var(--color-primary);
-    border-color: var(--color-primary);
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-text));
   }
   .ds-button[data-variant="ghost"]:hover {
-    background: var(--color-primary);
-    color: var(--color-background);
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    border-color: var(--color-primary);
     transform: translateY(-1px);
   }
+
+  /* Flecha del CTA: se desplaza levemente al pasar el puntero. */
+  .ds-button-arrow {
+    display: inline-block;
+    transition: transform var(--motion-duration-fast) var(--motion-easing);
+  }
+  .ds-button:hover .ds-button-arrow { transform: translateX(3px); }
 
   /* Foco visible (Req 8.2). */
   .ds-button:focus-visible {
@@ -103,5 +117,7 @@ const Tag = href ? "a" : "button";
   @media (prefers-reduced-motion: reduce) {
     .ds-button { transition: none; }
     .ds-button:hover { transform: none; }
+    .ds-button-arrow { transition: none; }
+    .ds-button:hover .ds-button-arrow { transform: none; }
   }
 </style>

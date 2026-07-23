@@ -5,11 +5,13 @@
 // se ordenan por fecha descendente y se renderiza el cuerpo markdown real.
 // TODO(v2): panel admin con roles editor/admin. Ver PROYECTO seccion 7 (roadmap).
 //
-// Uplift de presentacion (DD-7, Req 9): el marcado se reescribe para usar los
-// UI_Component `Grid` y `Card` y variables CSS de Design_Tokens. La lectura de
-// la Content Collection y el orden por fecha descendente se conservan (Req 9.4,
-// 16.3).
+// Uplift de presentacion (DD-7, Req 9): el marcado usa los UI_Component
+// `Section`, `Grid` y `Card` y variables CSS de Design_Tokens. Si el articulo
+// trae imagen en su frontmatter se pasa por el prop `image` de Card. La lectura
+// de la Content Collection, el orden por fecha descendente, el render del
+// markdown `Content` y el estado vacio se conservan intactos (Req 9.4, 16.3).
 import { getCollection } from "astro:content";
+import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Card from "../../design-system/ui/Card.astro";
 
@@ -28,39 +30,47 @@ const posts = await Promise.all(
 const fmt = (d: Date) =>
   new Date(d).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
 ---
-<h2>Noticias</h2>
-{posts.length === 0 ? (
-  <p class="blog-empty">Aún no hay artículos publicados.</p>
-) : (
-  <Grid min="360px">
-    {posts.map((post) => {
-      const Content = post.Content;
-      return (
-        <Card class="blog-card">
-          <h3 class="blog-title">{post.data.title}</h3>
-          <div class="blog-date">{fmt(post.data.date)}</div>
-          {post.data.summary && (
-            <p class="blog-summary">{post.data.summary}</p>
-          )}
-          <div class="blog-body"><Content /></div>
-        </Card>
-      );
-    })}
-  </Grid>
-)}
+{/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
+<Section id="blog" eyebrow="Al día" title="Noticias">
+  {posts.length === 0 ? (
+    <p class="blog-empty">Aún no hay artículos publicados.</p>
+  ) : (
+    <Grid min="360px">
+      {posts.map((post) => {
+        const Content = post.Content;
+        // Imagen opcional del frontmatter (se pasa al recorte de la Card).
+        const image = (post.data as any).image as string | undefined;
+        return (
+          <Card class="blog-card" image={image} imageAlt={post.data.title}>
+            <div class="blog-date">{fmt(post.data.date)}</div>
+            <h3 class="blog-title">{post.data.title}</h3>
+            {post.data.summary && (
+              <p class="blog-summary">{post.data.summary}</p>
+            )}
+            <div class="blog-body"><Content /></div>
+          </Card>
+        );
+      })}
+    </Grid>
+  )}
+</Section>
 
 <style>
   /* Apariencia derivada de variables CSS de Design_Tokens (Req 9.1). */
   .blog-empty {
     color: color-mix(in srgb, var(--color-text) 60%, var(--color-background));
   }
-  .blog-title { margin: 0 0 var(--space-xs); }
+  /* Fecha como kicker de acento, coherente con el modulo de eventos. */
   .blog-date {
+    margin-bottom: var(--space-sm);
+    color: var(--color-accent);
     font-size: var(--fs-small);
     line-height: var(--lh-small);
-    color: color-mix(in srgb, var(--color-text) 65%, var(--color-background));
-    margin-bottom: var(--space-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
+  .blog-title { margin: 0 0 var(--space-sm); }
   .blog-summary {
     font-style: italic;
     color: color-mix(in srgb, var(--color-text) 75%, var(--color-background));

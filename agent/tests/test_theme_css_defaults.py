@@ -38,14 +38,14 @@ _PARTIAL_THEME = {
 # esta tabla debe reflejarlo.
 _EXPECTED_DEFAULT_VARS = {
     "--space-md": "1rem",
-    "--fs-h1": "2.5rem",
-    "--lh-h1": "1.15",
-    "--shadow-md": "0 4px 12px rgba(0,0,0,.12)",
-    "--radius-md": "8px",
+    "--fs-h1": "clamp(2.75rem, 6vw, 4.5rem)",
+    "--lh-h1": "1.05",
+    "--shadow-md": "0 10px 30px -12px rgba(16,24,40,.14)",
+    "--radius-md": "14px",
     "--bp-md": "768px",
-    "--motion-duration-base": "240ms",
-    "--motion-easing": "cubic-bezier(.4,0,.2,1)",
-    "--container-lg": "1080px",
+    "--motion-duration-base": "260ms",
+    "--motion-easing": "cubic-bezier(.22,1,.36,1)",
+    "--container-lg": "1160px",
 }
 
 
@@ -93,11 +93,11 @@ def test_overridden_tokens_win_and_absent_fall_back_to_defaults():
     assert "--fs-h1: 3rem;" in css
 
     # Tokens ausentes dentro de los mismos grupos caen al default.
-    assert "--space-lg: 2rem;" in css
-    assert "--radius-lg: 16px;" in css
-    assert "--motion-easing: cubic-bezier(.4,0,.2,1);" in css
+    assert "--space-lg: 1.5rem;" in css
+    assert "--radius-lg: 28px;" in css
+    assert "--motion-easing: cubic-bezier(.22,1,.36,1);" in css
     # lineHeight de h1 no fue definido por el usuario: default preservado.
-    assert "--lh-h1: 1.15;" in css
+    assert "--lh-h1: 1.05;" in css
 
 
 def test_theme_to_css_is_idempotent_under_repeated_merge():

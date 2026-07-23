@@ -1,9 +1,12 @@
 ---
 // Landing_Section: Stats / Metricas (Req 12.4).
 //
-// Renderiza cada metrica de `content.metrics[]` con su valor y su etiqueta,
-// dispuestas en una cuadricula responsive. Reutiliza los UI_Component `Section`
-// y `Grid`; toda la apariencia deriva de variables CSS de Design_Tokens.
+// Direccion editorial/nature: banda de enfasis oscura (`Section` variant="dark")
+// con `eyebrow`/`title` opcionales y cifras grandes a la escala de titulares.
+// Cada metrica de `content.metrics[]` muestra su valor (en color de acento) y su
+// etiqueta (clara/tenue sobre el fondo oscuro), en una cuadricula responsive.
+// Reutiliza los UI_Component `Section` y `Grid`; toda la apariencia deriva de
+// variables CSS de Design_Tokens.
 //
 // Render defensivo (Req 12.5): si no hay metricas con contenido, la seccion se
 // omite por completo (no se renderiza nada).
@@ -15,6 +18,8 @@ interface StatMetric {
   label?: string;
 }
 interface StatsContent {
+  /** Etiqueta editorial opcional sobre el titulo (kicker). */
+  eyebrow?: string;
   title?: string;
   metrics?: StatMetric[];
 }
@@ -24,6 +29,7 @@ interface Props {
 
 const { content } = Astro.props;
 
+const eyebrow = content?.eyebrow?.trim();
 const title = content?.title?.trim();
 
 // Metricas con al menos un valor o etiqueta no vacios.
@@ -36,7 +42,7 @@ const hasMetrics = metrics.length > 0;
 ---
 
 {hasMetrics && (
-  <Section title={title} variant="muted">
+  <Section eyebrow={eyebrow} title={title} variant="dark" align="center">
     <Grid min="180px" gap="lg">
       {metrics.map((metric) => (
         <div class="ds-stat">
@@ -60,16 +66,19 @@ const hasMetrics = metrics.length > 0;
     text-align: center;
     gap: var(--space-xs);
   }
+  /* Cifra grande a la escala de titulares (h1), en color de acento. */
   .ds-stat-value {
     font-family: var(--font-heading), Georgia, serif;
-    font-size: var(--fs-h2);
-    line-height: var(--lh-h2);
-    color: var(--color-primary);
-    font-weight: 700;
+    font-size: var(--fs-h1);
+    line-height: var(--lh-h1);
+    color: var(--color-accent);
+    font-weight: 800;
+    letter-spacing: -0.02em;
   }
+  /* Etiqueta clara/tenue sobre el fondo oscuro de la banda. */
   .ds-stat-label {
     font-size: var(--fs-small);
     line-height: var(--lh-small);
-    color: var(--color-text);
+    color: color-mix(in srgb, var(--color-background) 82%, transparent);
   }
 </style>

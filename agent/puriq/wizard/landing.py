@@ -24,7 +24,15 @@ from typing import Any
 # Catalogo soportado de tipos de Landing_Section (Req 10.4). El orden aqui es
 # solo el orden de referencia del catalogo; el `order` efectivo de cada seccion
 # lo define su posicion en la seleccion del usuario.
-LANDING_CATALOG: tuple[str, ...] = ("hero", "features", "cta", "gallery", "stats")
+LANDING_CATALOG: tuple[str, ...] = (
+    "hero",
+    "features",
+    "cta",
+    "gallery",
+    "stats",
+    "testimonials",
+    "faq",
+)
 
 
 class LandingCatalogError(ValueError):

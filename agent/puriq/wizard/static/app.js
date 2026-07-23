@@ -29,13 +29,15 @@
   // Catalogo de secciones de portada soportado (espejo de wizard/landing.py,
   // Req 14.1). El orden aqui es solo el orden por defecto de la lista; el
   // `order` efectivo lo asigna el servidor a partir del orden de esta UI.
-  var LANDING_CATALOG = ["hero", "features", "cta", "gallery", "stats"];
+  var LANDING_CATALOG = ["hero", "features", "cta", "gallery", "stats", "testimonials", "faq"];
   var LANDING_LABELS = {
     hero: "Hero (portada principal)",
     features: "Destacados",
     cta: "Llamado a la accion",
     gallery: "Galeria",
-    stats: "Estadisticas"
+    stats: "Estadisticas",
+    testimonials: "Testimonios",
+    faq: "Preguntas frecuentes"
   };
   // Destinos de publicacion soportados (Req 10.2).
   var DEPLOY_TARGETS = [
@@ -604,6 +606,22 @@
       c.images = (content.images || []).map(function (im) {
         return { src: (im && im.src) || "", alt: (im && im.alt) || "" };
       });
+    } else if (type === "testimonials") {
+      c.eyebrow = content.eyebrow || "";
+      c.title = content.title || "";
+      c.items = (content.items || []).map(function (it) {
+        return {
+          quote: (it && it.quote) || "",
+          author: (it && it.author) || "",
+          role: (it && it.role) || ""
+        };
+      });
+    } else if (type === "faq") {
+      c.eyebrow = content.eyebrow || "";
+      c.title = content.title || "";
+      c.items = (content.items || []).map(function (it) {
+        return { question: (it && it.question) || "", answer: (it && it.answer) || "" };
+      });
     }
     return { type: type, enabled: enabled, content: c, _raw: content };
   }
@@ -662,6 +680,18 @@
     } else if (row.type === "gallery") {
       out.images = c.images.map(function (im) {
         return { src: im.src, alt: im.alt };
+      });
+    } else if (row.type === "testimonials") {
+      out.eyebrow = c.eyebrow;
+      out.title = c.title;
+      out.items = c.items.map(function (it) {
+        return { quote: it.quote, author: it.author, role: it.role };
+      });
+    } else if (row.type === "faq") {
+      out.eyebrow = c.eyebrow;
+      out.title = c.title;
+      out.items = c.items.map(function (it) {
+        return { question: it.question, answer: it.answer };
       });
     }
     return out;
@@ -752,6 +782,27 @@
             textField("Ruta de imagen (src)", item, "src"),
             textField("Texto alternativo (alt)", item, "alt")
           ]));
+        });
+    } else if (row.type === "testimonials") {
+      body.appendChild(textField("Antetitulo (opcional)", c, "eyebrow"));
+      body.appendChild(textField("Titulo de la seccion (opcional)", c, "title"));
+      renderItemList(body, "Testimonios", c.items,
+        function () { return { quote: "", author: "", role: "" }; },
+        function (item, itemBody) {
+          itemBody.appendChild(textareaField("Testimonio (quote)", item, "quote"));
+          itemBody.appendChild(el("div", { class: "row" }, [
+            textField("Autor", item, "author"),
+            textField("Rol (opcional)", item, "role")
+          ]));
+        });
+    } else if (row.type === "faq") {
+      body.appendChild(textField("Antetitulo (opcional)", c, "eyebrow"));
+      body.appendChild(textField("Titulo de la seccion (opcional)", c, "title"));
+      renderItemList(body, "Preguntas frecuentes", c.items,
+        function () { return { question: "", answer: "" }; },
+        function (item, itemBody) {
+          itemBody.appendChild(textField("Pregunta", item, "question"));
+          itemBody.appendChild(textareaField("Respuesta", item, "answer"));
         });
     }
   }

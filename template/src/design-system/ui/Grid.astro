@@ -9,12 +9,12 @@
 interface Props {
   /** Ancho minimo de cada columna antes de envolver (por defecto 240px). */
   min?: string;
-  /** Paso de la Spacing_Scale para el gap: xs | sm | md | lg | xl (por defecto lg). */
+  /** Paso de la Spacing_Scale para el gap: xs | sm | md | lg | xl (por defecto xl). */
   gap?: "xs" | "sm" | "md" | "lg" | "xl";
   /** Clase(s) adicionales opcionales. */
   class?: string;
 }
-const { min = "240px", gap = "lg", class: className } = Astro.props;
+const { min = "240px", gap = "xl", class: className } = Astro.props;
 ---
 <div class:list={["ds-grid", className]} data-gap={gap} style={`--ds-grid-min: ${min};`}>
   <slot />
@@ -26,7 +26,8 @@ const { min = "240px", gap = "lg", class: className } = Astro.props;
     /* Columnas responsive sin desbordamiento: el `min(...)` garantiza que en
      * viewports estrechos la columna no supere el 100% del contenedor. */
     grid-template-columns: repeat(auto-fit, minmax(min(var(--ds-grid-min, 240px), 100%), 1fr));
-    gap: var(--space-md);
+    /* Gap editorial por defecto (xl); sigue siendo sobreescribible por prop. */
+    gap: var(--space-xl);
   }
   .ds-grid[data-gap="xs"] { gap: var(--space-xs); }
   .ds-grid[data-gap="sm"] { gap: var(--space-sm); }

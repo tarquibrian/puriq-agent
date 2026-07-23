@@ -1,29 +1,34 @@
 ---
 // Modulo EVENTS: calendario turistico con fechas clave.
 //
-// Uplift de presentacion (DD-7, Req 9): se reescribe el marcado para usar los
-// UI_Component `Grid` y `Card` y variables CSS de Design_Tokens. Los datos
-// (`events`) y su orden funcional (ascendente por `startDate`) se conservan
-// intactos (Req 9.4, 16.3).
+// Uplift de presentacion (DD-7, Req 9): el marcado usa los UI_Component
+// `Section`, `Grid` y `Card` y variables CSS de Design_Tokens. Cada evento se
+// presenta como tarjeta con un tratamiento de fecha claro (kicker de acento).
+// Los datos (`events`) y su orden funcional (ascendente por `startDate`) se
+// conservan intactos, igual que el formateo `fmt` (Req 9.4, 16.3).
 import { events } from "../../lib/data";
+import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Card from "../../design-system/ui/Card.astro";
 const sorted = [...events].sort((a, b) => a.startDate.localeCompare(b.startDate));
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
 ---
-<h2>Eventos y fechas clave</h2>
-{/* Cuadricula responsive de tarjetas (Req 5.3, 9.3), preservando el orden. */}
-<Grid min="260px">
-  {sorted.map((e) => (
-    <Card class="event-card">
-      <h3 class="event-name">{e.name}</h3>
-      <div class="event-date">
-        {fmt(e.startDate)}{e.endDate ? ` - ${fmt(e.endDate)}` : ""}
-      </div>
-    </Card>
-  ))}
-</Grid>
+{/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
+<Section id="events" eyebrow="Agenda" title="Eventos y fechas clave">
+  {/* Cuadricula responsive de tarjetas (Req 5.3, 9.3), preservando el orden. */}
+  <Grid min="260px">
+    {sorted.map((e) => (
+      <Card class="event-card">
+        {/* Kicker de fecha en acento: tratamiento claro de la fecha del evento. */}
+        <div class="event-date">
+          {fmt(e.startDate)}{e.endDate ? ` - ${fmt(e.endDate)}` : ""}
+        </div>
+        <h3 class="event-name">{e.name}</h3>
+      </Card>
+    ))}
+  </Grid>
+</Section>
 
 <style>
   /* Acento lateral de marca; el grosor usa un paso de la Spacing_Scale para
@@ -31,10 +36,15 @@ const fmt = (d: string) =>
   .event-card {
     border-inline-start: var(--space-xs) solid var(--color-primary);
   }
-  .event-name { margin: 0 0 var(--space-xs); }
+  /* Fecha como kicker: color de acento, mayusculas y tracking editorial. */
   .event-date {
+    margin-bottom: var(--space-sm);
+    color: var(--color-accent);
     font-size: var(--fs-small);
     line-height: var(--lh-small);
-    color: color-mix(in srgb, var(--color-text) 65%, var(--color-background));
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
+  .event-name { margin: 0; }
 </style>

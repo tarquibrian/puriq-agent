@@ -39,7 +39,7 @@
         "required": ["type", "enabled", "order"],
         "additionalProperties": false,
         "properties": {
-          "type": { "enum": ["hero", "features", "cta", "gallery", "stats"] },
+          "type": { "enum": ["hero", "features", "cta", "gallery", "stats", "testimonials", "faq"] },
           "enabled": { "type": "boolean" },
           "order": { "type": "integer", "minimum": 1 },
           "content": { "type": "object" }

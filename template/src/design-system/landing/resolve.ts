@@ -14,7 +14,14 @@
 // ---------------------------------------------------------------------------
 
 /** Catalogo soportado de tipos de Landing_Section (Req 10.4). */
-export type LandingType = "hero" | "features" | "cta" | "gallery" | "stats";
+export type LandingType =
+  | "hero"
+  | "features"
+  | "cta"
+  | "gallery"
+  | "stats"
+  | "testimonials"
+  | "faq";
 
 /** Conjunto de tipos del catalogo, usado para filtrar (Req 10.4, 10.5). */
 export const LANDING_CATALOG: readonly LandingType[] = [
@@ -23,6 +30,8 @@ export const LANDING_CATALOG: readonly LandingType[] = [
   "cta",
   "gallery",
   "stats",
+  "testimonials",
+  "faq",
 ];
 
 /**
