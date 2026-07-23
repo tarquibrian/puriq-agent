@@ -31,6 +31,21 @@
         "subheadline": { "type": "string" }
       }
     },
+    "landing": {
+      "type": "array",
+      "description": "Capa de PORTADA componible: secciones activables, ordenables y editables. Opcional; su ausencia mantiene retrocompatibilidad con el hero heredado.",
+      "items": {
+        "type": "object",
+        "required": ["type", "enabled", "order"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "enum": ["hero", "features", "cta", "gallery", "stats"] },
+          "enabled": { "type": "boolean" },
+          "order": { "type": "integer", "minimum": 1 },
+          "content": { "type": "object" }
+        }
+      }
+    },
     "contact": {
       "type": "object",
       "additionalProperties": false,

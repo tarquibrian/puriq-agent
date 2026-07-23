@@ -659,3 +659,244 @@ def enrich(data: dict, voice: dict | None = None, *, translate: bool = True) -> 
             data[I18N_KEY] = traducciones
 
     return data
+
+
+# --- copy de la portada (Landing_Module) -----------------------------------
+#
+# `enrich_landing` reutiliza el patron probado de `enrich`: resuelve el
+# proveedor una vez (`get_provider`), completa SOLO los campos de copy vacios
+# de las secciones activas, preserva lo no vacio (Req 15.2), inyecta el tono de
+# marca via `_voice_directives` (Req 15.3) y tolera un fallo por seccion con
+# `_safe_complete` conservando el valor previo (Req 15.4). Opera sobre
+# `site.config.json` (no sobre `tourism-data.json`) y devuelve un Site_Config
+# conforme a `site-config.schema.json` (Req 15.5): no introduce campos nuevos,
+# solo rellena los campos de texto ya previstos por cada tipo de seccion.
+
+# Tipos de Landing_Section del catalogo soportado (DD-3). Un tipo fuera de este
+# conjunto se ignora (no se le genera copy), coherente con la omision con gracia
+# del render.
+_LANDING_TYPES = frozenset({"hero", "features", "cta", "gallery", "stats"})
+
+
+def _landing_data_context(data: dict) -> str:
+    """Arma un resumen de Tourism_Data para contextualizar el copy de portada.
+
+    Incluye el nombre del sitio, la region y hasta unos pocos lugares
+    destacados, para que el LLM redacte copy pertinente al destino (Req 15.1).
+    """
+    data = data or {}
+    site = data.get("site", {}) or {}
+    partes: list[str] = []
+    if site.get("name"):
+        partes.append(f"Sitio: {site['name']}.")
+    if site.get("region"):
+        partes.append(f"Region: {site['region']}.")
+    lugares = [p.get("name", "") for p in (data.get("places") or []) if p.get("name")]
+    if lugares:
+        partes.append(f"Lugares destacados: {', '.join(lugares[:5])}.")
+    return " ".join(partes)
+
+
+def _landing_prompt(tarea: str, contexto: str, voice: dict | None) -> str:
+    """Arma el prompt para redactar un campo de copy de una Landing_Section.
+
+    `tarea` describe que escribir (y su limite); `contexto` es el resumen de
+    Tourism_Data. Incluye siempre las directivas de voz (tono/formalidad) via
+    `_voice_directives`, de modo que el tono de marca se refleje en el prompt
+    (Req 15.3).
+    """
+    partes = [
+        "Sos un redactor de turismo. Escribi copy para una seccion de la "
+        "portada de un sitio turistico, en espanol.",
+        _voice_directives(voice),
+        tarea,
+    ]
+    if contexto:
+        partes.append(f"Contexto del destino: {contexto}")
+    return "\n".join(partes)
+
+
+def _fill_blank_field(
+    container: dict,
+    key: str,
+    provider: LLMProvider,
+    tarea: str,
+    contexto: str,
+    voice: dict | None,
+    contexto_log: str,
+) -> None:
+    """Rellena `container[key]` con el LLM solo si esta vacio (Req 15.1, 15.2).
+
+    Si el campo ya tiene texto no vacio, no se toca (Req 15.2). Ante un fallo
+    del LLM (o texto vacio), `_safe_complete` devuelve None y se conserva el
+    valor previo, registrando la causa y continuando (Req 15.4).
+    """
+    if not _is_blank(container.get(key)):
+        return
+    texto = _safe_complete(
+        provider, _landing_prompt(tarea, contexto, voice), contexto_log
+    )
+    if texto is not None:
+        container[key] = texto
+
+
+def _enrich_hero_content(provider, content, contexto, voice) -> None:
+    """Rellena el copy vacio de una seccion `hero`: headline y subheadline."""
+    _fill_blank_field(
+        content, "headline", provider,
+        "Escribi un titular breve y atractivo (maximo 8 palabras) para el hero "
+        "de la portada. Devolve solo el texto, sin comillas.",
+        contexto, voice, "copy de landing hero.headline",
+    )
+    _fill_blank_field(
+        content, "subheadline", provider,
+        "Escribi un subtitulo de una sola oracion que complemente el titular "
+        "del hero. Devolve solo el texto, sin comillas.",
+        contexto, voice, "copy de landing hero.subheadline",
+    )
+
+
+def _enrich_features_content(provider, content, contexto, voice) -> None:
+    """Rellena el copy vacio de una seccion `features`: title y description por item."""
+    items = content.get("items")
+    if not isinstance(items, list):
+        return
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        _fill_blank_field(
+            item, "title", provider,
+            "Escribi un titulo breve (2 a 5 palabras) para un destacado de la "
+            "seccion de caracteristicas. Devolve solo el texto, sin comillas.",
+            contexto, voice, f"copy de landing features.items[{idx}].title",
+        )
+        titulo = item.get("title") or ""
+        sufijo = f" titulado '{titulo}'" if titulo.strip() else ""
+        _fill_blank_field(
+            item, "description", provider,
+            f"Escribi una descripcion breve (1 a 2 oraciones) para el "
+            f"destacado{sufijo}. Devolve solo el texto, sin comillas.",
+            contexto, voice, f"copy de landing features.items[{idx}].description",
+        )
+
+
+def _enrich_cta_content(provider, content, contexto, voice) -> None:
+    """Rellena el copy vacio de una seccion `cta`: message."""
+    _fill_blank_field(
+        content, "message", provider,
+        "Escribi un mensaje breve y persuasivo de llamada a la accion (1 "
+        "oracion) para invitar a la persona visitante a explorar el destino. "
+        "Devolve solo el texto, sin comillas.",
+        contexto, voice, "copy de landing cta.message",
+    )
+
+
+def _enrich_stats_content(provider, content, contexto, voice) -> None:
+    """Rellena el copy vacio de una seccion `stats`: label por metrica."""
+    metrics = content.get("metrics")
+    if not isinstance(metrics, list):
+        return
+    for idx, metric in enumerate(metrics):
+        if not isinstance(metric, dict):
+            continue
+        valor = metric.get("value")
+        detalle = f" cuyo valor es '{valor}'" if not _is_blank(valor) else ""
+        _fill_blank_field(
+            metric, "label", provider,
+            f"Escribi una etiqueta corta (2 a 4 palabras) que describa la "
+            f"metrica{detalle}. Devolve solo el texto, sin comillas.",
+            contexto, voice, f"copy de landing stats.metrics[{idx}].label",
+        )
+
+
+def _enrich_gallery_content(provider, content, contexto, voice) -> None:
+    """Rellena el copy vacio de una seccion `gallery`: alt por imagen."""
+    images = content.get("images")
+    if not isinstance(images, list):
+        return
+    for idx, image in enumerate(images):
+        if not isinstance(image, dict):
+            continue
+        src = image.get("src")
+        detalle = f" (archivo '{src}')" if not _is_blank(src) else ""
+        _fill_blank_field(
+            image, "alt", provider,
+            f"Escribi un texto alternativo accesible y descriptivo (una frase "
+            f"corta) para una imagen de la galeria{detalle}. Devolve solo el "
+            f"texto, sin comillas.",
+            contexto, voice, f"copy de landing gallery.images[{idx}].alt",
+        )
+
+
+# Despacho por tipo de seccion -> funcion que completa su copy vacio.
+_LANDING_ENRICHERS = {
+    "hero": _enrich_hero_content,
+    "features": _enrich_features_content,
+    "cta": _enrich_cta_content,
+    "stats": _enrich_stats_content,
+    "gallery": _enrich_gallery_content,
+}
+
+
+def enrich_landing(site_config: dict, data: dict, voice: dict | None = None) -> dict:
+    """Redacta el copy de las Landing_Section activas con campos vacios (Req 15).
+
+    Recorre `site_config["landing"]` y, para cada seccion ACTIVA (`enabled`
+    verdadero) de un tipo del catalogo, genera con el LLM el texto de los campos
+    de copy que esten vacios, usando `Tourism_Data` (nombre/region/lugares
+    destacados) y el `type` de seccion para armar el prompt (Req 15.1). El tono
+    de marca (`voice.tone`) se inyecta en el prompt via `_voice_directives`
+    (Req 15.3).
+
+    Campos de copy por tipo:
+      - `hero.content.{headline, subheadline}`
+      - `features.content.items[].{title, description}`
+      - `cta.content.message`
+      - `stats.content.metrics[].label`
+      - `gallery.content.images[].alt`
+
+    Comportamiento (analogo a `enrich`):
+      - El copy no vacio se conserva sin cambios (Req 15.2).
+      - Un fallo del LLM por seccion/campo conserva el valor previo (vacio),
+        registra la causa y continua con el resto, via `_safe_complete`
+        (Req 15.4).
+      - Las secciones inactivas o de tipo no soportado se omiten (no se les
+        genera copy).
+
+    El proveedor de LLM se resuelve UNA sola vez por invocacion via
+    `get_provider()` (DD-4) y se reutiliza en todas las secciones.
+
+    Conformidad con el contrato (Req 15.5): la funcion solo rellena campos de
+    texto ya previstos dentro de `content` (objeto abierto en el esquema) y no
+    introduce claves de nivel superior ni altera la estructura de `landing`, de
+    modo que el resultado sigue cumpliendo `site-config.schema.json`.
+
+    Args:
+        site_config: documento Site_Config (se modifica in situ y se devuelve).
+        data: documento Tourism_Data del que se toma el contexto (no se modifica).
+        voice: subdocumento `voice` de Theme_Tokens (`tone`, `formality`).
+
+    Returns:
+        El mismo `site_config`, con el copy vacio de las secciones activas
+        completado en la medida en que el LLM haya respondido.
+    """
+    site_config = site_config or {}
+    sections = site_config.get("landing")
+    if not isinstance(sections, list):
+        return site_config
+
+    provider = get_provider()
+    contexto = _landing_data_context(data)
+
+    for section in sections:
+        if not isinstance(section, dict) or not section.get("enabled"):
+            continue
+        enricher = _LANDING_ENRICHERS.get(section.get("type"))
+        if enricher is None:
+            continue
+        content = section.get("content")
+        if not isinstance(content, dict):
+            continue
+        enricher(provider, content, contexto, voice)
+
+    return site_config

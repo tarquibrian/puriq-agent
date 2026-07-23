@@ -1,0 +1,60 @@
+---
+// UI_Component: Card (Req 4.3, 4.4, 4.5).
+//
+// Aplica radio, sombra y relleno de Design_Tokens. Cuando recibe `href` se
+// vuelve una tarjeta enlazable. El estilo de borde/sombra se lee de los ganchos
+// de Layout_Variant (--card-border / --card-shadow, definidos por DD-4 en
+// Base.astro) con un fallback a tokens, de modo que la tarjeta luce distinta en
+// `clasico` (borde fino) y `moderno` (sombra elevada) sin fijar marca (Req 7.3).
+// El contenido se recibe por slots/props conservando los estilos del sistema.
+interface Props {
+  /** Titulo opcional (Req 4.4). */
+  title?: string;
+  /** Destino del enlace; convierte la tarjeta en <a>. */
+  href?: string;
+  /** Clase(s) adicionales opcionales. */
+  class?: string;
+}
+const { title, href, class: className } = Astro.props;
+const Tag = href ? "a" : "article";
+---
+<Tag class:list={["ds-card", className]} href={href}>
+  {title && <h3 class="ds-card-title">{title}</h3>}
+  <slot />
+</Tag>
+
+<style>
+  .ds-card {
+    display: block;
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    background: var(--color-background);
+    color: var(--color-text);
+    /* Ganchos de Layout_Variant con fallback a tokens (Req 7.3, 4.5). */
+    border: var(--card-border, 1px solid var(--color-secondary));
+    box-shadow: var(--card-shadow, var(--shadow-sm));
+    text-decoration: none;
+    transition:
+      transform var(--motion-duration-base) var(--motion-easing),
+      box-shadow var(--motion-duration-base) var(--motion-easing);
+  }
+
+  /* Elevacion sutil al pasar el puntero/foco en tarjetas enlazables (Req 6.1). */
+  a.ds-card:hover,
+  a.ds-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  a.ds-card:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .ds-card-title { margin-bottom: var(--space-sm); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ds-card { transition: none; }
+    a.ds-card:hover,
+    a.ds-card:focus-visible { transform: none; }
+  }
+</style>

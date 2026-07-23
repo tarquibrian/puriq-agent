@@ -173,6 +173,29 @@ class Puriq:
                 self.project / DATA,
             )
 
+            # Copy de la portada: redacta el texto vacío de las Landing_Section
+            # activas (DD-5, Req 15.1). Igual criterio de "translate gate" que el
+            # enrich de traducciones: solo se invoca al LLM cuando HAY algo que
+            # redactar, es decir cuando existe una lista `landing` con al menos
+            # una sección activa; así se evitan llamadas al LLM desperdiciadas en
+            # proyectos sin portada componible. La selección de proveedor y la
+            # tolerancia a fallos por sección viven en generate_content, no aquí.
+            landing = config.get("landing")
+            if isinstance(landing, list) and any(
+                isinstance(s, dict) and s.get("enabled") for s in landing
+            ):
+                _emit(progress, "Redactando el copy de la portada...")
+                config = generate_content.enrich_landing(
+                    config, data, theme.get("voice", {})
+                )
+                # Persistir el site.config enriquecido de vuelta a disco (igual
+                # que el tourism-data): escritura atómica con validación ESTRICTA
+                # contra site-config.schema.json, para que el copy sea revisable
+                # y no se re-genere (re-pago del LLM) en cada build.
+                _persist.validate_then_write(
+                    config, "site-config", self.project / CONFIG
+                )
+
         _emit(progress, "Construyendo el sitio estático...")
         dist = build_site.assemble(self.project, data, config, theme)
         _emit(progress, f"Sitio construido en {dist}.")

@@ -1,18 +1,40 @@
 ---
 // Modulo EVENTS: calendario turistico con fechas clave.
+//
+// Uplift de presentacion (DD-7, Req 9): se reescribe el marcado para usar los
+// UI_Component `Grid` y `Card` y variables CSS de Design_Tokens. Los datos
+// (`events`) y su orden funcional (ascendente por `startDate`) se conservan
+// intactos (Req 9.4, 16.3).
 import { events } from "../../lib/data";
+import Grid from "../../design-system/ui/Grid.astro";
+import Card from "../../design-system/ui/Card.astro";
 const sorted = [...events].sort((a, b) => a.startDate.localeCompare(b.startDate));
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
 ---
 <h2>Eventos y fechas clave</h2>
-<ul style="list-style:none; padding:0; display:grid; gap:.6rem;">
+{/* Cuadricula responsive de tarjetas (Req 5.3, 9.3), preservando el orden. */}
+<Grid min="260px">
   {sorted.map((e) => (
-    <li style="border-left:4px solid var(--primary); background:#fff; padding:.8rem 1rem; border-radius:8px;">
-      <strong>{e.name}</strong>
-      <div style="color:#666; font-size:.9rem;">
+    <Card class="event-card">
+      <h3 class="event-name">{e.name}</h3>
+      <div class="event-date">
         {fmt(e.startDate)}{e.endDate ? ` - ${fmt(e.endDate)}` : ""}
       </div>
-    </li>
+    </Card>
   ))}
-</ul>
+</Grid>
+
+<style>
+  /* Acento lateral de marca; el grosor usa un paso de la Spacing_Scale para
+   * no fijar valores en pixeles (Req 9.1). */
+  .event-card {
+    border-inline-start: var(--space-xs) solid var(--color-primary);
+  }
+  .event-name { margin: 0 0 var(--space-xs); }
+  .event-date {
+    font-size: var(--fs-small);
+    line-height: var(--lh-small);
+    color: color-mix(in srgb, var(--color-text) 65%, var(--color-background));
+  }
+</style>

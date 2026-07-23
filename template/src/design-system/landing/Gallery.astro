@@ -1,0 +1,68 @@
+---
+// Landing_Section: Gallery / Galeria (Req 12.3, 8.4, 5.5).
+//
+// Renderiza una galeria responsive (via `Grid`) de las imagenes de
+// `content.images[]`; cada imagen usa su texto alternativo (Req 8.4) y escala
+// dentro de su contenedor sin desbordarse (Req 5.5). Reutiliza los UI_Component
+// `Section` y `Grid`; toda la apariencia deriva de variables CSS de tokens.
+//
+// Render defensivo (Req 12.5): si no hay imagenes con `src`, la seccion se omite
+// por completo (no se renderiza nada).
+import Section from "../ui/Section.astro";
+import Grid from "../ui/Grid.astro";
+
+interface GalleryImage {
+  src?: string;
+  alt?: string;
+}
+interface GalleryContent {
+  title?: string;
+  images?: GalleryImage[];
+}
+interface Props {
+  content?: GalleryContent;
+}
+
+const { content } = Astro.props;
+
+const title = content?.title?.trim();
+
+// Solo imagenes con `src`; el `alt` cae a cadena vacia (imagen decorativa) si
+// no se proporciona, garantizando que el atributo siempre este presente.
+const images = Array.isArray(content?.images)
+  ? content!.images!
+      .filter((img) => img?.src?.trim())
+      .map((img) => ({ src: img.src!.trim(), alt: img.alt?.trim() ?? "" }))
+  : [];
+const hasImages = images.length > 0;
+---
+
+{hasImages && (
+  <Section title={title}>
+    <Grid min="220px" gap="md">
+      {images.map((img) => (
+        <figure class="ds-gallery-item">
+          <img src={img.src} alt={img.alt} loading="lazy" />
+        </figure>
+      ))}
+    </Grid>
+  </Section>
+)}
+
+<style>
+  .ds-gallery-item {
+    margin: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  /* La imagen escala dentro de su celda sin desbordar (Req 5.5). */
+  .ds-gallery-item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    object-fit: cover;
+    aspect-ratio: 4 / 3;
+  }
+</style>

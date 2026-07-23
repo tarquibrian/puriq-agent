@@ -1,40 +1,238 @@
 ---
-// Layout base: aplica los design tokens del tema como CSS variables.
-import { site, themeTokens, activeModules } from "../lib/data";
-const c = themeTokens.colors;
-const t = themeTokens.typography;
+// Layout base del Design_System.
+//
+// Toda la apariencia se deriva de los Design_Tokens: `resolveTokens` completa el
+// `theme.tokens.json` del usuario con los defaults del sistema y `tokensToCssVars`
+// los aplana a variables CSS que se exponen con `define:vars` (Req 2.1, 2.2). No
+// hay ningun valor de marca fijado en el codigo (colores, tipografias, anchos ni
+// espaciados): todo se lee de las variables CSS (`--color-*`, `--fs-*`, `--space-*`,
+// `--container-*`, `--motion-*`, ...).
+import { resolveTokens, tokensToCssVars } from "../design-system/defaults";
+import { site, themeTokens, siteConfig, activeModules } from "../lib/data";
+
+// Conjunto completo de variables CSS a partir del tema del usuario + defaults.
+const vars = tokensToCssVars(resolveTokens(themeTokens));
+// Layout_Variant resuelta: valor configurado o el default del sistema (Req 7.5).
+const variant = siteConfig.layout ?? "clasico";
 const nav = activeModules();
 ---
 <!doctype html>
-<html lang={site.defaultLocale ?? "es"}>
+<html lang={site.defaultLocale ?? "es"} data-variant={variant}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{site.name}</title>
     <meta name="description" content={site.description ?? ""} />
-    <style define:vars={{
-      primary: c.primary, secondary: c.secondary ?? c.primary,
-      bg: c.background, text: c.text, accent: c.accent ?? c.primary,
-      radius: themeTokens.radius ?? "12px",
-      headingFont: t.headingFont, bodyFont: t.bodyFont,
-    }}>
+    <style define:vars={vars}>
+      /* --------------------------------------------------------------------
+       * Reset y base mobile-first. Todo deriva de variables de Design_Tokens.
+       * ------------------------------------------------------------------ */
       :root { color-scheme: light; }
-      body { margin: 0; background: var(--bg); color: var(--text);
-             font-family: var(--bodyFont), system-ui, sans-serif; }
-      h1, h2, h3 { font-family: var(--headingFont), Georgia, serif; }
-      header { display: flex; gap: 1.2rem; padding: 1rem 1.5rem;
-               background: var(--primary); color: #fff; }
-      header a { color: #fff; text-decoration: none; }
-      main { max-width: 1080px; margin: 0 auto; padding: 1.5rem; }
+      *, *::before, *::after { box-sizing: border-box; }
+
+      html { font-size: var(--font-base-size); }
+
+      body {
+        margin: 0;
+        background: var(--color-background);
+        color: var(--color-text);
+        font-family: var(--font-body), system-ui, sans-serif;
+        font-size: var(--fs-body);
+        line-height: var(--lh-body);
+        /* Evita el desbordamiento horizontal en el viewport mas pequeno (Req 5.4). */
+        overflow-x: hidden;
+      }
+
+      /* Type_Scale aplicada a titulos y cuerpo, ordenada de mayor a menor
+       * de h1 a h3 (Req 3.1). Los tamanos vienen de la escala tipografica. */
+      h1, h2, h3 { font-family: var(--font-heading), Georgia, serif; margin: 0 0 var(--space-md); }
+      h1 { font-size: var(--fs-h1); line-height: var(--lh-h1); }
+      h2 { font-size: var(--fs-h2); line-height: var(--lh-h2); }
+      h3 { font-size: var(--fs-h3); line-height: var(--lh-h3); }
+      p { margin: 0 0 var(--space-md); }
+      small { font-size: var(--fs-small); line-height: var(--lh-small); }
+
+      /* Imagenes fluidas: nunca desbordan su contenedor (Req 5.5). */
+      img { max-width: 100%; height: auto; }
+
+      /* Enlaces con transicion sobria de motion (Req 6.1). */
+      a {
+        color: var(--color-accent);
+        transition: color var(--motion-duration-fast) var(--motion-easing);
+      }
+      a:hover { color: var(--color-primary); }
+
+      /* Indicador de foco visible en todo elemento interactivo (Req 8.2). */
+      :focus-visible {
+        outline: 3px solid var(--color-accent);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+      }
+
+      /* --------------------------------------------------------------------
+       * Contenedor principal: ancho limitado al token de contenedor y
+       * centrado horizontalmente (Req 3.4). Ritmo con la Spacing_Scale.
+       * ------------------------------------------------------------------ */
+      main {
+        max-width: var(--container-lg);
+        margin: 0 auto;
+        padding: var(--space-lg) var(--space-md);
+      }
+
+      /* --------------------------------------------------------------------
+       * Header + navegacion accesible. Base mobile-first: la navegacion se
+       * pliega en un disclosure (<details>) accesible por teclado y sin JS,
+       * de modo que nunca desborda el viewport estrecho (Req 5.2, 8.1).
+       * ------------------------------------------------------------------ */
+      .site-header { width: 100%; }
+      .header-inner {
+        max-width: var(--container-lg);
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-sm);
+        padding: var(--space-md);
+      }
+      .brand {
+        font-family: var(--font-heading), Georgia, serif;
+        font-size: var(--fs-h3);
+        font-weight: 700;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .nav-disclosure { position: relative; }
+      .nav-disclosure > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: var(--space-xs) var(--space-sm);
+        border: 1px solid currentColor;
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-small);
+        user-select: none;
+      }
+      .nav-disclosure > summary::-webkit-details-marker { display: none; }
+      .site-nav {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+        padding: var(--space-sm) 0;
+      }
+      .site-nav a {
+        color: inherit;
+        text-decoration: none;
+        padding: var(--space-xs) 0;
+      }
+      .site-nav a:hover { text-decoration: underline; }
+
+      /* --------------------------------------------------------------------
+       * Footer semantico.
+       * ------------------------------------------------------------------ */
+      .site-footer {
+        border-top: 1px solid var(--color-secondary);
+        margin-top: var(--space-xl);
+      }
+      .footer-inner {
+        max-width: var(--container-lg);
+        margin: 0 auto;
+        padding: var(--space-lg) var(--space-md);
+        font-size: var(--fs-small);
+        line-height: var(--lh-small);
+      }
+
+      /* --------------------------------------------------------------------
+       * Ampliacion en breakpoint intermedio (>= --bp-md, 768px por defecto).
+       * Las media queries no admiten variables CSS; el valor coincide con el
+       * token `breakpoints.md` del Design_System.
+       * ------------------------------------------------------------------ */
+      @media (min-width: 768px) {
+        .nav-disclosure > summary { display: none; }
+        /* En pantalla ancha la navegacion es siempre visible en linea,
+         * independientemente del estado del disclosure. */
+        .site-nav {
+          display: flex !important;
+          flex-direction: row;
+          align-items: center;
+          gap: var(--space-lg);
+          padding: 0;
+        }
+        main { padding: var(--space-xl) var(--space-lg); }
+      }
+
+      /* --------------------------------------------------------------------
+       * DD-4: Layout_Variant. Ambas variantes leen las MISMAS variables de
+       * marca (--color-*, --fs-*, --space-*); solo cambian composicion del
+       * header, tratamiento del hero y estilo de tarjetas (Req 7.1-7.4).
+       * Los ganchos --hero-* y --card-* los consumen los componentes de
+       * seccion (Hero) y la biblioteca UI (Card), asi la diferencia estetica
+       * viaja por tokens sin duplicar la marca.
+       * ------------------------------------------------------------------ */
+
+      /* Variante clasica: header sobrio con borde inferior, hero enmarcado,
+       * tarjetas con borde fino. */
+      [data-variant="clasico"] .site-header {
+        background: var(--color-background);
+        color: var(--color-text);
+        border-bottom: 3px solid var(--color-primary);
+      }
+      [data-variant="clasico"] .header-inner { justify-content: center; text-align: center; }
+      [data-variant="clasico"] {
+        --hero-radius: var(--radius-md);
+        --hero-margin: var(--space-lg);
+        --hero-min-height: 48vh;
+        --card-border: 1px solid var(--color-secondary);
+        --card-shadow: none;
+      }
+
+      /* Variante moderna: header full-bleed con color primario, hero a sangre,
+       * tarjetas elevadas con sombra. */
+      [data-variant="moderno"] .site-header {
+        background: var(--color-primary);
+        color: var(--color-background);
+      }
+      [data-variant="moderno"] .header-inner { justify-content: space-between; }
+      [data-variant="moderno"] {
+        --hero-radius: 0;
+        --hero-margin: 0;
+        --hero-min-height: 68vh;
+        --card-border: none;
+        --card-shadow: var(--shadow-lg);
+      }
+
+      /* --------------------------------------------------------------------
+       * Reduced_Motion: anula transiciones/animaciones no esenciales (Req 6.2).
+       * ------------------------------------------------------------------ */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
     </style>
   </head>
   <body>
-    <header>
-      <strong>{site.name}</strong>
-      {nav.map((m) => <a href={`#${m.key}`}>{m.label}</a>)}
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/">{site.name}</a>
+        <details class="nav-disclosure">
+          <summary>Menú</summary>
+          <nav class="site-nav" aria-label="Navegación principal">
+            {nav.map((m) => <a href={`#${m.key}`}>{m.label}</a>)}
+          </nav>
+        </details>
+      </div>
     </header>
     <main>
       <slot />
     </main>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <p>&copy; {new Date().getFullYear()} {site.name}</p>
+      </div>
+    </footer>
   </body>
 </html>

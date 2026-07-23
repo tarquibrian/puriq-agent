@@ -1,0 +1,340 @@
+{
+  "pbtResults": {
+    "11.4 Prueba de propiedad: `build_landing` asigna un orden coherente con la posición (Hypothesis)": {
+      "status": "passed",
+      "lastRunTimestamp": 1784773059465
+    },
+    "9.3 Prueba de propiedad: el copy vacío de secciones activas se completa; el no vacío se conserva (Hypothesis)": {
+      "status": "passed",
+      "lastRunTimestamp": 1784773666068
+    },
+    "9.4 Prueba de propiedad: el prompt del copy refleja la voz de marca (Hypothesis)": {
+      "status": "passed",
+      "lastRunTimestamp": 1784773667520
+    },
+    "9.5 Prueba de propiedad: robustez ante fallo del LLM por sección (Hypothesis)": {
+      "status": "passed",
+      "lastRunTimestamp": 1784773668373
+    },
+    "8.3 Prueba de propiedad: validación estricta antes de toda escritura del Contrato (Hypothesis)": {
+      "status": "passed",
+      "lastRunTimestamp": 1784774069684
+    }
+  },
+  "executionHistory": {
+    "1.1 Extender `schemas/theme-tokens.schema.json` con los tokens ampliados opcionales (DD-2)": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443221
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769472854
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784770003660
+      }
+    ],
+    "1.2 Extender `schemas/site-config.schema.json` con la propiedad opcional `landing` (DD-3)": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443251
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769474326
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784770005104
+      }
+    ],
+    "2.1 Crear `template/src/design-system/defaults.ts` con `DESIGN_DEFAULTS`, tipos y `resolveTokens`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443280
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769477578
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784770006547
+      }
+    ],
+    "2.2 Implementar `tokensToCssVars(tokens)` en `template/src/design-system/defaults.ts`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443341
+      }
+    ],
+    "3.1 Reescribir `template/src/layouts/Base.astro` para derivarse solo de tokens": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443370
+      }
+    ],
+    "3.2 Implementar las reglas de Layout_Variant `clasico`/`moderno` por `data-variant` (DD-4)": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443399
+      }
+    ],
+    "4.1 Crear `template/src/design-system/ui/Container.astro` y `Section.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443426
+      }
+    ],
+    "4.2 Crear `template/src/design-system/ui/Button.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443455
+      }
+    ],
+    "4.3 Crear `template/src/design-system/ui/Card.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443483
+      }
+    ],
+    "4.4 Crear `template/src/design-system/ui/Grid.astro` responsive": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443512
+      }
+    ],
+    "5.1 Implementar `template/src/design-system/landing/resolve.ts` (`resolveLanding`)": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443540
+      }
+    ],
+    "5.2 Crear `template/src/design-system/landing/registry.ts` e integrar en `template/src/pages/index.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443576
+      }
+    ],
+    "6.1 Crear `template/src/design-system/landing/Hero.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443609
+      }
+    ],
+    "6.2 Crear `template/src/design-system/landing/Features.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443635
+      }
+    ],
+    "6.3 Crear `template/src/design-system/landing/Cta.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443661
+      }
+    ],
+    "6.4 Crear `template/src/design-system/landing/Gallery.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443688
+      }
+    ],
+    "6.5 Crear `template/src/design-system/landing/Stats.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443726
+      }
+    ],
+    "7. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443754
+      }
+    ],
+    "8.1 Extender `agent/puriq/tools/build_site.py::_theme_to_css` con defaults + tokens ampliados": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443778
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769478926
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784770007960
+      }
+    ],
+    "8.2 Asegurar la validación previa a escritura/build en `_write_contract` para `landing` y tokens ampliados": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443804
+      }
+    ],
+    "9.1 Implementar `agent/puriq/tools/generate_content.py::enrich_landing`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443832
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769479061
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784770008955
+      }
+    ],
+    "9.2 Cablear `enrich_landing` en el pipeline del core junto al `enrich` de contenido": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443863
+      }
+    ],
+    "10. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443893
+      }
+    ],
+    "11.1 Implementar `agent/puriq/wizard/landing.py::build_landing` (constructor puro)": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443921
+      },
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784770040843
+      }
+    ],
+    "11.2 Extender `PUT /api/site-config` en `agent/puriq/wizard/server.py` para aceptar `landing`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443949
+      }
+    ],
+    "11.3 Prellenar `landing` existente desde `GET /api/state` en `agent/puriq/wizard/server.py`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769443990
+      }
+    ],
+    "12.1 Añadir el paso \"Portada\" en `agent/puriq/wizard/static/`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444023
+      }
+    ],
+    "13.1 Uplift de `template/src/modules/places/Places.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444057
+      }
+    ],
+    "13.2 Uplift de `template/src/modules/events/Events.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444090
+      }
+    ],
+    "13.3 Uplift de `template/src/modules/map/Map.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444122
+      }
+    ],
+    "13.4 Uplift de `template/src/modules/blog/Blog.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444152
+      }
+    ],
+    "13.5 Uplift de `template/src/modules/chatweb/Chat.astro`": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444179
+      }
+    ],
+    "14.1 Verificar ausencia de marca hardcodeada en la capa de presentación": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444208
+      }
+    ],
+    "14.2 Verificar que el agente y el Wizard solo escriben datos, no generan código de secciones": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444238
+      }
+    ],
+    "15.1 Verificar el build completo con Contrato parcial, ausente y completo": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444263
+      }
+    ],
+    "16. Checkpoint final - Asegurar que todas las pruebas pasan": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784769444291
+      }
+    ],
+    "1. Extensiones aditivas y retrocompatibles del esquema del Contrato": [
+      {
+        "executionId": "eeeefc2e-c941-4499-843a-8b30a830e654",
+        "chatSessionId": "sess_fd29f7ad-62b4-4986-85f0-d28ae1fa32cb",
+        "timestamp": 1784770005138
+      }
+    ]
+  }
+}

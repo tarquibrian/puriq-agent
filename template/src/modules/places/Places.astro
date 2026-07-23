@@ -1,20 +1,54 @@
 ---
 // Modulo PLACES: fichas de lugares turisticos. Alimenta y complementa al mapa.
+//
+// Uplift de presentacion (DD-7, Req 9): el marcado se reescribe para usar los
+// UI_Component `Grid` y `Card` y variables CSS de Design_Tokens en lugar de
+// estilos inline hardcodeados. Los datos de entrada (`places`, `categories`) y
+// el comportamiento no cambian (Req 9.4, 16.3).
 import { places, categories } from "../../lib/data";
+import Grid from "../../design-system/ui/Grid.astro";
+import Card from "../../design-system/ui/Card.astro";
 const labelOf = (id: string) =>
   categories.find((c: any) => c.id === id)?.label ?? id;
 ---
 <h2>Que visitar</h2>
-<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1rem;">
+{/* Cuadricula responsive de tarjetas (Req 5.3, 9.3); columnas segun el ancho. */}
+<Grid min="260px">
   {places.map((p) => (
-    <article style="border:1px solid #eee; border-radius:12px; overflow:hidden; background:#fff;">
-      {p.images?.[0] && <img src={p.images[0]} alt={p.name} style="width:100%; height:150px; object-fit:cover;" />}
-      <div style="padding:.8rem;">
-        <small style="color:var(--primary); text-transform:uppercase;">{labelOf(p.category)}</small>
-        <h3 style="margin:.3rem 0;">{p.name}</h3>
-        <p style="font-size:.9rem; color:#555;">{p.shortDescription}</p>
-        {p.hours && <small>Horario: {p.hours}</small>}
-      </div>
-    </article>
+    <Card class="place-card">
+      {p.images?.[0] && (
+        <img class="place-img" src={p.images[0]} alt={p.name} />
+      )}
+      <small class="place-cat">{labelOf(p.category)}</small>
+      <h3 class="place-name">{p.name}</h3>
+      <p class="place-desc">{p.shortDescription}</p>
+      {p.hours && <small class="place-hours">Horario: {p.hours}</small>}
+    </Card>
   ))}
-</div>
+</Grid>
+
+<style>
+  /* Toda la apariencia deriva de variables CSS de Design_Tokens (Req 9.1). */
+  .place-img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-sm);
+  }
+  .place-cat {
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .place-name { margin: var(--space-xs) 0; }
+  .place-desc {
+    font-size: var(--fs-small);
+    line-height: var(--lh-small);
+    /* Texto secundario derivado del color de marca, sin valores fijos. */
+    color: color-mix(in srgb, var(--color-text) 70%, var(--color-background));
+  }
+  .place-hours {
+    color: color-mix(in srgb, var(--color-text) 60%, var(--color-background));
+  }
+</style>

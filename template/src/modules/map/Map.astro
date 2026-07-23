@@ -1,11 +1,16 @@
 ---
 // Modulo MAP: mapa interactivo con Leaflet + OpenStreetMap (sin API key).
 // Modulo core pre-construido y probado; el agente NO lo reescribe, solo lo alimenta.
+//
+// Uplift de presentacion (DD-7, Req 9): SOLO cambia el estilo del contenedor,
+// derivado de variables CSS de Design_Tokens. La logica de Leaflet, el `id` del
+// elemento del mapa (`puriq-map`) y sus datos (`site.center`, `points`) NO se
+// tocan (Req 9.4, 16.3).
 import { site, places } from "../../lib/data";
 const points = places.filter((p) => p.coords);
 ---
 <h2>Mapa turistico</h2>
-<div id="puriq-map" style="height:420px; border-radius:12px; overflow:hidden;"></div>
+<div id="puriq-map" class="puriq-map"></div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script is:inline define:vars={{ center: site.center, points }}>
@@ -28,3 +33,14 @@ const points = places.filter((p) => p.coords);
     }
   });
 </script>
+
+<style>
+  /* Presentacion del contenedor derivada de tokens; altura responsive sin
+   * valores de marca fijos (Req 9.1). Leaflet lee esta altura al inicializar. */
+  .puriq-map {
+    height: clamp(20rem, 50vh, 32rem);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+</style>

@@ -1,0 +1,64 @@
+---
+// Landing_Section: Call-to-Action (Req 12.2).
+//
+// Renderiza un mensaje y un boton que enlaza al destino configurado
+// (`content.cta.{label, href}`), reutilizando los UI_Component `Section` y
+// `Button`. Toda la apariencia deriva de variables CSS de Design_Tokens.
+//
+// Render defensivo (Req 12.5): si falta el mensaje o el CTA (etiqueta+destino),
+// la seccion se omite por completo (no se renderiza nada).
+import Section from "../ui/Section.astro";
+import Button from "../ui/Button.astro";
+
+interface CtaLink {
+  label?: string;
+  href?: string;
+}
+interface CtaContent {
+  message?: string;
+  cta?: CtaLink;
+}
+interface Props {
+  content?: CtaContent;
+}
+
+const { content } = Astro.props;
+
+const message = content?.message?.trim();
+
+const cta = content?.cta;
+const ctaLabel = cta?.label?.trim();
+const ctaHref = cta?.href?.trim();
+const hasCta = Boolean(ctaLabel && ctaHref);
+
+// Contenido esencial: mensaje y CTA valido (Req 12.5).
+const hasEssentials = Boolean(message && hasCta);
+---
+
+{hasEssentials && (
+  <Section variant="muted" size="md">
+    <div class="ds-cta">
+      <p class="ds-cta-message">{message}</p>
+      <p class="ds-cta-actions">
+        <Button href={ctaHref} variant="primary">{ctaLabel}</Button>
+      </p>
+    </div>
+  </Section>
+)}
+
+<style>
+  .ds-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+    text-align: center;
+  }
+  .ds-cta-message {
+    margin: 0;
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    max-width: 60ch;
+  }
+  .ds-cta-actions { margin: 0; }
+</style>

@@ -1,0 +1,42 @@
+---
+// UI_Component: Section (Req 3.2, 3.3, 4.1, 4.4).
+//
+// Provee el ritmo vertical entre secciones usando la Spacing_Scale y separa
+// secciones consecutivas de forma consistente. Envuelve su contenido en un
+// Container para respetar el ancho maximo. Todo deriva de variables CSS de
+// Design_Tokens (Req 4.5); el contenido se recibe por slots/props conservando
+// los estilos del sistema (Req 4.4).
+import Container from "./Container.astro";
+interface Props {
+  /** Ancla para navegacion (`id` del elemento <section>). */
+  id?: string;
+  /** Titulo opcional; se renderiza como <h2> con la Type_Scale. */
+  title?: string;
+  /** Token de ancho de contenedor interno. */
+  size?: "sm" | "md" | "lg" | "xl";
+  /** Variante de enfasis: default | muted (fondo sutil). */
+  variant?: "default" | "muted";
+  /** Clase(s) adicionales opcionales. */
+  class?: string;
+}
+const { id, title, size = "lg", variant = "default", class: className } = Astro.props;
+---
+<section id={id} class:list={["ds-section", className]} data-variant={variant}>
+  <Container size={size}>
+    {title && <h2 class="ds-section-title">{title}</h2>}
+    <slot />
+  </Container>
+</section>
+
+<style>
+  /* Ritmo vertical entre secciones consecutivas (Req 3.2, 3.3). */
+  .ds-section { padding-block: var(--space-xl); }
+  .ds-section + .ds-section { padding-top: 0; }
+
+  /* Variante con fondo sutil derivado del color de marca. */
+  .ds-section[data-variant="muted"] {
+    background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-background));
+  }
+
+  .ds-section-title { margin-bottom: var(--space-lg); }
+</style>

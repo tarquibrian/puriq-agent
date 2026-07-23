@@ -44,6 +44,7 @@ from puriq.wizard.intake import (
     make_coords,
 )
 from puriq.tools.deploy import DeployError
+from puriq.wizard.landing import LandingCatalogError, build_landing
 from puriq.wizard.modules import ModuleCatalogError, build_modules
 from puriq.wizard.validation import (
     DeployTargetError,
@@ -401,6 +402,7 @@ def add_event(body: EventBody):
 _CONFIG_ERRORS = (
     ModuleCatalogError,
     DeployTargetError,
+    LandingCatalogError,
     ValueError,
     jsonschema.ValidationError,
 )
@@ -436,16 +438,35 @@ class _ModuleSelection(BaseModel):
     knowledgeSource: str | None = None
 
 
+class _LandingSelection(BaseModel):
+    """Descriptor de una Landing_Section en la seleccion de `PUT /api/site-config`.
+
+    Espeja la entrada del constructor puro `build_landing`: `type` del catalogo
+    de portada (`hero`/`features`/`cta`/`gallery`/`stats`), `enabled` on/off y un
+    `content` opcional con los campos de copy por tipo (titular, subtitulo,
+    destacados, mensaje, etiqueta de CTA, etc.). El `order` no se envia: lo
+    deriva `build_landing` a partir de la posicion en la lista ordenada (Req 14.2).
+    """
+
+    type: str
+    enabled: bool = True
+    content: dict | None = None
+
+
 class SiteConfigBody(BaseModel):
-    """Cuerpo de `PUT /api/site-config` (Req 2.1-2.5, 10.5).
+    """Cuerpo de `PUT /api/site-config` (Req 2.1-2.5, 10.5, 14.3, 14.4, 14.6).
 
     `modules` es la seleccion **ordenada** de modulos (el orden de la lista fija
     el `order`); `deployTarget` es el destino de publicacion opcional que se
-    valida contra el catalogo y se persiste en `Site_Config.deploy.target`.
+    valida contra el catalogo y se persiste en `Site_Config.deploy.target`;
+    `landing` es la seleccion **ordenada** de secciones de portada (el orden de
+    la lista fija el `order`) que el Wizard compone a partir de secciones
+    pre-construidas del Landing_Module, sin generar codigo (Req 14.6).
     """
 
     modules: list[_ModuleSelection]
     deployTarget: str | None = None
+    landing: list[_LandingSelection] | None = None
 
 
 class _Colors(BaseModel):
@@ -488,9 +509,14 @@ def put_site_config(body: SiteConfigBody):
     (restringe al catalogo `map/places/events/blog/chatweb` y asigna `order`
     entero >= 1 segun el orden recibido, Req 2.2, 2.3). Si viene `deployTarget`,
     lo valida contra el catalogo soportado (`validate_deploy_target`, Req 10.2) y
-    lo persiste en `Site_Config.deploy.target` (Req 10.5). Escribe via
+    lo persiste en `Site_Config.deploy.target` (Req 10.5). Si viene `landing`,
+    construye el sub-documento de portada con el constructor puro `build_landing`
+    (restringe `type` al catalogo `hero/features/cta/gallery/stats` y asigna
+    `order` entero >= 1 segun el orden recibido, Req 14.2, 14.3) componiendo
+    secciones pre-construidas sin generar codigo (Req 14.6). Escribe via
     load-merge-save con validacion estricta contra `site-config.schema.json`
-    (Req 2.4, 2.5); ante error responde `422` nombrando el campo, sin persistir.
+    (Req 2.4, 2.5, 14.4); ante error responde `422` nombrando el campo, sin
+    persistir nada.
     """
     project = project_root()
     try:
@@ -498,6 +524,11 @@ def put_site_config(body: SiteConfigBody):
         patch: dict = {"modules": build_modules(selection)}
         if body.deployTarget is not None:
             patch["deploy"] = {"target": validate_deploy_target(body.deployTarget)}
+        if body.landing is not None:
+            landing_selection = [
+                descriptor.model_dump(exclude_none=True) for descriptor in body.landing
+            ]
+            patch["landing"] = build_landing(landing_selection)
         merged = _save_patch(project, _SITE_CONFIG_DOC, patch)
     except _CONFIG_ERRORS as exc:
         return JSONResponse(

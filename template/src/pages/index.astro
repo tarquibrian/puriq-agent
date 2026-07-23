@@ -1,6 +1,15 @@
 ---
-// Home: renderiza el hero y compone los modulos activos en el orden configurado.
+// Home_Page: compone el Landing_Module (secciones de portada resueltas desde
+// `site.config.json`) por encima de los Content_Module activos (Req 10.1).
+//
+// La resolucion y el orden de las secciones los decide `resolveLanding` (funcion
+// pura, DD-3); el render itera esa lista contra `SECTION_REGISTRY`, omitiendo con
+// gracia cualquier tipo ausente del registro (Req 10.5). Ya no se renderiza el
+// hero trivial inline: el Hero_Section (o su sintesis desde el `hero` heredado)
+// lo maneja el propio Landing_Module.
 import Base from "../layouts/Base.astro";
+import Section from "../design-system/ui/Section.astro";
+import { resolveLanding, SECTION_REGISTRY } from "../design-system/landing";
 import { siteConfig, activeModules } from "../lib/data";
 import Map from "../modules/map/Map.astro";
 import Places from "../modules/places/Places.astro";
@@ -8,19 +17,30 @@ import Events from "../modules/events/Events.astro";
 import Blog from "../modules/blog/Blog.astro";
 import Chat from "../modules/chatweb/Chat.astro";
 
-const registry: Record<string, any> = {
+// Registro de Content_Module (sin cambios): map/places/events/blog/chatweb.
+const moduleRegistry: Record<string, any> = {
   map: Map, places: Places, events: Events, blog: Blog, chatweb: Chat,
 };
-const hero = siteConfig.hero ?? {};
+
+// Secciones de portada resueltas y ordenadas + modulos de contenido activos.
+const sections = resolveLanding(siteConfig);
 const mods = activeModules();
 ---
 <Base>
-  <section style="text-align:center; padding:2rem 0;">
-    <h1>{hero.headline}</h1>
-    <p>{hero.subheadline}</p>
-  </section>
+  {/* Landing_Module: secciones de portada por encima de los Content_Module. */}
+  {sections.map((s) => {
+    const Comp = SECTION_REGISTRY[s.type] as any;
+    // Tipo ausente del registro => se omite sin romper el render (Req 10.5).
+    return Comp ? <Comp content={s.content} /> : null;
+  })}
+
+  {/* Content_Module activos, envueltos en Section para un ritmo consistente. */}
   {mods.map((m) => {
-    const Comp = registry[m.key];
-    return Comp ? <section id={m.key}><Comp /></section> : null;
+    const Comp = moduleRegistry[m.key];
+    return Comp ? (
+      <Section id={m.key}>
+        <Comp />
+      </Section>
+    ) : null;
   })}
 </Base>

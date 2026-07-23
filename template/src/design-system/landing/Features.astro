@@ -1,0 +1,50 @@
+---
+// Landing_Section: Features / Destacados (Req 12.1).
+//
+// Renderiza un titulo opcional y una cuadricula responsive de tarjetas, una por
+// destacado (`content.items[]`), reutilizando los UI_Component `Section`, `Grid`
+// y `Card`. Toda la apariencia deriva de variables CSS de Design_Tokens.
+//
+// Render defensivo (Req 12.5): si no hay destacados con contenido, la seccion
+// se omite por completo (no se renderiza nada).
+import Section from "../ui/Section.astro";
+import Grid from "../ui/Grid.astro";
+import Card from "../ui/Card.astro";
+
+interface FeatureItem {
+  title?: string;
+  description?: string;
+}
+interface FeaturesContent {
+  title?: string;
+  items?: FeatureItem[];
+}
+interface Props {
+  content?: FeaturesContent;
+}
+
+const { content } = Astro.props;
+
+const title = content?.title?.trim();
+
+// Destacados con al menos un titulo o descripcion no vacios; los vacios se
+// descartan para no renderizar tarjetas huecas.
+const items = Array.isArray(content?.items)
+  ? content!.items!.filter(
+      (item) => (item?.title?.trim() || item?.description?.trim())
+    )
+  : [];
+const hasItems = items.length > 0;
+---
+
+{hasItems && (
+  <Section title={title}>
+    <Grid min="260px">
+      {items.map((item) => (
+        <Card title={item.title?.trim()}>
+          {item.description?.trim() && <p>{item.description.trim()}</p>}
+        </Card>
+      ))}
+    </Grid>
+  </Section>
+)}

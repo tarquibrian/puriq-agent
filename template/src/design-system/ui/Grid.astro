@@ -1,0 +1,39 @@
+---
+// UI_Component: Grid responsive (Req 5.3, 5.4, 5.5).
+//
+// Distribuye sus hijos en una cuadricula que ajusta el numero de columnas segun
+// el ancho disponible (mobile-first): una sola columna en el viewport mas
+// pequeno y mas columnas a medida que hay espacio. El uso de
+// `minmax(min(<min>, 100%), 1fr)` evita el desbordamiento horizontal en pantallas
+// estrechas (Req 5.4). El separado deriva de la Spacing_Scale (Req 5.3).
+interface Props {
+  /** Ancho minimo de cada columna antes de envolver (por defecto 240px). */
+  min?: string;
+  /** Paso de la Spacing_Scale para el gap: xs | sm | md | lg | xl (por defecto lg). */
+  gap?: "xs" | "sm" | "md" | "lg" | "xl";
+  /** Clase(s) adicionales opcionales. */
+  class?: string;
+}
+const { min = "240px", gap = "lg", class: className } = Astro.props;
+---
+<div class:list={["ds-grid", className]} data-gap={gap} style={`--ds-grid-min: ${min};`}>
+  <slot />
+</div>
+
+<style>
+  .ds-grid {
+    display: grid;
+    /* Columnas responsive sin desbordamiento: el `min(...)` garantiza que en
+     * viewports estrechos la columna no supere el 100% del contenedor. */
+    grid-template-columns: repeat(auto-fit, minmax(min(var(--ds-grid-min, 240px), 100%), 1fr));
+    gap: var(--space-md);
+  }
+  .ds-grid[data-gap="xs"] { gap: var(--space-xs); }
+  .ds-grid[data-gap="sm"] { gap: var(--space-sm); }
+  .ds-grid[data-gap="md"] { gap: var(--space-md); }
+  .ds-grid[data-gap="lg"] { gap: var(--space-lg); }
+  .ds-grid[data-gap="xl"] { gap: var(--space-xl); }
+
+  /* Las imagenes escalan dentro de su celda sin desbordar (Req 5.5). */
+  .ds-grid :global(img) { max-width: 100%; height: auto; display: block; }
+</style>

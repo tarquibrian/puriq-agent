@@ -9,7 +9,15 @@
 //      el widget hace POST {question} a ese endpoint (proxy RAG de Bedrock que
 //      se agregara en el dia 4) y renderiza la respuesta devuelta. El endpoint
 //      es el UNICO lugar donde vivirian credenciales; el cliente nunca las ve.
+//
+// Uplift de presentacion (DD-7, Req 9): el marcado se reescribe para usar los
+// UI_Component `Card` y `Button` y variables CSS de Design_Tokens. La logica de
+// recuperacion client-side, el `faq` de entrada, el comportamiento de
+// `apiEndpoint` y los `id` del DOM (`chat-log`, `chat-form`, `chat-input`) se
+// conservan intactos (Req 9.4, 16.3).
 import { siteConfig, faq } from "../../lib/data";
+import Card from "../../design-system/ui/Card.astro";
+import Button from "../../design-system/ui/Button.astro";
 const persona = siteConfig.modules?.chatweb?.persona ?? "asistente turistico";
 const apiEndpoint: string = siteConfig.modules?.chatweb?.apiEndpoint ?? "";
 const hasKnowledge = Array.isArray(faq) && faq.length > 0;
@@ -17,24 +25,30 @@ const hasKnowledge = Array.isArray(faq) && faq.length > 0;
 const clientData = { persona, apiEndpoint, faq };
 ---
 <h2>Asistente turistico</h2>
-<div style="background:#fff; border:1px solid #eee; border-radius:12px; padding:1rem; max-width:520px;">
-  <div id="chat-log" style="min-height:80px; color:#555; font-size:.95rem; display:flex; flex-direction:column; gap:.6rem;">
-    <div class="chat-msg chat-bot" style="align-self:flex-start;">
+<Card class="chat-card">
+  <div id="chat-log" class="chat-log">
+    <div class="chat-msg chat-bot">
       Hola, soy tu {persona}. Preguntame sobre lugares, eventos y como llegar.
     </div>
     {!hasKnowledge && !apiEndpoint && (
-      <div class="chat-msg chat-bot" style="align-self:flex-start; color:#999;">
+      <div class="chat-msg chat-bot chat-muted">
         Todavia no tengo informacion cargada. Volve a consultarme cuando el sitio
         tenga sus preguntas frecuentes publicadas.
       </div>
     )}
   </div>
-  <form id="chat-form" style="display:flex; gap:.5rem; margin-top:.8rem;">
-    <input id="chat-input" name="question" autocomplete="off" placeholder="Escribi tu pregunta..." style="flex:1; padding:.6rem; border:1px solid #ddd; border-radius:8px;" />
-    <button type="submit" style="background:var(--primary); color:#fff; border:0; border-radius:8px; padding:0 1rem; cursor:pointer;">Enviar</button>
+  <form id="chat-form" class="chat-form">
+    <input
+      id="chat-input"
+      class="chat-input"
+      name="question"
+      autocomplete="off"
+      placeholder="Escribi tu pregunta..."
+    />
+    <Button type="submit">Enviar</Button>
   </form>
-  <small style="color:#999;">Responde con la informacion oficial publicada del destino.</small>
-</div>
+  <small class="chat-note">Responde con la informacion oficial publicada del destino.</small>
+</Card>
 
 <script define:vars={{ clientData }}>
   // === Configuracion inyectada desde el servidor (Q&A publico, sin secretos) ===
@@ -116,10 +130,11 @@ const clientData = { persona, apiEndpoint, faq };
     div.textContent = text;
     div.style.alignSelf = who === "user" ? "flex-end" : "flex-start";
     if (who === "user") {
-      div.style.background = "var(--primary)";
-      div.style.color = "#fff";
-      div.style.padding = ".4rem .7rem";
-      div.style.borderRadius = "10px";
+      // Estilo del mensaje del usuario derivado de tokens de marca (Req 9.1).
+      div.style.background = "var(--color-primary)";
+      div.style.color = "var(--color-background)";
+      div.style.padding = "var(--space-xs) var(--space-sm)";
+      div.style.borderRadius = "var(--radius-md)";
     }
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
@@ -169,3 +184,39 @@ const clientData = { persona, apiEndpoint, faq };
     });
   }
 </script>
+
+<style>
+  /* Presentacion derivada de variables CSS de Design_Tokens (Req 9.1). */
+  .chat-card { max-width: var(--container-sm); }
+  .chat-log {
+    min-height: 5rem;
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    color: color-mix(in srgb, var(--color-text) 80%, var(--color-background));
+  }
+  .chat-msg { align-self: flex-start; }
+  .chat-muted {
+    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
+  }
+  .chat-form {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+  .chat-input {
+    flex: 1;
+    padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--color-text) 25%, var(--color-background));
+    border-radius: var(--radius-md);
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-size: var(--fs-body);
+    background: var(--color-background);
+    color: var(--color-text);
+  }
+  .chat-note {
+    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
+  }
+</style>

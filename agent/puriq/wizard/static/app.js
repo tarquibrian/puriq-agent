@@ -26,6 +26,17 @@
     blog: "Blog",
     chatweb: "Chat web"
   };
+  // Catalogo de secciones de portada soportado (espejo de wizard/landing.py,
+  // Req 14.1). El orden aqui es solo el orden por defecto de la lista; el
+  // `order` efectivo lo asigna el servidor a partir del orden de esta UI.
+  var LANDING_CATALOG = ["hero", "features", "cta", "gallery", "stats"];
+  var LANDING_LABELS = {
+    hero: "Hero (portada principal)",
+    features: "Destacados",
+    cta: "Llamado a la accion",
+    gallery: "Galeria",
+    stats: "Estadisticas"
+  };
   // Destinos de publicacion soportados (Req 10.2).
   var DEPLOY_TARGETS = [
     "aws-amplify",
@@ -49,6 +60,7 @@
       event: {},
       qa: {},
       brand: {},
+      landing: [],
       build: { use_llm: true, enrich: false },
       deploy: { target: DEPLOY_TARGETS[0] }
     },
@@ -179,6 +191,7 @@
     { id: "assets", label: "Recursos", render: renderAssets },
     { id: "qa", label: "Q&A", render: renderQA },
     { id: "brand", label: "Marca", render: renderBrand },
+    { id: "landing", label: "Portada", render: renderLanding },
     { id: "generate", label: "Generar", render: renderGenerate },
     { id: "preview", label: "Previsualizar", render: renderPreview },
     { id: "publish", label: "Publicar", render: renderPublish }
@@ -257,17 +270,25 @@
     var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
   }
 
+  // Construye la seleccion **ordenada** de modulos para PUT /api/site-config.
+  // Se comparte entre el paso Modulos y el paso Portada: como el endpoint exige
+  // `modules`, el paso Portada debe reenviar la seleccion actual para no
+  // perderla al guardar `landing`. Si el usuario aun no toco el paso Modulos, se
+  // deriva la seleccion desde el estado del servidor.
+  function currentModulesPayload() {
+    var rows = state.draft.modules.length ? state.draft.modules : moduleDraftFromServer();
+    return rows.map(function (r) {
+      var m = { key: r.key, enabled: r.enabled };
+      if (r.key === "chatweb") {
+        if (r.persona) m.persona = r.persona;
+        if (r.knowledgeSource) m.knowledgeSource = r.knowledgeSource;
+      }
+      return m;
+    });
+  }
+
   function saveModules(container) {
-    var payload = {
-      modules: state.draft.modules.map(function (r) {
-        var m = { key: r.key, enabled: r.enabled };
-        if (r.key === "chatweb") {
-          if (r.persona) m.persona = r.persona;
-          if (r.knowledgeSource) m.knowledgeSource = r.knowledgeSource;
-        }
-        return m;
-      })
-    };
+    var payload = { modules: currentModulesPayload() };
     apiRequest("PUT", "/api/site-config", { json: payload })
       .then(function (doc) {
         state.server["site-config"] = doc;
@@ -545,10 +566,236 @@
       .catch(function (err) { handleStepError(container, err); });
   }
 
+  // --- Paso: Portada (Req 14.1-14.3, 14.5, 14.6) ---------------------------
+  //
+  // Lista las Landing_Section del catalogo soportado con controles de
+  // activar/desactivar y reordenar (el orden de la lista define el orden que se
+  // envia; el servidor asigna el `order`, Req 14.2), y permite editar el copy de
+  // cada seccion (Req 14.3). Persiste via PUT /api/site-config enviando `landing`
+  // como lista ordenada de {type, enabled, content} JUNTO con la seleccion de
+  // modulos actual (el endpoint exige `modules`, por eso se reenvia para no
+  // perderla). Prellena desde GET /api/state `site-config.landing` (Req 14.5). El
+  // Wizard solo compone secciones pre-construidas; nunca genera codigo (Req 14.6).
+
+  // Normaliza el `content` del servidor a la forma editable del draft segun el
+  // tipo de seccion, conservando el resto de campos en `_raw` para no perderlos
+  // al guardar (p. ej. background/overlay/cta del hero configurados aparte).
+  function makeLandingRow(type, enabled, content) {
+    content = content || {};
+    var c = {};
+    if (type === "hero") {
+      c.headline = content.headline || "";
+      c.subheadline = content.subheadline || "";
+    } else if (type === "features") {
+      c.title = content.title || "";
+      c.items = (content.items || []).map(function (it) {
+        return { title: (it && it.title) || "", description: (it && it.description) || "" };
+      });
+    } else if (type === "cta") {
+      c.message = content.message || "";
+      var cta = content.cta || {};
+      c.ctaLabel = cta.label || "";
+      c.ctaHref = cta.href || "";
+    } else if (type === "stats") {
+      c.metrics = (content.metrics || []).map(function (m) {
+        return { value: (m && m.value) || "", label: (m && m.label) || "" };
+      });
+    } else if (type === "gallery") {
+      c.images = (content.images || []).map(function (im) {
+        return { src: (im && im.src) || "", alt: (im && im.alt) || "" };
+      });
+    }
+    return { type: type, enabled: enabled, content: c, _raw: content };
+  }
+
+  // Construye el draft del paso a partir de `site-config.landing` del servidor
+  // (Req 14.5). Respeta el orden guardado y completa el catalogo con las
+  // secciones ausentes (desactivadas por defecto) para que el usuario pueda
+  // activarlas.
+  function landingDraftFromServer() {
+    var existing = (state.server["site-config"] || {}).landing || [];
+    var sorted = existing
+      .filter(function (s) { return s && LANDING_CATALOG.indexOf(s.type) !== -1; })
+      .slice()
+      .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+
+    var rows = [];
+    var seen = {};
+    sorted.forEach(function (s) {
+      if (seen[s.type]) return; // un tipo por seccion en la UI
+      seen[s.type] = true;
+      rows.push(makeLandingRow(s.type, !!s.enabled, s.content || {}));
+    });
+    LANDING_CATALOG.forEach(function (type) {
+      if (!seen[type]) rows.push(makeLandingRow(type, false, {}));
+    });
+    return rows;
+  }
+
+  // Convierte el draft editable de una seccion al `content` del contrato,
+  // fusionando sobre `_raw` para preservar campos no editados en esta UI.
+  function landingContentToPayload(row) {
+    var raw = row._raw || {};
+    var c = row.content;
+    var out = {};
+    Object.keys(raw).forEach(function (k) { out[k] = raw[k]; });
+    if (row.type === "hero") {
+      out.headline = c.headline;
+      out.subheadline = c.subheadline;
+    } else if (row.type === "features") {
+      out.title = c.title;
+      out.items = c.items.map(function (it) {
+        return { title: it.title, description: it.description };
+      });
+    } else if (row.type === "cta") {
+      out.message = c.message;
+      var cta = {};
+      var rawCta = raw.cta || {};
+      Object.keys(rawCta).forEach(function (k) { cta[k] = rawCta[k]; });
+      cta.label = c.ctaLabel;
+      cta.href = c.ctaHref;
+      out.cta = cta;
+    } else if (row.type === "stats") {
+      out.metrics = c.metrics.map(function (m) {
+        return { value: m.value, label: m.label };
+      });
+    } else if (row.type === "gallery") {
+      out.images = c.images.map(function (im) {
+        return { src: im.src, alt: im.alt };
+      });
+    }
+    return out;
+  }
+
+  function renderLanding(container) {
+    if (!state.draft.landing.length) state.draft.landing = landingDraftFromServer();
+    var rows = state.draft.landing;
+
+    container.appendChild(el("h2", { text: "8. Portada" }));
+    container.appendChild(el("p", { class: "hint", text: "Activa, ordena y edita las secciones de la portada. El orden de la lista define el orden en el sitio; el asistente solo compone secciones ya construidas." }));
+
+    var list = el("div", { class: "landing-list" });
+    rows.forEach(function (row, idx) {
+      list.appendChild(renderLandingSection(row, idx, rows));
+    });
+    container.appendChild(list);
+
+    container.appendChild(el("button", {
+      class: "btn", text: "Guardar portada",
+      onclick: function () { saveLanding(container); }
+    }));
+  }
+
+  function renderLandingSection(row, idx, rows) {
+    var checkbox = el("input", {
+      type: "checkbox", checked: row.enabled,
+      onchange: function (e) { row.enabled = e.target.checked; }
+    });
+    var up = el("button", {
+      class: "btn btn-ghost btn-sm", text: "\u2191", title: "Subir",
+      onclick: function () { swap(rows, idx, idx - 1); render(); }
+    });
+    var down = el("button", {
+      class: "btn btn-ghost btn-sm", text: "\u2193", title: "Bajar",
+      onclick: function () { swap(rows, idx, idx + 1); render(); }
+    });
+
+    var head = el("div", { class: "landing-head" }, [
+      el("label", { class: "landing-toggle" }, [
+        checkbox,
+        el("span", { class: "mod-name", text: LANDING_LABELS[row.type] + " (" + row.type + ")" })
+      ]),
+      el("span", { class: "mod-order", text: "orden " + (idx + 1) }),
+      up, down
+    ]);
+
+    var body = el("div", { class: "landing-body" });
+    renderLandingFields(body, row);
+
+    return el("div", { class: "landing-section" }, [head, body]);
+  }
+
+  // Renderiza los campos de copy editables segun el tipo de seccion (Req 14.3).
+  function renderLandingFields(body, row) {
+    var c = row.content;
+    if (row.type === "hero") {
+      body.appendChild(textField("Titular", c, "headline"));
+      body.appendChild(textField("Subtitulo", c, "subheadline"));
+    } else if (row.type === "features") {
+      body.appendChild(textField("Titulo de la seccion (opcional)", c, "title"));
+      renderItemList(body, "Destacados", c.items,
+        function () { return { title: "", description: "" }; },
+        function (item, itemBody) {
+          itemBody.appendChild(textField("Titulo", item, "title"));
+          itemBody.appendChild(textField("Descripcion", item, "description"));
+        });
+    } else if (row.type === "cta") {
+      body.appendChild(textField("Mensaje", c, "message"));
+      body.appendChild(el("div", { class: "row" }, [
+        textField("Etiqueta del boton", c, "ctaLabel"),
+        textField("Destino (href)", c, "ctaHref")
+      ]));
+    } else if (row.type === "stats") {
+      renderItemList(body, "Metricas", c.metrics,
+        function () { return { value: "", label: "" }; },
+        function (item, itemBody) {
+          itemBody.appendChild(el("div", { class: "row" }, [
+            textField("Valor", item, "value"),
+            textField("Etiqueta", item, "label")
+          ]));
+        });
+    } else if (row.type === "gallery") {
+      renderItemList(body, "Imagenes", c.images,
+        function () { return { src: "", alt: "" }; },
+        function (item, itemBody) {
+          itemBody.appendChild(el("div", { class: "row" }, [
+            textField("Ruta de imagen (src)", item, "src"),
+            textField("Texto alternativo (alt)", item, "alt")
+          ]));
+        });
+    }
+  }
+
+  // Editor de listas de sub-items (destacados, metricas, imagenes) con agregar y
+  // quitar. Muta el array del draft y re-renderiza para reflejar el cambio.
+  function renderItemList(body, title, arr, makeEmpty, renderItemFields) {
+    body.appendChild(el("h4", { class: "landing-subtitle", text: title }));
+    arr.forEach(function (item, i) {
+      var itemBody = el("div", { class: "landing-subitem" });
+      renderItemFields(item, itemBody);
+      itemBody.appendChild(el("button", {
+        class: "btn btn-ghost btn-sm", text: "Quitar",
+        onclick: function () { arr.splice(i, 1); render(); }
+      }));
+      body.appendChild(itemBody);
+    });
+    body.appendChild(el("button", {
+      class: "btn btn-ghost btn-sm", text: "+ Agregar",
+      onclick: function () { arr.push(makeEmpty()); render(); }
+    }));
+  }
+
+  function saveLanding(container) {
+    var rows = state.draft.landing;
+    var payload = {
+      modules: currentModulesPayload(),
+      landing: rows.map(function (row) {
+        return { type: row.type, enabled: row.enabled, content: landingContentToPayload(row) };
+      })
+    };
+    apiRequest("PUT", "/api/site-config", { json: payload })
+      .then(function (doc) {
+        state.server["site-config"] = doc;
+        markDone("landing");
+        renderOk(document.getElementById("step-panel"), "Portada guardada.");
+      })
+      .catch(function (err) { handleStepError(container, err); });
+  }
+
   // --- Paso: Generar (WebSocket /ws/build, Req 8.2-8.4) --------------------
   function renderGenerate(container) {
     var d = state.draft.build;
-    container.appendChild(el("h2", { text: "8. Generar el sitio" }));
+    container.appendChild(el("h2", { text: "9. Generar el sitio" }));
     container.appendChild(el("p", { class: "hint", text: "Dispara la generacion y observa el progreso en vivo." }));
 
     var llm = el("input", { type: "checkbox", checked: d.use_llm, onchange: function (e) { d.use_llm = e.target.checked; } });
@@ -621,7 +868,7 @@
 
   // --- Paso: Previsualizar (Req 9.1-9.3) -----------------------------------
   function renderPreview(container) {
-    container.appendChild(el("h2", { text: "9. Previsualizar" }));
+    container.appendChild(el("h2", { text: "10. Previsualizar" }));
     container.appendChild(el("p", { class: "hint", text: "Abri el sitio construido en tu navegador antes de publicarlo." }));
 
     container.appendChild(el("button", {
@@ -647,7 +894,7 @@
   // --- Paso: Publicar (Req 10.1-10.4) --------------------------------------
   function renderPublish(container) {
     var d = state.draft.deploy;
-    container.appendChild(el("h2", { text: "10. Publicar" }));
+    container.appendChild(el("h2", { text: "11. Publicar" }));
     container.appendChild(el("p", { class: "hint", text: "Elegi el destino y publica tu sitio para obtener una URL." }));
 
     var sel = el("select", { onchange: function (e) { d.target = e.target.value; } },

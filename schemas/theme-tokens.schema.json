@@ -39,7 +39,48 @@
       }
     },
     "logo": { "type": "string" },
-    "radius": { "type": "string" }
+    "radius": { "type": "string" },
+    "spacing": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "typeScale": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["size"],
+        "properties": {
+          "size": { "type": "string" },
+          "lineHeight": { "type": "string" }
+        }
+      }
+    },
+    "shadows": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "radii": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "breakpoints": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "durationFast": { "type": "string" },
+        "durationBase": { "type": "string" },
+        "easing": { "type": "string" }
+      }
+    },
+    "container": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
   },
   "$defs": {
     "hex": { "type": "string", "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" }

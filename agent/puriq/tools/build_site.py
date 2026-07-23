@@ -56,8 +56,11 @@ Notas de integracion con la Template (verificadas al implementar la tarea 9.2):
   `theme.tokens.json` que escribe el paso 9.1. Es decir, el theming efectivo es
   data-driven. Como complemento explicito y verificable (Property 18), la tarea
   9.2 genera ademas un archivo de tokens CSS (`_theme_to_css`) y lo escribe en
-  `src/data/theme.css`: materializa `--color-*`, `--font-*` y `--radius` como
-  artefacto importable, sin reescribir componentes de la Template.
+  `src/data/theme.css`: materializa el conjunto COMPLETO de variables del
+  Design_System (`--color-*`, `--font-*`, `--space-*`, `--fs-*`/`--lh-*`,
+  `--shadow-*`, `--radius-*`, `--bp-*`, `--motion-*`, `--container-*` y el
+  `--radius` heredado), aplicando defaults para los tokens ausentes (Req 5.6,
+  16.2, 16.5), sin reescribir componentes de la Template.
 """
 from __future__ import annotations
 
@@ -234,21 +237,105 @@ def _resolve_modules(config: dict) -> list[dict]:
     return activos
 
 
+# Defaults del Design_System (DD-1). Es la MISMA tabla que vive en
+# `template/src/design-system/defaults.ts` (`DESIGN_DEFAULTS`), replicada aqui
+# para materializar `src/data/theme.css` con el conjunto completo de variables
+# aunque el usuario defina pocos o ningun token ampliado (Req 1.4, 16.2, 16.5).
+# Cualquier cambio en los valores por defecto debe reflejarse en ambos lugares
+# (unica fuente conceptual de verdad, documentada en el diseno).
+DESIGN_DEFAULTS: dict = {
+    "spacing": {
+        "xs": "0.25rem",
+        "sm": "0.5rem",
+        "md": "1rem",
+        "lg": "2rem",
+        "xl": "4rem",
+        "2xl": "8rem",
+    },
+    "typeScale": {
+        "h1": {"size": "2.5rem", "lineHeight": "1.15"},
+        "h2": {"size": "2rem", "lineHeight": "1.25"},
+        "h3": {"size": "1.5rem", "lineHeight": "1.3"},
+        "body": {"size": "1rem", "lineHeight": "1.6"},
+        "small": {"size": "0.875rem", "lineHeight": "1.5"},
+    },
+    "shadows": {
+        "sm": "0 1px 2px rgba(0,0,0,.08)",
+        "md": "0 4px 12px rgba(0,0,0,.12)",
+        "lg": "0 12px 32px rgba(0,0,0,.18)",
+    },
+    "radii": {"sm": "4px", "md": "8px", "lg": "16px", "pill": "999px"},
+    "breakpoints": {"sm": "640px", "md": "768px", "lg": "1024px"},
+    "motion": {
+        "durationFast": "120ms",
+        "durationBase": "240ms",
+        "easing": "cubic-bezier(.4,0,.2,1)",
+    },
+    "container": {"sm": "640px", "md": "768px", "lg": "1080px", "xl": "1280px"},
+}
+
+# Nombres de las variables CSS que emite cada token de motion. El esquema fija
+# las tres claves (`durationFast`/`durationBase`/`easing`), por lo que el mapeo
+# es explicito en vez de derivarse de la clave.
+_MOTION_VAR = {
+    "durationFast": "--motion-duration-fast",
+    "durationBase": "--motion-duration-base",
+    "easing": "--motion-easing",
+}
+
+
+def _merge_defaults(default, user):
+    """Fusiona `user` sobre `default` sin pisar lo que el usuario definio.
+
+    Replica en Python la semantica pura de `resolveTokens` (DD-1): un valor del
+    usuario ya presente nunca se sobreescribe y las claves ausentes se rellenan
+    con el default correspondiente. La fusion es recursiva para los mapas
+    anidados (p. ej. `typeScale.h1.{size,lineHeight}`), de modo que un usuario
+    que define solo `size` conserva el `lineHeight` por defecto. Es idempotente:
+    fusionar dos veces produce el mismo resultado.
+    """
+    if isinstance(default, dict) and isinstance(user, dict):
+        fusionado = dict(default)
+        for clave, valor in user.items():
+            if clave in fusionado:
+                fusionado[clave] = _merge_defaults(fusionado[clave], valor)
+            else:
+                fusionado[clave] = valor
+        return fusionado
+    # El valor del usuario (cuando existe) gana sobre el default.
+    return user if user is not None else default
+
+
 def _theme_to_css(theme: dict) -> str:
-    """Traduce `colors` y `typography` de Theme_Tokens a variables CSS (Req 5.6).
+    """Materializa TODOS los tokens del Design_System a variables CSS (Req 5.6).
 
-    Genera un bloque `:root { ... }` con una variable CSS por cada token de
-    marca definido:
+    Genera un bloque `:root { ... }` con el conjunto COMPLETO de variables CSS,
+    aplicando la tabla de defaults `DESIGN_DEFAULTS` (misma que
+    `resolveTokens`/`DESIGN_DEFAULTS` de la Template) para cada token ausente en
+    `theme.tokens.json`. Asi el conjunto de variables emitidas es estable y
+    completo sin importar cuantos tokens haya definido el usuario (Req 16.2,
+    16.5), preservando la retrocompatibilidad.
 
-      - colores -> `--color-primary`, `--color-secondary`, `--color-background`,
-        `--color-text`, `--color-accent` (solo los que esten definidos).
+    Variables emitidas:
+
+      - colores    -> `--color-primary`, `--color-secondary`,
+        `--color-background`, `--color-text`, `--color-accent` (los que esten
+        definidos; los colores no tienen default de marca).
       - tipografia -> `--font-heading`, `--font-body`, `--font-base-size`.
-      - `--radius` cuando `theme.radius` esta presente.
+      - spacing    -> `--space-<paso>` (xs, sm, md, lg, xl, 2xl, ...).
+      - typeScale  -> `--fs-<nivel>` y `--lh-<nivel>` (size / lineHeight).
+      - shadows    -> `--shadow-<nombre>`.
+      - radii      -> `--radius-<nombre>`.
+      - breakpoints-> `--bp-<nombre>`.
+      - motion     -> `--motion-duration-fast`, `--motion-duration-base`,
+        `--motion-easing`.
+      - container  -> `--container-<nombre>`.
+      - `--radius` cuando `theme.radius` esta presente (token heredado).
 
-    Los tokens ausentes se omiten (no se emiten variables vacias). El resultado
-    es un artefacto explicito y verificable de la materializacion de marca
-    (Property 18): cada color de `colors` y cada fuente de `typography` aparece
-    como una variable CSS.
+    Los colores y las fuentes se mantienen exactamente como antes (siguen siendo
+    tokens de marca sin default), garantizando que la Property 18 y los tests
+    existentes de color/tipografia sigan verdes. Es una funcion pura del dict
+    `theme`: no muta la entrada ni depende de estado externo.
 
     Args:
         theme: documento Theme_Tokens (ya validado contra su esquema).
@@ -259,15 +346,32 @@ def _theme_to_css(theme: dict) -> str:
     colors = theme.get("colors", {}) or {}
     typography = theme.get("typography", {}) or {}
 
+    # Tokens ampliados resueltos: default + lo que definio el usuario. Cada mapa
+    # se fusiona con su default para que las variables ausentes tomen su valor
+    # del Design_System sin pisar lo definido por el usuario.
+    spacing = _merge_defaults(DESIGN_DEFAULTS["spacing"], theme.get("spacing") or {})
+    type_scale = _merge_defaults(
+        DESIGN_DEFAULTS["typeScale"], theme.get("typeScale") or {}
+    )
+    shadows = _merge_defaults(DESIGN_DEFAULTS["shadows"], theme.get("shadows") or {})
+    radii = _merge_defaults(DESIGN_DEFAULTS["radii"], theme.get("radii") or {})
+    breakpoints = _merge_defaults(
+        DESIGN_DEFAULTS["breakpoints"], theme.get("breakpoints") or {}
+    )
+    motion = _merge_defaults(DESIGN_DEFAULTS["motion"], theme.get("motion") or {})
+    container = _merge_defaults(
+        DESIGN_DEFAULTS["container"], theme.get("container") or {}
+    )
+
     lineas: list[str] = [":root {"]
 
-    # Colores: se emite una variable por cada color definido.
+    # Colores: se emite una variable por cada color definido (sin default).
     for clave in ("primary", "secondary", "background", "text", "accent"):
         valor = colors.get(clave)
         if valor:
             lineas.append(f"  --color-{clave}: {valor};")
 
-    # Tipografia: fuentes de titulos/cuerpo y tamano base.
+    # Tipografia: fuentes de titulos/cuerpo y tamano base (sin default).
     if typography.get("headingFont"):
         lineas.append(f"  --font-heading: {typography['headingFont']};")
     if typography.get("bodyFont"):
@@ -275,7 +379,42 @@ def _theme_to_css(theme: dict) -> str:
     if typography.get("baseSize"):
         lineas.append(f"  --font-base-size: {typography['baseSize']};")
 
-    # Radio de esquinas (opcional en el esquema).
+    # Spacing_Scale -> --space-<paso>.
+    for clave, valor in spacing.items():
+        lineas.append(f"  --space-{clave}: {valor};")
+
+    # Type_Scale -> --fs-<nivel> (size) y --lh-<nivel> (lineHeight, si existe).
+    for clave, escala in type_scale.items():
+        if not isinstance(escala, dict):
+            continue
+        if escala.get("size"):
+            lineas.append(f"  --fs-{clave}: {escala['size']};")
+        if escala.get("lineHeight"):
+            lineas.append(f"  --lh-{clave}: {escala['lineHeight']};")
+
+    # Sombras -> --shadow-<nombre>.
+    for clave, valor in shadows.items():
+        lineas.append(f"  --shadow-{clave}: {valor};")
+
+    # Radios -> --radius-<nombre>.
+    for clave, valor in radii.items():
+        lineas.append(f"  --radius-{clave}: {valor};")
+
+    # Breakpoints -> --bp-<nombre>.
+    for clave, valor in breakpoints.items():
+        lineas.append(f"  --bp-{clave}: {valor};")
+
+    # Motion -> --motion-duration-fast/-base y --motion-easing.
+    for clave, valor in motion.items():
+        var = _MOTION_VAR.get(clave)
+        if var and valor:
+            lineas.append(f"  {var}: {valor};")
+
+    # Anchos de contenedor -> --container-<nombre>.
+    for clave, valor in container.items():
+        lineas.append(f"  --container-{clave}: {valor};")
+
+    # Radio de esquinas heredado (token opcional en el esquema).
     if theme.get("radius"):
         lineas.append(f"  --radius: {theme['radius']};")
 

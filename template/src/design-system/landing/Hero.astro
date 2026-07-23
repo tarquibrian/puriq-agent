@@ -1,0 +1,185 @@
+---
+// Landing_Section: Hero (Req 11.1-11.5, 8.5).
+//
+// Hero_Section enriquecido: fondo de imagen o video, overlay que preserva el
+// contraste del texto, titular/subtitulo y un boton CTA. Toda la apariencia
+// deriva de variables CSS de Design_Tokens y de los ganchos de Layout_Variant
+// (--hero-radius / --hero-margin / --hero-min-height) definidos por DD-4 en
+// Base.astro, de modo que `clasico` (hero enmarcado) y `moderno` (hero a
+// sangre) difieren sin fijar marca.
+//
+// Render defensivo (Req 12.5): si no hay titular, el contenido esencial del
+// hero esta ausente y la seccion se omite por completo (no se renderiza nada).
+import Button from "../ui/Button.astro";
+
+interface HeroCta {
+  label?: string;
+  href?: string;
+}
+interface HeroBackground {
+  /** Tipo de recurso de fondo: imagen o video. */
+  type?: "image" | "video";
+  /** Ruta del recurso (relativa a `public/` o absoluta). */
+  asset?: string;
+}
+interface HeroContent {
+  headline?: string;
+  subheadline?: string;
+  background?: HeroBackground;
+  /** Opacidad del overlay [0..1]; por defecto un scrim que asegura contraste. */
+  overlay?: number;
+  cta?: HeroCta;
+}
+interface Props {
+  content?: HeroContent;
+}
+
+const { content } = Astro.props;
+
+// Contenido esencial del Hero_Section: el titular. Sin el, se omite (Req 12.5).
+const headline = content?.headline?.trim();
+const hasHeadline = Boolean(headline);
+
+const subheadline = content?.subheadline?.trim();
+
+// Recurso de fondo valido: requiere `asset`. El tipo por defecto es imagen.
+const background = content?.background;
+const bgAsset = background?.asset?.trim();
+const hasBackground = Boolean(bgAsset);
+const bgType = background?.type ?? "image";
+const isVideo = hasBackground && bgType === "video";
+const isImage = hasBackground && !isVideo;
+
+// Overlay: se clampa a [0..1]. Con imagen/video se usa un scrim oscuro que
+// preserva ~4.5:1 de contraste del texto claro sobre el fondo (Req 11.4, 8.5);
+// el minimo de 0.45 evita que un overlay demasiado tenue degrade el contraste.
+const rawOverlay = typeof content?.overlay === "number" ? content.overlay : 0.45;
+const overlay = Math.min(1, Math.max(hasBackground ? 0.45 : 0, rawOverlay));
+
+// CTA valido: requiere etiqueta y destino (Req 11.3).
+const cta = content?.cta;
+const ctaLabel = cta?.label?.trim();
+const ctaHref = cta?.href?.trim();
+const hasCta = Boolean(ctaLabel && ctaHref);
+
+// Estilo del fondo: la imagen se aplica como background-image; el video usa un
+// elemento <video>. Sin recurso, el fondo se deriva de los colores de marca
+// (Req 11.5) mediante un degradado de tokens.
+const sectionStyle = isImage
+  ? `background-image: url(${JSON.stringify(bgAsset)}); --hero-overlay: ${overlay};`
+  : `--hero-overlay: ${overlay};`;
+---
+
+{hasHeadline && (
+  <section
+    class="ds-hero"
+    data-has-bg={hasBackground ? "true" : "false"}
+    style={sectionStyle}
+    aria-label={headline}
+  >
+    {isVideo && (
+      <video
+        class="ds-hero-video"
+        src={bgAsset}
+        autoplay
+        muted
+        loop
+        playsinline
+        aria-hidden="true"
+      ></video>
+    )}
+    {/* Overlay/scrim que garantiza el contraste del texto (Req 11.4, 8.5). */}
+    <div class="ds-hero-overlay" aria-hidden="true"></div>
+    <div class="ds-hero-content">
+      <h1 class="ds-hero-title">{headline}</h1>
+      {subheadline && <p class="ds-hero-subtitle">{subheadline}</p>}
+      {hasCta && (
+        <p class="ds-hero-actions">
+          <Button href={ctaHref} variant="primary">{ctaLabel}</Button>
+        </p>
+      )}
+    </div>
+  </section>
+)}
+
+<style>
+  /* El Hero usa los ganchos de Layout_Variant (Req 7.3): en `clasico` queda
+   * enmarcado (radio + margen), en `moderno` va a sangre (radio/margen 0). */
+  .ds-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--hero-min-height, 48vh);
+    margin: var(--hero-margin, 0);
+    border-radius: var(--hero-radius, 0);
+    overflow: hidden;
+    padding: var(--space-xl) var(--space-lg);
+    /* Texto claro sobre fondo oscurecido por el overlay. */
+    color: #ffffff;
+    text-align: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  /* Sin recurso de fondo: degradado derivado de los colores de marca (Req 11.5). */
+  .ds-hero[data-has-bg="false"] {
+    background-image: linear-gradient(
+      135deg,
+      var(--color-primary),
+      var(--color-accent)
+    );
+  }
+
+  /* Video de fondo a pantalla completa dentro de la seccion. */
+  .ds-hero-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  /* Overlay/scrim: oscurece el fondo para preservar el contraste del texto.
+   * La opacidad viaja por --hero-overlay (clampada en el frontmatter). */
+  .ds-hero-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, var(--hero-overlay, 0.45));
+  }
+
+  .ds-hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: var(--container-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  /* El titular y el subtitulo heredan la Type_Scale; el color se fuerza a claro
+   * porque van sobre el fondo oscurecido. */
+  .ds-hero-title {
+    color: inherit;
+    margin: 0;
+  }
+  .ds-hero-subtitle {
+    color: inherit;
+    margin: 0;
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    max-width: 60ch;
+  }
+  .ds-hero-actions {
+    margin: 0;
+    margin-top: var(--space-sm);
+  }
+
+  @media (min-width: 768px) {
+    .ds-hero { padding: var(--space-2xl) var(--space-xl); }
+  }
+</style>

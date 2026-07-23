@@ -1,0 +1,39 @@
+---
+// UI_Component: Container (Req 4.1).
+//
+// Limita el ancho maximo del contenido a un token de contenedor y aplica el
+// relleno horizontal con la Spacing_Scale. Toda su apariencia deriva de las
+// variables CSS de Design_Tokens (Req 4.5); no fija ningun valor de marca.
+interface Props {
+  /** Elemento HTML a renderizar (por defecto <div>). */
+  as?: string;
+  /** Token de ancho de contenedor: sm | md | lg | xl (por defecto lg). */
+  size?: "sm" | "md" | "lg" | "xl";
+  /** Clase(s) adicionales opcionales. */
+  class?: string;
+}
+const { as = "div", size = "lg", class: className } = Astro.props;
+const Tag = as as any;
+---
+<Tag class:list={["ds-container", className]} data-size={size}>
+  <slot />
+</Tag>
+
+<style>
+  /* Ancho maximo del token de contenedor + relleno de la Spacing_Scale,
+   * centrado horizontalmente. Mobile-first. */
+  .ds-container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--space-md);
+    max-width: var(--container-lg);
+  }
+  .ds-container[data-size="sm"] { max-width: var(--container-sm); }
+  .ds-container[data-size="md"] { max-width: var(--container-md); }
+  .ds-container[data-size="lg"] { max-width: var(--container-lg); }
+  .ds-container[data-size="xl"] { max-width: var(--container-xl); }
+
+  @media (min-width: 768px) {
+    .ds-container { padding-inline: var(--space-lg); }
+  }
+</style>

@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 from unittest import mock
 
+import jsonschema
 import pytest
 
 # El paquete `puriq` vive en agent/; aseguramos que esté en sys.path al correr
@@ -162,6 +163,93 @@ def test_assemble_failed_build_reports_process_output(tmp_path, monkeypatch):
 
     # No se promovió ningún dist/ al proyecto ante un build fallido.
     assert not (project / "dist").exists()
+
+
+# --- Validación previa a escritura/build en `_write_contract` (Req 13.3, 13.4, 16.5) ---
+#
+# `_write_contract` valida los 3 documentos del Contrato contra `schemas/` ANTES
+# de escribir cualquier archivo o disparar el build. Estos ejemplos ejercitan
+# ESA ruta real (no `schemas.validate` en aislado) para confirmar que una
+# `landing` inválida o un token ampliado inválido detienen el build nombrando el
+# campo infractor, y que una `landing`/tokens válidos escriben sin error. No hay
+# red ni build de Astro: solo se ejercita el paso de escritura/validación.
+
+def _prepared_work(tmp_path: Path) -> Path:
+    """Crea un directorio de trabajo con `src/data/` listo para `_write_contract`."""
+    work = tmp_path / "work"
+    (work / build_site.DATA_SUBDIR).mkdir(parents=True)
+    return work
+
+
+def test_write_contract_rejects_invalid_landing_naming_field(tmp_path):
+    """Una `landing` con `type` fuera del catálogo detiene el build antes de
+    escribir, y el error identifica el campo infractor (Req 13.4)."""
+    work = _prepared_work(tmp_path)
+    bad_config = {
+        **_CONFIG,
+        "landing": [{"type": "carousel", "enabled": True, "order": 1}],
+    }
+
+    with pytest.raises(jsonschema.ValidationError) as excinfo:
+        build_site._write_contract(work, _DATA, bad_config, _THEME)
+
+    # El nodo infractor nombra el campo dentro de `landing`.
+    assert list(excinfo.value.absolute_path) == ["landing", 0, "type"]
+    # No se escribió ningún documento del Contrato (validate-before-write).
+    assert not (work / build_site.DATA_SUBDIR / build_site.CONFIG_FILENAME).exists()
+    assert not (work / build_site.DATA_SUBDIR / build_site.DATA_FILENAME).exists()
+
+
+@pytest.mark.parametrize(
+    "landing_section, expected_path",
+    [
+        ({"type": "hero", "enabled": True, "order": 0}, ["landing", 0, "order"]),
+        ({"type": "hero", "enabled": "yes", "order": 1}, ["landing", 0, "enabled"]),
+    ],
+)
+def test_write_contract_rejects_landing_order_and_enabled(tmp_path, landing_section, expected_path):
+    """`order < 1` y `enabled` no booleano detienen el build nombrando el campo (Req 13.4)."""
+    work = _prepared_work(tmp_path)
+    bad_config = {**_CONFIG, "landing": [landing_section]}
+
+    with pytest.raises(jsonschema.ValidationError) as excinfo:
+        build_site._write_contract(work, _DATA, bad_config, _THEME)
+
+    assert list(excinfo.value.absolute_path) == expected_path
+    assert not (work / build_site.DATA_SUBDIR / build_site.CONFIG_FILENAME).exists()
+
+
+def test_write_contract_rejects_invalid_expanded_token_naming_token(tmp_path):
+    """Un `theme.tokens.json` con un token ampliado inválido detiene el build
+    nombrando el token (Req 1.6, ruta de validación previa)."""
+    work = _prepared_work(tmp_path)
+    bad_theme = {**_THEME, "spacing": {"md": 16}}  # debería ser string
+
+    with pytest.raises(jsonschema.ValidationError) as excinfo:
+        build_site._write_contract(work, _DATA, _CONFIG, bad_theme)
+
+    assert list(excinfo.value.absolute_path) == ["spacing", "md"]
+    assert not (work / build_site.DATA_SUBDIR / build_site.THEME_FILENAME).exists()
+
+
+def test_write_contract_accepts_valid_landing_and_expanded_tokens(tmp_path):
+    """Una `landing` y tokens ampliados válidos se escriben sin error (Req 16.5)."""
+    work = _prepared_work(tmp_path)
+    good_config = {
+        **_CONFIG,
+        "landing": [
+            {"type": "hero", "enabled": True, "order": 1, "content": {"headline": "Potosí"}},
+            {"type": "features", "enabled": True, "order": 2, "content": {"items": []}},
+        ],
+    }
+    good_theme = {**_THEME, "spacing": {"md": "1rem"}, "motion": {"durationBase": "240ms"}}
+
+    build_site._write_contract(work, _DATA, good_config, good_theme)
+
+    config_path = work / build_site.DATA_SUBDIR / build_site.CONFIG_FILENAME
+    theme_path = work / build_site.DATA_SUBDIR / build_site.THEME_FILENAME
+    assert config_path.exists() and theme_path.exists()
+    assert '"landing"' in config_path.read_text()
 
 
 if __name__ == "__main__":
