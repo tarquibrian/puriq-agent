@@ -64,6 +64,7 @@ Notas de integracion con la Template (verificadas al implementar la tarea 9.2):
 """
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -726,6 +727,48 @@ def _inject_assets(work: Path, project: Path) -> int:
         shutil.copyfile(archivo, salida)
         copiados += 1
     return copiados
+
+
+def find_dangling_assets(project: Path, data: dict, config: dict) -> list[str]:
+    """Devuelve las rutas `assets/...` que el contrato referencia y no existen.
+
+    El contrato apunta a las imagenes por ruta relativa, pero nada garantiza que
+    el archivo este: el usuario puede declarar una foto en el wizard y no
+    subirla, o borrarla despues. La Template degrada con elegancia ante una
+    referencia colgante (el hero cae a degradado, la ficha muestra su marcador de
+    posicion), pero en silencio: el usuario ve un sitio mas pobre sin entender por
+    que. Esta comprobacion le pone nombre al problema.
+
+    Se revisan las `images` de Places y Events, el `logo` de la marca y cualquier
+    ruta `assets/...` que aparezca en el `site.config` (hero heredado y secciones
+    de portada). Las URLs absolutas se ignoran: viven fuera del proyecto y no se
+    pueden comprobar aca.
+
+    Returns:
+        Lista ordenada y sin repetidos de rutas referenciadas que no existen.
+    """
+    import re
+
+    referencias: set[str] = set()
+    for clave in ("places", "events"):
+        for item in data.get(clave) or []:
+            if isinstance(item, dict):
+                for ruta in item.get("images") or []:
+                    if isinstance(ruta, str):
+                        referencias.add(ruta.strip())
+
+    # Rutas embebidas en la estructura del sitio (hero heredado, landing, ...).
+    referencias.update(re.findall(r"assets/[\w./-]+", json.dumps(config)))
+
+    assets_dir = Path(project) / ASSETS_DIRNAME
+    colgantes = []
+    for ruta in referencias:
+        if not ruta or ruta.startswith(("http://", "https://", "//", "data:")):
+            continue
+        relativa = ruta[len(ASSETS_DIRNAME) + 1:] if ruta.startswith(f"{ASSETS_DIRNAME}/") else ruta
+        if not (assets_dir / relativa).is_file():
+            colgantes.append(ruta)
+    return sorted(colgantes)
 
 
 def _font_slug(name: str) -> str:

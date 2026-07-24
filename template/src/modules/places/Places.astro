@@ -23,6 +23,7 @@ import { places, categories } from "../../lib/data";
 import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Icon from "../../design-system/ui/Icon.astro";
+import { assetExists } from "../../design-system/assets";
 const labelOf = (id: string) =>
   categories.find((c: any) => c.id === id)?.label ?? id;
 // Icono de la categoria del lugar (p. ej. mountain/landmark/clock); alimenta
@@ -44,8 +45,10 @@ const idx = (i: number) => String(i + 1).padStart(2, "0");
     {places.map((p, i) => (
       <article class="place-card">
         <div class="place-media">
-          {p.images?.[0] ? (
-            <img src={p.images[0]} alt={p.name} loading="lazy" decoding="async" />
+          {/* Solo se usa la foto si el archivo existe; si no, cae al marcador
+             de posicion de marca en vez de mostrar una imagen rota. */}
+          {assetExists(p.images?.[0]) ? (
+            <img src={p.images![0]} alt={p.name} loading="lazy" decoding="async" />
           ) : (
             /* Placeholder de marca: mantiene la proporcion del area de medios
              * para que la cuadricula no se dente cuando falta la foto. */

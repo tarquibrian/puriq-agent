@@ -146,6 +146,21 @@ class Puriq:
         # Validación estructural estricta del contenido antes de enriquecer.
         schemas.validate(data, "tourism-data")
 
+        # Aviso de imágenes declaradas que no están en `assets/`. La plantilla
+        # degrada sola ante una referencia colgante (el hero cae a degradado, la
+        # ficha muestra su marcador de posición), pero lo hace en SILENCIO: sin
+        # este aviso el usuario ve un sitio más pobre y no tiene forma de saber
+        # que le falta subir una foto. No interrumpe el build: falta de contenido
+        # no es un error de contrato.
+        colgantes = build_site.find_dangling_assets(self.project, data, config)
+        if colgantes:
+            _emit(
+                progress,
+                "Aviso: estas imágenes están declaradas pero no se encuentran en "
+                "assets/, y su espacio se rellena automáticamente: "
+                + ", ".join(colgantes),
+            )
+
         if use_llm:
             _emit(progress, "Generando contenido con IA...")
             # Traducciones OFF: la plantilla Astro actual NO renderiza el

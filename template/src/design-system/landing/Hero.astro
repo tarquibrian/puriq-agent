@@ -19,6 +19,7 @@
 // Render defensivo (Req 12.5): sin titular no hay contenido esencial y la
 // seccion se omite por completo (no se renderiza nada).
 import Button from "../ui/Button.astro";
+import { assetExists } from "../assets";
 
 interface HeroCta {
   label?: string;
@@ -87,25 +88,34 @@ const subheadline = content?.subheadline?.trim();
 // Kicker editorial: valor configurado o un default sensato.
 const eyebrow = content?.eyebrow?.trim() || "Bienvenido";
 
-// Imagenes editoriales validas (con `src`); el `alt` cae a cadena vacia.
+// Imagenes editoriales validas: ademas de traer `src`, el archivo tiene que
+// EXISTIR. Una referencia colgante pintaba una imagen rota en vez de activar la
+// degradacion elegante que este componente ya sabe hacer.
 const images = Array.isArray(content?.images)
   ? content!.images!
       .filter((img) => img?.src?.trim())
       .map((img) => ({ src: img.src!.trim(), alt: img.alt?.trim() ?? "" }))
+      .filter((img) => assetExists(img.src))
   : [];
 const hasImages = images.length > 0;
 
-// Recurso de fondo valido: requiere `asset`. El tipo por defecto es imagen.
+// Recurso de fondo valido: requiere `asset` Y que el archivo exista. Sin la
+// comprobacion de existencia, un `asset` declarado pero no subido renderizaba el
+// scrim oscuro sobre una imagen rota — el hero quedaba como un rectangulo gris
+// (era el caso del ejemplo de Oaxaca). Tratandolo como ausente, el modo cae a
+// degradado de marca, que es un fondo deliberado.
 const background = content?.background;
 const bgAsset = background?.asset?.trim();
-const hasBackground = Boolean(bgAsset);
+const hasBackground = Boolean(bgAsset) && assetExists(bgAsset);
 const bgType = background?.type ?? "image";
 const isVideo = hasBackground && bgType === "video";
 const isImage = hasBackground && !isVideo;
 
 // Imagen principal del modo SPLIT: media.src -> images[0].src -> background.asset.
-const splitMediaSrc =
-  content?.media?.src?.trim() || images[0]?.src || bgAsset || "";
+// Se toma el primer candidato que exista de verdad; si ninguno resuelve, el modo
+// `split` cae a degradado en vez de mostrar media rota junto al texto.
+const splitCandidates = [content?.media?.src?.trim(), images[0]?.src, bgAsset];
+const splitMediaSrc = splitCandidates.find((c) => assetExists(c)) || "";
 const splitMediaAlt = content?.media?.alt?.trim() || images[0]?.alt || headline || "";
 const hasSplitMedia = Boolean(splitMediaSrc);
 

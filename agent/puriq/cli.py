@@ -99,7 +99,18 @@ def build(project: Path = Path("."), use_llm: bool = True):
     """Valida el contrato, genera contenido y ensambla el sitio estatico."""
     from puriq.core import Puriq
 
-    Puriq(project).build(use_llm=use_llm)
+    # El build tarda (instala dependencias y corre Astro) y antes no imprimia
+    # NADA: no se distinguia un build en curso de uno colgado, y los avisos que
+    # el core emite por `progress` -como las imagenes declaradas que faltan- solo
+    # los veia el wizard. Se pasa un `progress` que los muestra en la terminal.
+    def mostrar(mensaje: str) -> None:
+        if mensaje.lower().startswith("aviso"):
+            print(f"[yellow]{mensaje}[/]")
+        else:
+            print(f"[dim]{mensaje}[/]")
+
+    dist = Puriq(project).build(use_llm=use_llm, progress=mostrar)
+    print(f"[bold green]Puriq[/] sitio construido en {dist}")
 
 
 @app.command()

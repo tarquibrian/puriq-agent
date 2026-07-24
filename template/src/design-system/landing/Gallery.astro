@@ -11,6 +11,7 @@
 // Render defensivo (Req 12.5): si no hay imagenes con `src`, la seccion se omite
 // por completo (no se renderiza nada).
 import Section from "../ui/Section.astro";
+import { assetExists } from "../assets";
 
 interface GalleryImage {
   src?: string;
@@ -37,6 +38,9 @@ const images = Array.isArray(content?.images)
   ? content!.images!
       .filter((img) => img?.src?.trim())
       .map((img) => ({ src: img.src!.trim(), alt: img.alt?.trim() ?? "" }))
+      // Una referencia colgante pintaba un hueco roto dentro del mosaico; se
+      // descarta para que el mosaico se recomponga con las imagenes que si estan.
+      .filter((img) => assetExists(img.src))
   : [];
 const hasImages = images.length > 0;
 ---
