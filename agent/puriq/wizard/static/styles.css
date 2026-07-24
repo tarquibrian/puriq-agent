@@ -56,7 +56,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
  * ========================================================================== */
 .app {
   display: grid;
-  grid-template-columns: 300px 1fr 380px;
+  /* El ancho del previsualizador es ajustable: `--preview-w` lo fija el arrastre
+   * del divisor (y se recuerda en localStorage). `minmax(0,1fr)` evita que el
+   * area de trabajo desborde cuando el preview se hace ancho. */
+  grid-template-columns: 300px minmax(0, 1fr) var(--preview-w, 460px);
   min-height: 100vh;
 }
 /* El previsualizador se descuelga primero (pantallas medianas) y la barra
@@ -208,6 +211,33 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
   border-left: 1px solid var(--border);
 }
 @media (max-width: 1180px) { .preview { display: none; } }
+
+/* Divisor arrastrable: franja fina en el borde izquierdo del preview. Su area
+ * clicable es mas ancha que la linea visible para que sea facil de agarrar. */
+.preview-resize {
+  position: absolute;
+  left: -5px;
+  top: 0;
+  width: 11px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preview-resize::before {
+  content: "";
+  width: 3px;
+  height: 34px;
+  border-radius: 3px;
+  background: var(--border-strong);
+  transition: background 0.12s ease;
+}
+.preview-resize:hover::before,
+.app.is-resizing .preview-resize::before { background: var(--primary); }
+/* Sin seleccion de texto mientras se arrastra. */
+.app.is-resizing { user-select: none; cursor: col-resize; }
 
 .preview-head { display: flex; align-items: baseline; justify-content: space-between; }
 .preview-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }

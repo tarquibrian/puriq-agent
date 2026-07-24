@@ -331,7 +331,9 @@
       var checkbox = el("input", {
         type: "checkbox",
         checked: row.enabled,
-        onchange: function (e) { row.enabled = e.target.checked; }
+        // Activar/desactivar un modulo se refleja al instante en el
+        // previsualizador, sin esperar a "Guardar" (lee el borrador en vivo).
+        onchange: function (e) { row.enabled = e.target.checked; updateSkeleton(); }
       });
       var up = el("button", {
         class: "btn btn-ghost btn-sm", text: "\u2191", title: "Subir",
@@ -1128,6 +1130,9 @@
   function repaintPreview(d) {
     var box = document.getElementById("brand-preview");
     if (box) applyPreviewVars(box, d);
+    // El esqueleto lateral tambien se recolorea en vivo con el color en edicion,
+    // sin esperar a "Guardar marca" (lee el borrador de marca).
+    updateSkeleton();
   }
 
   function saveBrand(container) {
@@ -1782,6 +1787,41 @@
     gallery: "Galeria", stats: "Cifras", testimonials: "Testimonios", faq: "Preguntas"
   };
 
+  // Modulos EFECTIVOS para el esqueleto: enabled, ordenados por `order`. Se
+  // prefiere el borrador del paso Modulos (`state.draft.modules`) sobre el
+  // contrato guardado, para que el previsualizador refleje el reorden y los
+  // toggles EN VIVO —lo que el usuario esta viendo en el formulario— sin tener
+  // que apretar "Guardar" antes. Sin borrador (nunca se entro al paso), se usa
+  // lo guardado.
+  function effectiveModules() {
+    var draft = state.draft.modules;
+    if (draft && draft.length) {
+      return draft
+        .filter(function (r) { return r.enabled; })
+        .map(function (r, i) {
+          return { key: r.key, order: i + 1, display: r.display };
+        });
+    }
+    var mods = (state.server["site-config"] || {}).modules || {};
+    return Object.keys(mods)
+      .filter(function (k) { return mods[k] && mods[k].enabled; })
+      .map(function (k) { return { key: k, order: mods[k].order || 0, display: mods[k].display }; })
+      .sort(function (a, b) { return a.order - b.order; });
+  }
+
+  // Colores EFECTIVOS: el borrador del paso Marca (si se toco) sobre lo guardado.
+  // Asi elegir una paleta recolorea el esqueleto al instante, sin guardar.
+  function effectiveColors() {
+    var d = state.draft.brand || {};
+    var saved = (state.server["theme-tokens"] || {}).colors || {};
+    return {
+      primary: d.primary || saved.primary,
+      accent: d.accent || saved.accent,
+      background: d.background || saved.background,
+      text: d.text || saved.text
+    };
+  }
+
   function updateSkeleton() {
     var sk = document.getElementById("skeleton");
     if (!sk) return;
@@ -1789,9 +1829,8 @@
 
     var data = state.server["tourism-data"] || {};
     var cfg = state.server["site-config"] || {};
-    var theme = state.server["theme-tokens"] || {};
     var site = data.site || {};
-    var colors = theme.colors || {};
+    var colors = effectiveColors();
 
     // Tinta el esqueleto con los colores de marca elegidos (o neutros).
     sk.style.setProperty("--sk-primary", colors.primary || "#0a0a0a");
@@ -1799,8 +1838,7 @@
     sk.style.setProperty("--sk-bg", colors.background || "#ffffff");
     sk.style.setProperty("--sk-text", colors.text || "#0a0a0a");
 
-    var mods = cfg.modules || {};
-    var activeMods = Object.keys(mods).filter(function (k) { return mods[k] && mods[k].enabled; });
+    var activeMods = effectiveModules();
     var landing = (cfg.landing || []).filter(function (s) { return s && s.enabled; })
       .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     var places = data.places || [];
@@ -1821,8 +1859,9 @@
     ]));
 
     // Secciones de portada activas, en orden. Cada tipo tiene su forma.
-    var chatFloating = mods.chatweb && mods.chatweb.enabled &&
-      (mods.chatweb.display || "floating") === "floating";
+    var chatFloating = activeMods.some(function (m) {
+      return m.key === "chatweb" && (m.display || "floating") === "floating";
+    });
 
     if (landing.length) {
       landing.forEach(function (s) { sk.appendChild(landingBlock(s.type)); });
@@ -1831,19 +1870,20 @@
       sk.appendChild(landingBlock("hero"));
     }
 
-    // Modulos de contenido, con conteos reales.
-    if (activeMods.indexOf("map") >= 0) {
-      sk.appendChild(el("div", { class: "sk-block sk-map" }));
-    }
-    if (activeMods.indexOf("places") >= 0) {
-      sk.appendChild(moduleBlock("Lugares", places.length, "sk-cards", 3, places.length));
-    }
-    if (activeMods.indexOf("events") >= 0) {
-      sk.appendChild(moduleBlock("Eventos", events.length, "sk-rows", 3, events.length));
-    }
-    if (activeMods.indexOf("blog") >= 0) {
-      sk.appendChild(moduleBlock("Noticias", 0, "sk-cards", 3, 0));
-    }
+    // Modulos de contenido EN EL ORDEN configurado (antes iban en orden fijo, y
+    // por eso reordenarlos no cambiaba nada en el previsualizador).
+    activeMods.forEach(function (m) {
+      if (m.key === "map") {
+        sk.appendChild(el("div", { class: "sk-block sk-map" }));
+      } else if (m.key === "places") {
+        sk.appendChild(moduleBlock("Lugares", places.length, "sk-cards", 3, places.length));
+      } else if (m.key === "events") {
+        sk.appendChild(moduleBlock("Eventos", events.length, "sk-rows", 3, events.length));
+      } else if (m.key === "blog") {
+        sk.appendChild(moduleBlock("Noticias", 0, "sk-cards", 3, 0));
+      }
+      // chatweb no ocupa una banda: es la burbuja flotante (se agrega abajo).
+    });
 
     // CTA de cierre y footer siempre cierran la maqueta.
     sk.appendChild(el("div", { class: "sk-block sk-footer" }));
@@ -1952,9 +1992,49 @@
     render();
   }
 
+  // Divisor arrastrable del previsualizador: ajusta el ancho de la columna
+  // derecha y lo recuerda entre sesiones. El ancho se escribe en `--preview-w`,
+  // que la cuadricula del `.app` consume; se acota a un rango razonable para que
+  // ni el preview ni el area de trabajo desaparezcan.
+  var PREVIEW_MIN = 340;
+  var PREVIEW_MAX = 760;
+  function setupPreviewResize() {
+    var handle = document.querySelector(".preview-resize");
+    var app = document.querySelector(".app");
+    if (!handle || !app) return;
+
+    var guardado = localStorage.getItem("puriq-preview-w");
+    if (guardado) document.documentElement.style.setProperty("--preview-w", guardado);
+
+    var dragging = false;
+    function onMove(e) {
+      if (!dragging) return;
+      var w = window.innerWidth - e.clientX;
+      w = Math.max(PREVIEW_MIN, Math.min(PREVIEW_MAX, w));
+      document.documentElement.style.setProperty("--preview-w", w + "px");
+    }
+    function onUp() {
+      if (!dragging) return;
+      dragging = false;
+      app.classList.remove("is-resizing");
+      localStorage.setItem(
+        "puriq-preview-w",
+        getComputedStyle(document.documentElement).getPropertyValue("--preview-w").trim()
+      );
+    }
+    handle.addEventListener("mousedown", function (e) {
+      dragging = true;
+      app.classList.add("is-resizing");
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
   function init() {
     document.getElementById("btn-prev").addEventListener("click", function () { goTo(state.current - 1); });
     document.getElementById("btn-next").addEventListener("click", function () { goTo(state.current + 1); });
+    setupPreviewResize();
 
     // Catalogo tipografico: se pide una sola vez y se inyectan los `@font-face`
     // para que la vista previa del paso Marca muestre la tipografia REAL. Si
