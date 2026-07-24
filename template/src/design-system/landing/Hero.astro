@@ -19,7 +19,7 @@
 // Render defensivo (Req 12.5): sin titular no hay contenido esencial y la
 // seccion se omite por completo (no se renderiza nada).
 import Button from "../ui/Button.astro";
-import { assetExists } from "../assets";
+import { assetExists, assetUrl } from "../assets";
 
 interface HeroCta {
   label?: string;
@@ -173,7 +173,7 @@ const hasCta2 = Boolean(cta2Label && cta2Href);
 // background-image; el video usa un elemento <video>. Sin recurso, el fondo se
 // deriva de los colores de marca (Req 11.5) via degradado de tokens.
 const bgStyle = isImage
-  ? `background-image: url(${JSON.stringify(bgAsset)}); --hero-overlay: ${overlay};`
+  ? `background-image: url(${JSON.stringify(assetUrl(bgAsset))}); --hero-overlay: ${overlay};`
   : `--hero-overlay: ${overlay};`;
 ---
 
@@ -198,7 +198,7 @@ const bgStyle = isImage
     <div class="ds-hero-gallery" data-count={images.length}>
       {images.map((img) => (
         <figure class="ds-hero-shot">
-          <img src={img.src} alt={img.alt} loading="eager" decoding="async" />
+          <img src={assetUrl(img.src)} alt={img.alt} loading="eager" decoding="async" />
         </figure>
       ))}
     </div>
@@ -226,7 +226,7 @@ const bgStyle = isImage
     </div>
     <div class="ds-hero-split-media">
       <figure class="ds-hero-split-figure">
-        <img src={splitMediaSrc} alt={splitMediaAlt} loading="eager" decoding="async" />
+        <img src={assetUrl(splitMediaSrc)} alt={splitMediaAlt} loading="eager" decoding="async" />
       </figure>
       {hasBadges && (
         <ul class="ds-hero-chips" aria-hidden="false">
@@ -256,7 +256,7 @@ const bgStyle = isImage
     {isVideo && (
       <video
         class="ds-hero-video"
-        src={bgAsset}
+        src={assetUrl(bgAsset)}
         autoplay
         muted
         loop

@@ -70,6 +70,31 @@ const ctaLabel = ctaTarget?.label ?? "Contacto";
 // Datos de contacto del organismo (`Site_Config.contact`), para el pie.
 const contactEmail = siteConfig.contact?.email?.trim() ?? "";
 const contactPhone = siteConfig.contact?.phone?.trim() ?? "";
+
+// --- Metadatos de la pagina (SEO / redes) ----------------------------------
+// El layout servia una sola pagina y fijaba `<title>` al nombre del sitio. Con
+// las paginas de detalle cada una necesita su propio titulo, descripcion e
+// imagen; se reciben por props y caen a los datos del sitio cuando no se
+// aportan, de modo que la portada sigue comportandose igual que antes.
+interface Props {
+  /** Titulo propio de la pagina; se compone como "titulo · sitio". */
+  title?: string;
+  /** Meta descripcion propia; cae a la descripcion del sitio. */
+  description?: string;
+  /** Imagen para compartir (ruta relativa del contrato o URL absoluta). */
+  image?: string;
+  /** JSON-LD ya serializado que la pagina quiera declarar. */
+  jsonLd?: string;
+}
+const { title, description, image, jsonLd } = Astro.props as Props;
+
+const pageTitle = title ? `${title} · ${site.name}` : site.name;
+const pageDescription = (description ?? site.description ?? "").trim();
+
+// URL canonica y absolutas para compartir. `Astro.site` viene de
+// `astro.config.mjs`, que lo toma de `Site_Config.deploy.domain`.
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const shareImage = image ? new URL(image, Astro.site).href : undefined;
 ---
 <!doctype html>
 <html lang={site.defaultLocale ?? "es"} data-variant={variant}>
@@ -80,8 +105,30 @@ const contactPhone = siteConfig.contact?.phone?.trim() ?? "";
          scroll-reveal SOLO cuando hay JS. Sin JS esta clase nunca se agrega y
          el contenido se ve completo (sin flash y SEO/no-JS safe). -->
     <script is:inline>document.documentElement.classList.add("has-js");</script>
-    <title>{site.name}</title>
-    <meta name="description" content={site.description ?? ""} />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    {/* Canonica: evita que el mismo contenido se indexe bajo varias URL. */}
+    <link rel="canonical" href={canonical} />
+    <link rel="sitemap" href="/sitemap.xml" />
+
+    {/* Open Graph / Twitter: sin estas etiquetas, compartir el sitio en redes o
+        en WhatsApp mostraba solo la URL desnuda, sin titulo ni imagen. Para un
+        destino turistico, la tarjeta compartida ES buena parte de la difusion. */}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={site.defaultLocale ?? "es"} />
+    {shareImage && <meta property="og:image" content={shareImage} />}
+    <meta name="twitter:card" content={shareImage ? "summary_large_image" : "summary"} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+    {shareImage && <meta name="twitter:image" content={shareImage} />}
+
+    {/* Datos estructurados: describen el destino y sus lugares en el vocabulario
+        que entienden los buscadores (schema.org). */}
+    {jsonLd && <script type="application/ld+json" set:html={jsonLd} />}
     {/* `@font-face` de las familias del tema. Va en su propio bloque global
         porque `define:vars` no puede convivir con reglas at-rule generadas, y
         porque estas reglas no dependen de ningun token: solo del nombre de

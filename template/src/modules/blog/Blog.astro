@@ -8,24 +8,23 @@
 // Uplift de presentacion (DD-7, Req 9): el marcado usa los UI_Component
 // `Section`, `Grid` y `Card` y variables CSS de Design_Tokens. Si el articulo
 // trae imagen en su frontmatter se pasa por el prop `image` de Card. La lectura
-// de la Content Collection, el orden por fecha descendente, el render del
-// markdown `Content` y el estado vacio se conservan intactos (Req 9.4, 16.3).
+// de la Content Collection, el orden por fecha descendente y el estado vacio se
+// conservan intactos (Req 9.4, 16.3).
+//
+// En la portada este modulo muestra solo un ADELANTO de cada nota (fecha,
+// titulo, resumen) enlazado a `/blog/<slug>/`. Antes volcaba el cuerpo markdown
+// COMPLETO de cada articulo aca: con tres noticias largas la portada se volvia
+// interminable y ninguna nota se podia compartir ni indexar por separado.
 import { getCollection } from "astro:content";
 import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Card from "../../design-system/ui/Card.astro";
-import { assetExists } from "../../design-system/assets";
+import { assetExists, assetUrl } from "../../design-system/assets";
 
-const entries = (await getCollection("blog")).sort(
+// Ya no hace falta compilar el markdown de cada entrada aqui: el cuerpo lo
+// renderiza la pagina del articulo. Se conserva el orden por fecha descendente.
+const posts = (await getCollection("blog")).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-);
-
-// Pre-render del cuerpo markdown de cada Article (Astro compila el markdown).
-const posts = await Promise.all(
-  entries.map(async (entry) => {
-    const { Content } = await entry.render();
-    return { data: entry.data, Content };
-  })
 );
 
 /**
@@ -53,14 +52,13 @@ const fmt = (d: Date) =>
   ) : (
     <Grid min="340px" cols={posts.length === 2 ? 2 : 3} gap="lg">
       {posts.map((post, i) => {
-        const Content = post.Content;
         // Imagen opcional del frontmatter (se pasa al recorte de la Card).
         // Solo se usa si el archivo existe: una portada colgante dejaba un
         // hueco roto arriba de la tarjeta.
         const declarada = (post.data as any).image as string | undefined;
-        const image = assetExists(declarada) ? declarada : undefined;
+        const image = assetExists(declarada) ? assetUrl(declarada) : undefined;
         return (
-          <Card class="blog-card" image={image} imageAlt={post.data.title}>
+          <Card class="blog-card" href={`/blog/${post.slug}/`} image={image} imageAlt={post.data.title}>
             <div class="blog-meta">
               <span class="ds-index">{String(i + 1).padStart(2, "0")}</span>
               <time class="blog-date" datetime={post.data.date.toISOString().slice(0, 10)}>{fmt(post.data.date)}</time>
@@ -69,7 +67,6 @@ const fmt = (d: Date) =>
             {post.data.summary && (
               <p class="blog-summary">{post.data.summary}</p>
             )}
-            <div class="blog-body"><Content /></div>
           </Card>
         );
       })}

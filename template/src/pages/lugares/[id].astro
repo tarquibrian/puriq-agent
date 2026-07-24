@@ -1,0 +1,198 @@
+---
+// Pagina de detalle de un Place: `/lugares/<id>/`.
+//
+// POR QUE EXISTE
+// El sitio vivia entero en una sola URL. Eso tiene tres costos concretos para un
+// destino turistico: no se puede compartir "el Cerro Rico" (solo la portada
+// entera), un buscador ve un unico documento con todo el contenido mezclado en
+// vez de una ficha por atraccion, y la portada crece sin limite a medida que se
+// cargan lugares. Cada lugar con su URL resuelve los tres.
+//
+// El agente NO genera esta pagina por lugar: es una ruta dinamica de la
+// plantilla que se rellena con los datos del contrato (invariante de
+// arquitectura: se componen modulos pre-construidos, no se genera codigo).
+import Base from "../../layouts/Base.astro";
+import Section from "../../design-system/ui/Section.astro";
+import Grid from "../../design-system/ui/Grid.astro";
+import Icon from "../../design-system/ui/Icon.astro";
+import Button from "../../design-system/ui/Button.astro";
+import { places, categories, events } from "../../lib/data";
+import { assetExists, assetUrl } from "../../design-system/assets";
+import { placeJsonLd } from "../../lib/seo";
+
+// Una ruta estatica por lugar del contrato.
+export async function getStaticPaths() {
+  return places.map((place) => ({
+    params: { id: place.id },
+    props: { place },
+  }));
+}
+
+const { place } = Astro.props;
+
+const categoria =
+  categories.find((c: any) => c.id === place.category)?.label ?? place.category;
+const icono =
+  categories.find((c: any) => c.id === place.category)?.icon ?? "map-pin";
+
+// Solo las fotos que existen de verdad (evita huecos rotos en la galeria).
+const fotos = (place.images ?? []).filter((src: string) => assetExists(src));
+
+// Eventos que ocurren en este lugar: conecta la ficha con la agenda en vez de
+// dejar los dos modulos incomunicados.
+const eventosAqui = events
+  .filter((e) => e.placeId === place.id)
+  .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+const fmtFecha = (iso: string) => {
+  const [y, m, d] = (iso || "").split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("es", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const jsonLd = placeJsonLd(place, Astro.site);
+---
+<Base
+  title={place.name}
+  description={place.shortDescription || place.description}
+  image={fotos[0]}
+  jsonLd={jsonLd}
+>
+  <Section eyebrow={categoria} title={place.name}>
+    {/* Migas: sin ellas, una pagina de detalle a la que se llega desde un
+        buscador no ofrece camino de vuelta al sitio. */}
+    <nav class="migas" aria-label="Migas de pan">
+      <a href="/">Inicio</a>
+      <span aria-hidden="true">/</span>
+      <a href="/#places">Qué visitar</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{place.name}</span>
+    </nav>
+
+    {place.shortDescription && <p class="lead">{place.shortDescription}</p>}
+    {place.description && <p class="cuerpo">{place.description}</p>}
+
+    {/* Ficha de datos practicos: solo lo que el contrato realmente trae. */}
+    {(place.address || place.hours || place.coords) && (
+      <ul class="datos">
+        {place.address && (
+          <li><Icon name="map-pin" size="1.1em" /><span>{place.address}</span></li>
+        )}
+        {place.hours && (
+          <li><Icon name="clock" size="1.1em" /><span>{place.hours}</span></li>
+        )}
+        {place.coords && (
+          <li>
+            <Icon name="compass" size="1.1em" />
+            {/* Enlace a un mapa externo: es lo que un visitante quiere hacer con
+                unas coordenadas (abrirlas en su aplicacion de mapas). */}
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${place.coords.lat}&mlon=${place.coords.lng}#map=15/${place.coords.lat}/${place.coords.lng}`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >Ver en el mapa</a>
+          </li>
+        )}
+      </ul>
+    )}
+
+    {fotos.length > 0 && (
+      <Grid min="240px" gap="md" class="galeria">
+        {fotos.map((src: string, i: number) => (
+          <figure class="foto">
+            <img src={assetUrl(src)} alt={`${place.name} (${i + 1})`} loading="lazy" decoding="async" />
+          </figure>
+        ))}
+      </Grid>
+    )}
+
+    {eventosAqui.length > 0 && (
+      <div class="eventos">
+        <h2>Eventos en {place.name}</h2>
+        <ul>
+          {eventosAqui.map((e) => (
+            <li>
+              <time datetime={e.startDate}>{fmtFecha(e.startDate)}</time>
+              <span>{e.name}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    <p class="volver"><Button href="/#places" variant="ghost">Ver todos los lugares</Button></p>
+  </Section>
+</Base>
+
+<style>
+  /* Toda la apariencia deriva de variables CSS de Design_Tokens. */
+  .migas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+    font-size: var(--fs-small);
+    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
+  }
+  .migas a { text-decoration: none; }
+
+  .lead {
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-family: var(--font-heading);
+    font-weight: 500;
+    max-width: 60ch;
+    text-wrap: balance;
+  }
+  .cuerpo { max-width: 66ch; }
+
+  .datos {
+    list-style: none;
+    margin: var(--space-xl) 0;
+    padding: var(--space-lg);
+    border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-text) 3%, var(--color-background));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-width: 48ch;
+  }
+  .datos li { display: flex; align-items: center; gap: var(--space-md); }
+
+  .galeria { margin-top: var(--space-xl); }
+  .foto {
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .foto img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+
+  .eventos { margin-top: var(--space-2xl); }
+  .eventos ul { list-style: none; padding: 0; margin: 0; }
+  .eventos li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-lg);
+    padding-block: var(--space-md);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  }
+  .eventos time {
+    color: var(--color-accent);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    min-width: 12ch;
+  }
+
+  .volver { margin-top: var(--space-2xl); }
+</style>

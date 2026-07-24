@@ -13,7 +13,7 @@
 // la seccion se omite por completo (no se renderiza nada).
 import Section from "../ui/Section.astro";
 import Button from "../ui/Button.astro";
-import { assetExists } from "../assets";
+import { assetExists, assetUrl } from "../assets";
 
 interface CtaLink {
   label?: string;
@@ -77,7 +77,7 @@ const hasEssentials = Boolean((title || message) && hasCta);
       </div>
       {hasImage && (
         <figure class="ds-cta-media">
-          <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
+          <img src={assetUrl(image)} alt={imageAlt} loading="lazy" decoding="async" />
         </figure>
       )}
     </div>

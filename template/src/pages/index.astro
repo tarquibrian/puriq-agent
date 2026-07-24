@@ -9,7 +9,8 @@
 // lo maneja el propio Landing_Module.
 import Base from "../layouts/Base.astro";
 import { resolveLanding, SECTION_REGISTRY } from "../design-system/landing";
-import { siteConfig, activeModules } from "../lib/data";
+import { siteConfig, activeModules, site, places } from "../lib/data";
+import { siteJsonLd } from "../lib/seo";
 import Map from "../modules/map/Map.astro";
 import Places from "../modules/places/Places.astro";
 import Events from "../modules/events/Events.astro";
@@ -24,8 +25,11 @@ const moduleRegistry: Record<string, any> = {
 // Secciones de portada resueltas y ordenadas + modulos de contenido activos.
 const sections = resolveLanding(siteConfig);
 const mods = activeModules();
+
+// Datos estructurados del destino, con los lugares enlazados a su ficha.
+const jsonLd = siteJsonLd(site, Astro.site, { places });
 ---
-<Base>
+<Base jsonLd={jsonLd}>
   {/* Landing_Module: secciones de portada por encima de los Content_Module. */}
   {sections.map((s) => {
     const Comp = SECTION_REGISTRY[s.type] as any;

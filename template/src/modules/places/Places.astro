@@ -23,7 +23,7 @@ import { places, categories } from "../../lib/data";
 import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Icon from "../../design-system/ui/Icon.astro";
-import { assetExists } from "../../design-system/assets";
+import { assetExists, assetUrl } from "../../design-system/assets";
 const labelOf = (id: string) =>
   categories.find((c: any) => c.id === id)?.label ?? id;
 // Icono de la categoria del lugar (p. ej. mountain/landmark/clock); alimenta
@@ -41,14 +41,16 @@ const idx = (i: number) => String(i + 1).padStart(2, "0");
 {/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
 <Section id="places" eyebrow="Qué visitar" title="Lugares para descubrir">
   {/* Cuadricula responsive de tarjetas (Req 5.3, 9.3); columnas segun ancho. */}
+  {/* La ficha entera enlaza a su pagina de detalle: antes la tarjeta no llevaba
+      a ningun lado y el contenido del lugar se agotaba en la portada. */}
   <Grid min="260px" cols={cols as 3 | 4} gap="lg">
     {places.map((p, i) => (
-      <article class="place-card">
+      <a class="place-card" href={`/lugares/${p.id}/`}>
         <div class="place-media">
           {/* Solo se usa la foto si el archivo existe; si no, cae al marcador
              de posicion de marca en vez de mostrar una imagen rota. */}
           {assetExists(p.images?.[0]) ? (
-            <img src={p.images![0]} alt={p.name} loading="lazy" decoding="async" />
+            <img src={assetUrl(p.images![0])} alt={p.name} loading="lazy" decoding="async" />
           ) : (
             /* Placeholder de marca: mantiene la proporcion del area de medios
              * para que la cuadricula no se dente cuando falta la foto. */
@@ -77,7 +79,7 @@ const idx = (i: number) => String(i + 1).padStart(2, "0");
             </ul>
           )}
         </div>
-      </article>
+      </a>
     ))}
   </Grid>
 </Section>
@@ -89,6 +91,8 @@ const idx = (i: number) => String(i + 1).padStart(2, "0");
    * de una fila terminen a la misma altura, con la meta anclada abajo. */
   .place-card {
     display: flex;
+    text-decoration: none;
+    color: inherit;
     flex-direction: column;
     background: var(--color-background);
     border: var(--card-border, 1px solid color-mix(in srgb, var(--color-text) 8%, transparent));
@@ -100,9 +104,14 @@ const idx = (i: number) => String(i + 1).padStart(2, "0");
       transform var(--motion-duration-base) var(--motion-easing),
       box-shadow var(--motion-duration-base) var(--motion-easing);
   }
-  .place-card:hover {
+  .place-card:hover,
+  .place-card:focus-visible {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+  }
+  .place-card:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 3px;
   }
 
   /* Area de medios de proporcion fija: es lo que garantiza que la cuadricula
@@ -120,7 +129,8 @@ const idx = (i: number) => String(i + 1).padStart(2, "0");
     display: block;
     transition: transform var(--motion-duration-base) var(--motion-easing);
   }
-  .place-card:hover .place-media img { transform: scale(1.05); }
+  .place-card:hover .place-media img,
+  .place-card:focus-visible .place-media img { transform: scale(1.05); }
 
   /* Placeholder sin foto: degradado derivado de la marca + icono de categoria. */
   .place-media-empty {

@@ -76,3 +76,23 @@ export function assetExists(ref: string | undefined | null): boolean {
 export function existingOnly<T extends { src?: string }>(items: T[]): T[] {
   return items.filter((item) => assetExists(item?.src));
 }
+
+/**
+ * Normaliza una referencia del contrato a una URL utilizable desde CUALQUIER
+ * pagina del sitio.
+ *
+ * El contrato guarda rutas RELATIVAS (`assets/cerro-rico.jpg`). Mientras el
+ * sitio vivio en una sola URL eso funcionaba de casualidad, porque la pagina
+ * estaba en la raiz. Al agregar `/lugares/<id>/` esas mismas rutas pasaron a
+ * resolverse contra la subcarpeta (`/lugares/cerro-rico/assets/...`) y todas las
+ * imagenes de las fichas quedaron rotas. Anteponer la barra las ancla a la raiz
+ * del sitio, que es donde el build las publica.
+ *
+ * Las URL absolutas y los `data:` se devuelven intactos.
+ */
+export function assetUrl(ref: string | undefined | null): string {
+  const ruta = (ref ?? "").trim();
+  if (!ruta) return "";
+  if (/^(https?:)?\/\//i.test(ruta) || ruta.startsWith("data:")) return ruta;
+  return `/${ruta.replace(/^\/+/, "")}`;
+}

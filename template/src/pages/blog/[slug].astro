@@ -1,0 +1,124 @@
+---
+// Pagina de un articulo del blog: `/blog/<slug>/`.
+//
+// POR QUE EXISTE
+// El modulo de blog renderizaba el CUERPO COMPLETO de cada articulo dentro de la
+// portada. Con tres noticias largas la home se volvia interminable, y ningun
+// articulo se podia compartir ni indexar por separado. Con una URL por articulo,
+// la portada pasa a mostrar solo un adelanto y cada nota tiene su propia pagina.
+import Base from "../../layouts/Base.astro";
+import Section from "../../design-system/ui/Section.astro";
+import Button from "../../design-system/ui/Button.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("blog");
+  return entries.map((entry) => ({
+    // El `slug` que deriva Astro del nombre de archivo es la URL del articulo.
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+
+// Fecha formateada en UTC: el `date` es una fecha sin hora que `z.coerce.date()`
+// convierte a medianoche UTC; formatearla en hora local restaba un dia al oeste
+// de Greenwich y ademas ataba la salida al huso de la maquina del build.
+const fecha = entry.data.date.toLocaleDateString("es", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const fechaIso = entry.data.date.toISOString().slice(0, 10);
+---
+<Base title={entry.data.title} description={entry.data.summary}>
+  <Section eyebrow="Noticias" title={entry.data.title}>
+    <nav class="migas" aria-label="Migas de pan">
+      <a href="/">Inicio</a>
+      <span aria-hidden="true">/</span>
+      <a href="/#blog">Noticias</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{entry.data.title}</span>
+    </nav>
+
+    <p class="meta">
+      <time datetime={fechaIso}>{fecha}</time>
+      {entry.data.category && <span class="cat">{entry.data.category}</span>}
+    </p>
+
+    {entry.data.summary && <p class="lead">{entry.data.summary}</p>}
+
+    <article class="cuerpo"><Content /></article>
+
+    {entry.data.tags && entry.data.tags.length > 0 && (
+      <ul class="tags">
+        {entry.data.tags.map((t: string) => <li>{t}</li>)}
+      </ul>
+    )}
+
+    <p class="volver"><Button href="/#blog" variant="ghost">Ver todas las noticias</Button></p>
+  </Section>
+</Base>
+
+<style>
+  .migas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+    font-size: var(--fs-small);
+    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
+  }
+  .migas a { text-decoration: none; }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    align-items: center;
+    font-size: var(--fs-small);
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  .cat {
+    padding: 0.2em 0.7em;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+
+  .lead {
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-family: var(--font-heading);
+    font-weight: 500;
+    max-width: 60ch;
+    text-wrap: balance;
+  }
+
+  /* Ancho de lectura comodo para el cuerpo del articulo. */
+  .cuerpo { max-width: 68ch; }
+  .cuerpo :global(img) { border-radius: var(--radius-md); }
+  .cuerpo :global(h2),
+  .cuerpo :global(h3) { margin-top: var(--space-xl); }
+
+  .tags {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: 0;
+    margin: var(--space-xl) 0 0;
+  }
+  .tags li {
+    font-size: var(--fs-small);
+    padding: 0.25em 0.75em;
+    border-radius: var(--radius-pill);
+    border: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+    color: color-mix(in srgb, var(--color-text) 65%, var(--color-background));
+  }
+
+  .volver { margin-top: var(--space-2xl); }
+</style>

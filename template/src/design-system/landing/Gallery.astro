@@ -11,7 +11,7 @@
 // Render defensivo (Req 12.5): si no hay imagenes con `src`, la seccion se omite
 // por completo (no se renderiza nada).
 import Section from "../ui/Section.astro";
-import { assetExists } from "../assets";
+import { assetExists, assetUrl } from "../assets";
 
 interface GalleryImage {
   src?: string;
@@ -54,7 +54,7 @@ const hasImages = images.length > 0;
     <div class="ds-mosaic" data-count={images.length}>
       {images.map((img, i) => (
         <figure class:list={["ds-mosaic-item", i === 0 && "is-feature"]}>
-          <img src={img.src} alt={img.alt} loading="lazy" decoding="async" />
+          <img src={assetUrl(img.src)} alt={img.alt} loading="lazy" decoding="async" />
           {/* Leyenda sobre la imagen: indice numerado + texto alternativo como
             * pie. Solo aparece cuando la imagen trae `alt` con contenido (una
             * imagen decorativa no debe arrastrar un pie vacio). */}
