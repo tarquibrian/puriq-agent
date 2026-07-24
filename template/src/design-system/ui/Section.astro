@@ -70,15 +70,17 @@ const hasHeader = Boolean(eyebrow || title || intro);
     border-top: 1px solid color-mix(in srgb, var(--color-text) 7%, transparent);
   }
 
-  /* Variante oscura: banda de enfasis (mezcla primario/texto, texto claro). */
+  /* Variante oscura: banda de enfasis. Usa los tokens `--emphasis-*` (definidos
+   * en Base) para quedar oscura con texto claro en modo claro Y oscuro; antes
+   * mezclaba primary/text, que en modo oscuro daban una banda clara. */
   .ds-section[data-variant="dark"] {
-    background: color-mix(in srgb, var(--color-primary) 55%, var(--color-text));
-    color: var(--color-background);
+    background: var(--emphasis-bg);
+    color: var(--emphasis-text);
   }
   .ds-section[data-variant="dark"] :global(h1),
   .ds-section[data-variant="dark"] :global(h2),
   .ds-section[data-variant="dark"] :global(h3) {
-    color: var(--color-background);
+    color: var(--emphasis-text);
   }
 
   /* Cabecera de seccion: ritmo interno y alineacion configurable. */

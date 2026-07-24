@@ -323,7 +323,8 @@ const conversationProps = { persona, hasKnowledge, apiEndpoint, sugerencias };
     flex-direction: column;
     gap: var(--space-md);
     padding: var(--space-lg);
-    background: var(--color-background);
+    /* Superficie elevada: se separa del fondo tambien en modo oscuro. */
+    background: var(--color-surface);
     color: var(--color-text);
     border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
     border-radius: var(--radius-lg);

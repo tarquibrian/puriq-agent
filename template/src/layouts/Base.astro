@@ -24,6 +24,22 @@ const vars = Object.fromEntries(
   Object.entries(cssVars).map(([k, v]) => [k.replace(/^--/, ""), v]),
 );
 
+// --- Modo oscuro (auto segun el visitante) ---------------------------------
+// Los 5 colores de marca se inyectan como `--brand-*` (fuente inmutable) en vez
+// de `--color-*`. El bloque `<style>` deriva `--color-*` a partir de `--brand-*`:
+// en claro son la identidad tal cual; en oscuro (`prefers-color-scheme: dark`)
+// se derivan con `color-mix` —fondo oscuro tenido con la marca, texto claro,
+// primary/acento aclarados para que resalten sobre el fondo oscuro—. Se hace via
+// `--brand-*` porque las variables de `define:vars` viajan INLINE sobre <html> y
+// ganarian sobre cualquier `@media` del `<style>`; al derivar `--color-*` dentro
+// del `<style>`, el media query si puede sobrescribirlas.
+for (const key of ["color-primary", "color-secondary", "color-background", "color-text", "color-accent"]) {
+  if (key in vars) {
+    vars["brand-" + key.slice("color-".length)] = vars[key];
+    delete vars[key];
+  }
+}
+
 // --- Tipografia ------------------------------------------------------------
 // `--font-heading` / `--font-body` traian SOLO el nombre de familia
 // (p. ej. "Playfair Display"). Si esa familia no esta cargada ni instalada, el
@@ -154,7 +170,47 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
        * Direccion editorial/nature: aire generoso, titulares fluidos, sombras
        * suaves, color de acento usado con moderacion.
        * ------------------------------------------------------------------ */
-      :root { color-scheme: light; }
+      /* --------------------------------------------------------------------
+       * Colores de USO derivados de la marca. En claro son la identidad tal
+       * cual; en oscuro se derivan de los mismos `--brand-*` (ver frontmatter).
+       * Todo el sistema usa `--color-*`, asi que el sitio entero cambia de tema
+       * sin tocar un solo componente.
+       * ------------------------------------------------------------------ */
+      :root {
+        color-scheme: light dark;
+        --color-primary: var(--brand-primary);
+        --color-secondary: var(--brand-secondary);
+        --color-background: var(--brand-background);
+        --color-text: var(--brand-text);
+        --color-accent: var(--brand-accent);
+        /* Superficie de tarjetas/paneles: en claro igual al fondo (se separan
+         * por borde/sombra); se redefine en oscuro para elevarse del fondo. */
+        --color-surface: var(--color-background);
+        /* Banda de enfasis (Stats, CTA, pie): una superficie deliberadamente
+         * oscura con texto claro. Deriva de `--brand-*` (siempre oscuros) para
+         * seguir siendo oscura en AMBOS modos; en oscuro se eleva del fondo. */
+        --emphasis-bg: color-mix(in srgb, var(--brand-primary) 55%, var(--brand-text));
+        --emphasis-text: color-mix(in srgb, var(--brand-background) 92%, white);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          /* Fondo casi negro TENIDO con la marca (via el texto de marca, que es
+           * oscuro y de la familia del primary): un oscuro con caracter, no un
+           * gris plano. La superficie se aclara un paso para elevar las tarjetas. */
+          --color-background: color-mix(in srgb, var(--brand-text) 8%, #0d0d0f);
+          --color-surface: color-mix(in srgb, var(--brand-text) 16%, #191a1d);
+          /* Texto casi blanco, con un tinte minimo del fondo claro de marca. */
+          --color-text: color-mix(in srgb, var(--brand-background) 92%, white);
+          /* Marca y acento ACLARADOS para resaltar sobre el fondo oscuro (los
+           * valores de marca son oscuros y se perderian). */
+          --color-primary: color-mix(in srgb, var(--brand-primary) 55%, white);
+          --color-accent: color-mix(in srgb, var(--brand-accent) 62%, white);
+          --color-secondary: color-mix(in srgb, var(--brand-secondary) 70%, white);
+          /* En oscuro la banda de enfasis se eleva del fondo (no puede ser "mas
+           * oscura que el negro"); el texto claro se mantiene. */
+          --emphasis-bg: color-mix(in srgb, var(--brand-text) 22%, #202226);
+        }
+      }
       *, *::before, *::after { box-sizing: border-box; }
 
       html {
@@ -396,8 +452,11 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
        * ------------------------------------------------------------------ */
       .site-footer {
         margin-top: var(--space-3xl);
-        background: color-mix(in srgb, var(--color-text) 92%, black);
-        color: var(--color-background);
+        /* Banda de enfasis: deriva de `--brand-*` para quedar oscura con texto
+         * claro tanto en modo claro como oscuro (antes usaba `--color-text`, que
+         * en oscuro es claro y volvia el pie casi blanco). */
+        background: color-mix(in srgb, var(--brand-text) 90%, black);
+        color: color-mix(in srgb, var(--brand-background) 92%, white);
       }
       .footer-inner {
         /* Mismo ancho (lg) y gutter estandar que el cuerpo para alinear las
