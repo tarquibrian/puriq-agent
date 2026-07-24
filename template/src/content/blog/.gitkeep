@@ -1,0 +1,2 @@
+# Los articulos del blog van aqui. En la plantilla desnuda la coleccion esta
+# vacia; el agente copia los `.md` del proyecto durante el build.

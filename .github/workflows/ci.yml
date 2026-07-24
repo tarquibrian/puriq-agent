@@ -1,0 +1,68 @@
+name: CI
+
+# Corre en cada push y en cada PR contra main. El repo tiene dos artefactos que
+# se rompen de formas distintas —el agente Python y la plantilla Astro—, asi que
+# se validan en dos jobs paralelos: un fallo en uno no oculta el estado del otro.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela una corrida en curso si llega un push nuevo a la misma rama: en un
+# repo de hackathon los push son frecuentes y no vale la pena gastar minutos en
+# validar un commit ya superado.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agent:
+    name: Agente (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Se instala con el extra `test` (pytest + hypothesis). El extra `mcp` no
+      # es necesario para la suite: los tests del servidor MCP mockean la
+      # dependencia, asi que no hace falta instalarla en CI.
+      - name: Instalar el agente
+        working-directory: agent
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+
+      - name: Ejecutar los tests
+        working-directory: agent
+        run: python -m pytest -q
+
+  template:
+    name: Plantilla (Astro)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: template/package-lock.json
+
+      # `npm ci` exige un lockfile en sincronia, que es justo lo que se quiere
+      # verificar: que la plantilla instala de forma reproducible.
+      - name: Instalar dependencias
+        working-directory: template
+        run: npm ci
+
+      # La plantilla se versiona con los datos de ejemplo en `src/data/`, asi que
+      # `astro build` produce un sitio completo sin necesidad del agente. Un
+      # error de tipos o de sintaxis en cualquier componente rompe aca.
+      - name: Construir el sitio de ejemplo
+        working-directory: template
+        run: npm run build
