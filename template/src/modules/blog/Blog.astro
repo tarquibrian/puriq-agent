@@ -27,8 +27,23 @@ const posts = await Promise.all(
   })
 );
 
+/**
+ * Fecha del articulo en texto legible.
+ *
+ * Se formatea en UTC a proposito. El `date` del frontmatter es una fecha SIN
+ * hora (`YYYY-MM-DD`) que `z.coerce.date()` convierte a medianoche UTC; al
+ * formatearla en la hora local del build, cualquier huso al oeste de Greenwich
+ * —toda America Latina— mostraba el dia anterior al escrito por el autor.
+ * Fijando `timeZone: "UTC"` se muestra la fecha tal como se cargo, y ademas el
+ * build deja de depender del huso de la maquina que lo corre.
+ */
 const fmt = (d: Date) =>
-  new Date(d).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
+  new Date(d).toLocaleDateString("es", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 ---
 {/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
 <Section id="blog" eyebrow="Al día" title="Noticias">
