@@ -3,30 +3,67 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Puriq - Asistente</title>
+  <title>Puriq · Asistente</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">Puriq</div>
-    <div class="tagline">Asistente para construir el sitio turistico de tu provincia</div>
-  </header>
+  <div class="app">
+    <!-- Barra lateral de altura completa: marca, cabecera del paso actual,
+         navegacion por pasos, progreso y acciones al pie. -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">P</span>
+          <span class="brand-name">Puriq</span>
+        </div>
 
-  <div class="layout">
-    <!-- Navegacion lateral por pasos -->
-    <nav id="stepnav" class="stepnav" aria-label="Pasos del asistente"></nav>
+        <!-- Titulo + descripcion del paso actual (los escribe app.js). -->
+        <header class="step-head">
+          <h1 id="step-title" class="step-title"></h1>
+          <p id="step-desc" class="step-desc"></p>
+        </header>
 
-    <main class="content">
-      <!-- Cada paso se monta aqui -->
-      <section id="step-panel" class="panel" aria-live="polite"></section>
+        <!-- Navegacion por pasos -->
+        <nav id="stepnav" class="stepnav" aria-label="Pasos del asistente"></nav>
+      </div>
 
-      <!-- Controles de navegacion adelante/atras -->
-      <div class="navbtns">
-        <button type="button" id="btn-prev" class="btn btn-ghost">&larr; Atras</button>
+      <div class="sidebar-bottom">
+        <!-- Barra de progreso: cuantos pasos se completaron (la anima app.js). -->
+        <div class="progress" role="progressbar" aria-label="Progreso del asistente">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
         <span id="step-indicator" class="step-indicator"></span>
-        <button type="button" id="btn-next" class="btn">Siguiente &rarr;</button>
+      </div>
+    </aside>
+
+    <!-- Area de trabajo -->
+    <main class="content">
+      <div class="content-inner">
+        <!-- Cada paso se monta aqui -->
+        <section id="step-panel" class="panel" aria-live="polite"></section>
+
+        <!-- Controles de navegacion adelante/atras -->
+        <div class="navbtns">
+          <button type="button" id="btn-prev" class="btn btn-ghost">&larr; Atras</button>
+          <button type="button" id="btn-next" class="btn">Siguiente &rarr;</button>
+        </div>
       </div>
     </main>
+
+    <!-- Previsualizador del esqueleto: se rellena en vivo con lo que el usuario
+         va cargando (lo pinta app.js -> updateSkeleton). -->
+    <aside class="preview" aria-label="Vista previa del sitio">
+      <div class="preview-head">
+        <span class="preview-label">Vista previa</span>
+        <span class="preview-hint">Se arma mientras cargas</span>
+      </div>
+      <div class="preview-frame">
+        <div class="preview-chrome" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div id="skeleton" class="skeleton"></div>
+      </div>
+    </aside>
   </div>
 
   <!-- Aviso global (guardado ok, errores de red, etc.) -->

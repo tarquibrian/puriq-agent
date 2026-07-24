@@ -258,18 +258,47 @@
   // ========================================================================
   // Definicion de pasos
   // ========================================================================
+  // Icono de linea por paso (SVG inline, sin dependencias). Da un anclaje visual
+  // para reconocer cada paso de un vistazo. `stroke: currentColor` hace que
+  // hereden el color segun el estado (tenue/activo/hecho) desde el CSS.
+  var STEP_ICONS = {
+    modules: '<path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z"/>',
+    site: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17"/>',
+    places: '<path d="M12 21c4-4.5 6.5-7.6 6.5-11a6.5 6.5 0 1 0-13 0c0 3.4 2.5 6.5 6.5 11Z"/><circle cx="12" cy="10" r="2.3"/>',
+    events: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/>',
+    assets: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 5-4 5 4 3-3 3 2.5"/>',
+    qa: '<path d="M4 5h16v11H8l-4 4V5Z"/><path d="M9 9.5a2 2 0 1 1 3 1.7c-.6.4-1 .8-1 1.6"/><path d="M11 15h.01"/>',
+    brand: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 2-1 2-2s-.8-1.6-.8-2.6.9-1.9 2-1.9h1.3A4.2 4.2 0 0 0 20 9.8C20 6.3 16.4 3.5 12 3.5Z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16" cy="11" r="1"/>',
+    landing: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17M8 9v10.5"/>',
+    generate: '<path d="M12 3.5 13.7 9l5.5 1.7-5.5 1.7L12 18l-1.7-5.6L4.8 10.7 10.3 9 12 3.5Z"/><path d="M18.5 4v3M20 5.5h-3"/>',
+    preview: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.7"/>',
+    publish: '<path d="M12 3.5 18 9h-4v7h-4V9H6l6-5.5Z"/><path d="M6 20h12"/>'
+  };
+
+  // Envuelve el path del icono en un <svg> de linea uniforme.
+  function stepIconSvg(id) {
+    var inner = STEP_ICONS[id] || "";
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true">' + inner + "</svg>";
+  }
+
+  // Cada paso lleva, ademas del `label` de la navegacion, un `title` y una
+  // `desc` que la barra lateral muestra como cabecera del paso actual (el patron
+  // de la referencia: titulo grande + descripcion a la izquierda). El `render`
+  // del panel sigue aportando el subtitulo del contenido.
   var STEPS = [
-    { id: "modules", label: "Modulos", render: renderModules },
-    { id: "site", label: "Sitio", render: renderSite },
-    { id: "places", label: "Lugares", render: renderPlaces },
-    { id: "events", label: "Eventos", render: renderEvents },
-    { id: "assets", label: "Recursos", render: renderAssets },
-    { id: "qa", label: "Q&A", render: renderQA },
-    { id: "brand", label: "Marca", render: renderBrand },
-    { id: "landing", label: "Portada", render: renderLanding },
-    { id: "generate", label: "Generar", render: renderGenerate },
-    { id: "preview", label: "Previsualizar", render: renderPreview },
-    { id: "publish", label: "Publicar", render: renderPublish }
+    { id: "modules", label: "Modulos", title: "Modulos", desc: "Elegi que secciones tendra tu sitio y en que orden.", render: renderModules },
+    { id: "site", label: "Sitio", title: "Datos del sitio", desc: "Nombre, region, direccion web y contacto del destino.", render: renderSite },
+    { id: "places", label: "Lugares", title: "Lugares", desc: "Carga los lugares turisticos que queres mostrar.", render: renderPlaces },
+    { id: "events", label: "Eventos", title: "Eventos", desc: "Festividades y fechas clave del destino.", render: renderEvents },
+    { id: "assets", label: "Recursos", title: "Recursos", desc: "Subi las fotos y el logo del destino.", render: renderAssets },
+    { id: "qa", label: "Q&A", title: "Preguntas y respuestas", desc: "Alimenta al asistente con respuestas oficiales.", render: renderQA },
+    { id: "brand", label: "Marca", title: "Marca", desc: "Colores y tipografias que definen la identidad visual.", render: renderBrand },
+    { id: "landing", label: "Portada", title: "Portada", desc: "Arma y ordena las secciones de la pagina principal.", render: renderLanding },
+    { id: "generate", label: "Generar", title: "Generar el sitio", desc: "Construi el sitio a partir de todo lo cargado.", render: renderGenerate },
+    { id: "preview", label: "Previsualizar", title: "Previsualizar", desc: "Revisa el sitio construido antes de publicarlo.", render: renderPreview },
+    { id: "publish", label: "Publicar", title: "Publicar", desc: "Deja el sitio en linea en el destino elegido.", render: renderPublish }
   ];
 
   // --- Paso: Modulos (Req 2.1-2.3) -----------------------------------------
@@ -294,7 +323,7 @@
     if (!state.draft.modules.length) state.draft.modules = moduleDraftFromServer();
     var rows = state.draft.modules;
 
-    container.appendChild(el("h2", { text: "1. Modulos del sitio" }));
+    container.appendChild(el("h2", { text: "Modulos del sitio" }));
     container.appendChild(el("p", { class: "hint", text: "Activa las secciones que tendra tu sitio y ordenalas. El orden de la lista define el orden en el sitio." }));
 
     var list = el("ul", { class: "module-list" });
@@ -395,7 +424,7 @@
       d._init = true;
     }
 
-    container.appendChild(el("h2", { text: "2. Datos del sitio" }));
+    container.appendChild(el("h2", { text: "Datos del sitio" }));
     container.appendChild(el("p", { class: "hint", text: "Nombre, region, idioma por defecto y centro del mapa." }));
 
     container.appendChild(textField("Nombre del sitio", d, "name"));
@@ -462,7 +491,7 @@
   // --- Paso: Lugares (Req 3.2, 3.4-3.6) ------------------------------------
   function renderPlaces(container) {
     var d = state.draft.place;
-    container.appendChild(el("h2", { text: "3. Lugares" }));
+    container.appendChild(el("h2", { text: "Lugares" }));
     container.appendChild(el("p", { class: "hint", text: "Agrega lugares turisticos. Podes dar coordenadas o solo una direccion (se geocodifica al generar)." }));
 
     container.appendChild(textField("Nombre", d, "name"));
@@ -529,7 +558,7 @@
   // --- Paso: Eventos (Req 3.3) ---------------------------------------------
   function renderEvents(container) {
     var d = state.draft.event;
-    container.appendChild(el("h2", { text: "4. Eventos" }));
+    container.appendChild(el("h2", { text: "Eventos" }));
     container.appendChild(el("p", { class: "hint", text: "Agrega festividades y eventos con su fecha de inicio." }));
 
     container.appendChild(textField("Nombre", d, "name"));
@@ -680,7 +709,7 @@
   }
 
   function renderAssets(container) {
-    container.appendChild(el("h2", { text: "5. Recursos (imagenes y logo)" }));
+    container.appendChild(el("h2", { text: "Recursos (imagenes y logo)" }));
     container.appendChild(el("p", { class: "hint", text: "Arrastra las fotos o elegilas de tu computadora. Podes subir varias a la vez. Formatos: jpg, png, webp, gif, svg, avif (hasta 10 MB cada una)." }));
 
     // --- Destino de la carga ---
@@ -821,7 +850,7 @@
   // --- Paso: Q&A (Req 5.1, 5.4) --------------------------------------------
   function renderQA(container) {
     var d = state.draft.qa;
-    container.appendChild(el("h2", { text: "6. Preguntas y respuestas" }));
+    container.appendChild(el("h2", { text: "Preguntas y respuestas" }));
     container.appendChild(el("p", { class: "hint", text: "Conocimiento para el futuro chat del sitio. Pregunta y respuesta no pueden quedar vacias." }));
 
     container.appendChild(textField("Pregunta", d, "question"));
@@ -935,7 +964,7 @@
     if (!d.accent) d.accent = "#2563EB";
     if (!d.secondary) d.secondary = "#52606D";
 
-    container.appendChild(el("h2", { text: "7. Marca" }));
+    container.appendChild(el("h2", { text: "Marca" }));
     container.appendChild(el("p", { class: "hint", text: "Elegi los colores y las tipografias de tu sitio. Todo lo que cambies se ve al instante en la vista previa de abajo." }));
 
     // --- Paletas sugeridas ---
@@ -1257,7 +1286,7 @@
     if (!state.draft.landing.length) state.draft.landing = landingDraftFromServer();
     var rows = state.draft.landing;
 
-    container.appendChild(el("h2", { text: "8. Portada" }));
+    container.appendChild(el("h2", { text: "Portada" }));
     container.appendChild(el("p", { class: "hint", text: "Activa, ordena y edita las secciones de la portada. El orden de la lista define el orden en el sitio; el asistente solo compone secciones ya construidas." }));
 
     var list = el("div", { class: "landing-list" });
@@ -1402,7 +1431,7 @@
   // --- Paso: Generar (WebSocket /ws/build, Req 8.2-8.4) --------------------
   function renderGenerate(container) {
     var d = state.draft.build;
-    container.appendChild(el("h2", { text: "9. Generar el sitio" }));
+    container.appendChild(el("h2", { text: "Generar el sitio" }));
     container.appendChild(el("p", { class: "hint", text: "Dispara la generacion y observa el progreso en vivo." }));
 
     var llm = el("input", { type: "checkbox", checked: d.use_llm, onchange: function (e) { d.use_llm = e.target.checked; } });
@@ -1475,7 +1504,7 @@
 
   // --- Paso: Previsualizar (Req 9.1-9.3) -----------------------------------
   function renderPreview(container) {
-    container.appendChild(el("h2", { text: "10. Previsualizar" }));
+    container.appendChild(el("h2", { text: "Previsualizar" }));
     container.appendChild(el("p", { class: "hint", text: "Abri el sitio construido en tu navegador antes de publicarlo." }));
 
     container.appendChild(el("button", {
@@ -1501,7 +1530,7 @@
   // --- Paso: Publicar (Req 10.1-10.4) --------------------------------------
   function renderPublish(container) {
     var d = state.draft.deploy;
-    container.appendChild(el("h2", { text: "11. Publicar" }));
+    container.appendChild(el("h2", { text: "Publicar" }));
     container.appendChild(el("p", { class: "hint", text: "Elegi el destino y publica tu sitio para obtener una URL." }));
 
     var sel = el("select", { onchange: function (e) { d.target = e.target.value; } },
@@ -1725,7 +1754,150 @@
 
   // --- Estado de "paso completado" para la navegacion lateral --------------
   var doneSteps = {};
-  function markDone(id) { doneSteps[id] = true; renderNav(); }
+  function markDone(id) {
+    doneSteps[id] = true;
+    renderNav();
+    updateProgress();
+    updateSkeleton();
+  }
+
+  // --- Barra de progreso ----------------------------------------------------
+  // Refleja cuantos pasos se completaron sobre el total. El ancho lo anima el
+  // CSS via la variable `--pct`.
+  function updateProgress() {
+    var total = STEPS.length;
+    var done = STEPS.filter(function (s) { return doneSteps[s.id]; }).length;
+    var pct = Math.round((done / total) * 100);
+    var bar = document.getElementById("progress-bar");
+    if (bar) bar.style.setProperty("--pct", pct + "%");
+  }
+
+  // --- Previsualizador del esqueleto (columna derecha) ----------------------
+  // Pinta una maqueta del sitio que se rellena con lo que el usuario carga: la
+  // marca tine el esqueleto, las secciones activas de la portada y los modulos
+  // aparecen como bloques, y los conteos (lugares, eventos) se muestran reales.
+  // Es lo que hace ver el resultado tomando forma mientras se avanza.
+  var LANDING_SK_LABEL = {
+    hero: "Portada", features: "Destacados", cta: "Llamado",
+    gallery: "Galeria", stats: "Cifras", testimonials: "Testimonios", faq: "Preguntas"
+  };
+
+  function updateSkeleton() {
+    var sk = document.getElementById("skeleton");
+    if (!sk) return;
+    clear(sk);
+
+    var data = state.server["tourism-data"] || {};
+    var cfg = state.server["site-config"] || {};
+    var theme = state.server["theme-tokens"] || {};
+    var site = data.site || {};
+    var colors = theme.colors || {};
+
+    // Tinta el esqueleto con los colores de marca elegidos (o neutros).
+    sk.style.setProperty("--sk-primary", colors.primary || "#0a0a0a");
+    sk.style.setProperty("--sk-accent", colors.accent || colors.primary || "#6b7280");
+    sk.style.setProperty("--sk-bg", colors.background || "#ffffff");
+    sk.style.setProperty("--sk-text", colors.text || "#0a0a0a");
+
+    var mods = cfg.modules || {};
+    var activeMods = Object.keys(mods).filter(function (k) { return mods[k] && mods[k].enabled; });
+    var landing = (cfg.landing || []).filter(function (s) { return s && s.enabled; })
+      .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var places = data.places || [];
+    var events = data.events || [];
+
+    var hasAnything = site.name || activeMods.length || landing.length || places.length;
+    if (!hasAnything) {
+      sk.appendChild(el("div", { class: "sk-empty", html:
+        "Tu sitio va a aparecer aca.<br>Empeza cargando los datos." }));
+      return;
+    }
+
+    // Header del sitio.
+    sk.appendChild(el("div", { class: "sk-block sk-header" }, [
+      el("span", { class: "sk-brand", text: site.name || "Tu sitio" }),
+      el("span", { class: "sk-nav" }, [el("i"), el("i"), el("i")]),
+      el("span", { class: "sk-cta" })
+    ]));
+
+    // Secciones de portada activas, en orden. Cada tipo tiene su forma.
+    var chatFloating = mods.chatweb && mods.chatweb.enabled &&
+      (mods.chatweb.display || "floating") === "floating";
+
+    if (landing.length) {
+      landing.forEach(function (s) { sk.appendChild(landingBlock(s.type)); });
+    } else if (cfg.hero || site.name) {
+      // Sin `landing` explicito, el hero heredado igual da una portada.
+      sk.appendChild(landingBlock("hero"));
+    }
+
+    // Modulos de contenido, con conteos reales.
+    if (activeMods.indexOf("map") >= 0) {
+      sk.appendChild(el("div", { class: "sk-block sk-map" }));
+    }
+    if (activeMods.indexOf("places") >= 0) {
+      sk.appendChild(moduleBlock("Lugares", places.length, "sk-cards", 3, places.length));
+    }
+    if (activeMods.indexOf("events") >= 0) {
+      sk.appendChild(moduleBlock("Eventos", events.length, "sk-rows", 3, events.length));
+    }
+    if (activeMods.indexOf("blog") >= 0) {
+      sk.appendChild(moduleBlock("Noticias", 0, "sk-cards", 3, 0));
+    }
+
+    // CTA de cierre y footer siempre cierran la maqueta.
+    sk.appendChild(el("div", { class: "sk-block sk-footer" }));
+
+    // Asistente flotante (burbuja) si corresponde.
+    if (chatFloating) sk.appendChild(el("div", { class: "sk-fab sk-block" }));
+  }
+
+  // Bloque de una seccion de portada segun su tipo.
+  function landingBlock(type) {
+    if (type === "hero") {
+      return el("div", { class: "sk-block sk-hero" }, [
+        el("span", { class: "sk-line lg" }),
+        el("span", { class: "sk-line sm" }),
+        el("span", { class: "sk-pill" })
+      ]);
+    }
+    if (type === "stats") {
+      return el("div", { class: "sk-block sk-stats" }, [el("i"), el("i"), el("i")]);
+    }
+    if (type === "gallery") {
+      return el("div", { class: "sk-block sk-gallery" },
+        [el("b"), el("b"), el("b"), el("b")]);
+    }
+    if (type === "cta") {
+      return el("div", { class: "sk-block sk-cta-band" }, [el("i")]);
+    }
+    if (type === "faq" || type === "testimonials") {
+      return el("div", { class: "sk-block sk-section" }, [
+        el("div", { class: "sk-title" }),
+        el("div", { class: "sk-rows" }, [el("i"), el("i"), el("i")])
+      ]);
+    }
+    // features (default): titulo + tarjetas, la primera destacada.
+    return el("div", { class: "sk-block sk-section" }, [
+      el("div", { class: "sk-title" }),
+      el("div", { class: "sk-cards" }, [
+        el("div", { class: "sk-card feat" }), el("div", { class: "sk-card" }), el("div", { class: "sk-card" })
+      ])
+    ]);
+  }
+
+  // Bloque de un modulo de contenido, con su nombre y conteo real.
+  function moduleBlock(nombre, count, gridClass, cols, filled) {
+    var kids = [];
+    for (var i = 0; i < cols; i++) {
+      var cls = gridClass === "sk-cards" ? "sk-card" : "";
+      kids.push(el(gridClass === "sk-cards" ? "div" : "i", cls ? { class: cls } : null));
+    }
+    return el("div", { class: "sk-block sk-section" }, [
+      el("div", { class: "sk-tag", text: nombre + (count ? " · " + count : "") }),
+      el("div", { class: gridClass }, kids)
+    ]);
+  }
 
   // ========================================================================
   // Navegacion y montaje
@@ -1737,11 +1909,15 @@
       var cls = "";
       if (idx === state.current) cls += " active";
       if (doneSteps[step.id]) cls += " done";
+      // El indicador es un radio: vacio (pendiente), punto central (activo, lo
+      // dibuja el CSS) o check (hecho). Ya no lleva el numero del paso.
       var btn = el("button", {
         class: cls.trim(),
+        "aria-current": idx === state.current ? "step" : null,
         onclick: function () { goTo(idx); }
       }, [
-        el("span", { class: "dot", text: doneSteps[step.id] ? "\u2713" : String(idx + 1) }),
+        el("span", { class: "dot", text: doneSteps[step.id] ? "\u2713" : "" }),
+        el("span", { class: "step-icon", html: stepIconSvg(step.id) }),
         document.createTextNode(step.label)
       ]);
       nav.appendChild(btn);
@@ -1749,11 +1925,22 @@
   }
 
   function render() {
+    var step = STEPS[state.current];
     var panel = document.getElementById("step-panel");
     clear(panel);
-    STEPS[state.current].render(panel);
+    step.render(panel);
+    // Transicion de entrada del panel: se reinicia la animacion quitando y
+    // re-agregando la clase (forzando reflow) en cada cambio de paso.
+    panel.classList.remove("is-entering");
+    void panel.offsetWidth;
+    panel.classList.add("is-entering");
+    // Cabecera del paso en la barra lateral (patron de la referencia).
+    document.getElementById("step-title").textContent = step.title || step.label;
+    document.getElementById("step-desc").textContent = step.desc || "";
     document.getElementById("step-indicator").textContent =
       "Paso " + (state.current + 1) + " de " + STEPS.length;
+    updateProgress();
+    updateSkeleton();
     document.getElementById("btn-prev").disabled = state.current === 0;
     document.getElementById("btn-next").disabled = state.current === STEPS.length - 1;
     renderNav();
