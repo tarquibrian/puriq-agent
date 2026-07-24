@@ -18,6 +18,23 @@ template/dist/
 # Puriq build artifacts
 .puriq-build/
 
+# Contratos generados al correr el wizard/CLI en el cwd. Se ignoran SOLO en la
+# raiz del repo y en agent/ (donde se ejecutan las herramientas durante el
+# desarrollo). Los `/` iniciales y la ruta explicita evitan pisar los contratos
+# legitimos de `template/src/data/` (los usa la plantilla) y de `examples/`.
+/tourism-data.json
+/site.config.json
+/theme.tokens.json
+/assets/
+/content/
+/dist/
+agent/tourism-data.json
+agent/site.config.json
+agent/theme.tokens.json
+agent/assets/
+agent/content/
+agent/dist/
+
 # Env / secrets
 .env
 .env.*
