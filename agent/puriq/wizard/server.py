@@ -43,6 +43,7 @@ from puriq.wizard.intake import (
     build_place,
     make_coords,
 )
+from puriq.tools import build_site
 from puriq.tools.deploy import DeployError
 from puriq.wizard.landing import LandingCatalogError, build_landing
 from puriq.wizard.modules import ModuleCatalogError, build_modules
@@ -95,6 +96,15 @@ _QA_RELPATH = f"{_CONTENT_DIRNAME}/{_QA_FILENAME}"
 
 app = FastAPI(title="Puriq Wizard")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+# Catalogo tipografico de la Template, servido tal cual al Wizard_UI. El paso de
+# Marca muestra una vista previa en vivo de la identidad visual; sin las fuentes
+# REALES esa vista previa mentiria (mostraria la marca con la tipografia del
+# sistema y no con la que el usuario esta eligiendo). Se monta el mismo
+# directorio que consume el sitio construido, para que no haya dos copias.
+_TEMPLATE_FONTS = build_site.TEMPLATE_DIR / "public" / "fonts"
+if _TEMPLATE_FONTS.is_dir():
+    app.mount("/fonts", StaticFiles(directory=_TEMPLATE_FONTS), name="fonts")
 
 
 def project_root() -> Path:
@@ -217,6 +227,28 @@ async def _handle_unexpected_error(request: Request, exc: Exception) -> JSONResp
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     return (STATIC / "index.html").read_text(encoding="utf-8")
+
+
+@app.get("/api/fonts")
+def list_fonts() -> dict:
+    """Informa que archivos de fuente trae el catalogo de la Template.
+
+    El Wizard_UI usa esto para dos cosas en el paso de Marca: marcar que familias
+    se sirven desde el propio sitio (frente a las que dependeran de la pila de
+    respaldo del sistema) y saber que `@font-face` inyectar en su vista previa.
+
+    Devuelve los NOMBRES DE ARCHIVO (`playfair-display-var.woff2`), no las
+    familias: la tabla de familias, pesos y pilas de respaldo vive en
+    `template/src/design-system/fonts.ts`, unica fuente de verdad. Aqui solo se
+    reporta lo que hay en disco, para no mantener una tercera copia del catalogo.
+    """
+    if not _TEMPLATE_FONTS.is_dir():
+        return {"files": []}
+    archivos = sorted(
+        f.name for f in _TEMPLATE_FONTS.iterdir()
+        if f.is_file() and f.suffix == ".woff2"
+    )
+    return {"files": archivos}
 
 
 @app.get("/api/state")
@@ -434,6 +466,9 @@ class _ModuleSelection(BaseModel):
 
     key: str
     enabled: bool = True
+    # Etiqueta de la navegacion del sitio. Si no se envia, `build_modules` aplica
+    # el default legible del catalogo (nunca la clave cruda).
+    label: str | None = None
     persona: str | None = None
     knowledgeSource: str | None = None
 
@@ -809,6 +844,348 @@ def add_qa(body: QABody):
             "document": site_config,
         }
     )
+
+
+@app.get("/api/qa")
+def list_qa() -> dict:
+    """Lista los QA_Entry ya guardados en `content/qa.json`.
+
+    Contrapartida de lectura de `POST /api/qa`: la UI necesita mostrar lo que el
+    usuario lleva cargado (y poder borrarlo) en vez de escribir a ciegas. Es
+    tolerante a la ausencia del archivo y a un contenido corrupto: en ambos casos
+    devuelve una lista vacia en lugar de fallar, igual que `_append_qa_entry`.
+    Las entradas se devuelven con su `index` (posicion en el archivo), que es lo
+    que consume `DELETE /api/qa/{index}`.
+    """
+    qa_path = project_root() / _CONTENT_DIRNAME / _QA_FILENAME
+    entries: list = []
+    if qa_path.exists():
+        try:
+            cargado = json.loads(qa_path.read_text(encoding="utf-8"))
+            if isinstance(cargado, list):
+                entries = cargado
+        except (ValueError, OSError):
+            entries = []
+
+    salida = [
+        {
+            "index": i,
+            "question": e.get("question", ""),
+            "answer": e.get("answer", ""),
+        }
+        for i, e in enumerate(entries)
+        if isinstance(e, dict)
+    ]
+    return _redact_value({"entries": salida})
+
+
+@app.delete("/api/qa/{index}")
+def delete_qa(index: int):
+    """Elimina el QA_Entry en la posicion `index` de `content/qa.json`.
+
+    Se borra por posicion (y no por texto de la pregunta) porque el archivo es
+    una lista simple sin ids y admite preguntas repetidas. Un `index` fuera de
+    rango responde `422` accionable sin tocar el archivo. La escritura conserva
+    el resto de las entradas (Req 5.1: los Q&A se anexan y no se pisan).
+    """
+    project = project_root()
+    qa_path = project / _CONTENT_DIRNAME / _QA_FILENAME
+
+    entries: list = []
+    if qa_path.exists():
+        try:
+            cargado = json.loads(qa_path.read_text(encoding="utf-8"))
+            if isinstance(cargado, list):
+                entries = cargado
+        except (ValueError, OSError):
+            entries = []
+
+    if index < 0 or index >= len(entries):
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(
+                ValueError(
+                    f"No existe una entrada Q&A en la posicion {index}. "
+                    f"Actualiza la lista y volve a intentar."
+                ),
+                documento=_QA_FILENAME,
+            ),
+        )
+
+    entries.pop(index)
+    qa_path.write_text(
+        json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return _redact_value({"deleted": index, "remaining": len(entries)})
+
+
+# --- Lectura y baja de Places / Events del contrato --------------------------
+#
+# El intake (`POST`) ya existia, pero sin contrapartida de edicion ni de baja: el
+# usuario cargaba a ciegas y no podia corregir un dato mal tipeado. Estos
+# endpoints delegan en `puriq.core.Puriq`, que es el mismo punto de orquestacion
+# que usan el CLI y el MCP (Req 11.3): `edit` fusiona campos y `delete` mantiene
+# la integridad referencial (limpia el `placeId` colgante de los Events cuando se
+# borra un Place). Ambos persisten como **draft** (coords opcional), coherente con
+# DD-1: un Place recien editado puede quedarse con `address` y sin `coords` hasta
+# que `geocode` corra en el build.
+
+# Mapa de la entidad de la URL al `kind` que entiende el contrato.
+_ENTITY_KEYS = {"places": "places", "events": "events"}
+
+# Errores de las tools de contenido que se traducen a `422` redactado.
+_CONTENT_ERRORS = (KeyError, ValueError, jsonschema.ValidationError)
+
+
+class EntityPatch(BaseModel):
+    """Cuerpo de `PUT /api/tourism-data/{entity}/{id}`: campos a fusionar.
+
+    Se aceptan solo los campos editables desde la UI. Los ausentes (`None`) no se
+    tocan, de modo que la edicion sea un merge no destructivo y no borre datos que
+    el formulario no muestra (p. ej. `images` cargadas en el paso de Recursos).
+    """
+
+    name: str | None = None
+    category: str | None = None
+    address: str | None = None
+    shortDescription: str | None = None
+    description: str | None = None
+    hours: str | None = None
+    startDate: str | None = None
+    endDate: str | None = None
+    placeId: str | None = None
+    recurring: str | None = None
+
+
+@app.put("/api/tourism-data/{entity}/{item_id}")
+def edit_entity(entity: str, item_id: str, body: EntityPatch):
+    """Edita (merge) un Place o Event por `id` y devuelve el contrato actualizado.
+
+    Delega en `Puriq.edit`, que reusa la tool pura `edit_content.edit` y persiste
+    como draft. Solo se envian los campos no nulos, para no pisar con `null` lo
+    que el formulario no edita. Un `entity` fuera de `places`/`events` o un `id`
+    inexistente responden `422` redactado sin modificar nada.
+    """
+    if entity not in _ENTITY_KEYS:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(
+                ValueError(
+                    f"Entidad '{entity}' no soportada. Usa 'places' o 'events'."
+                )
+            ),
+        )
+
+    fields = body.model_dump(exclude_none=True)
+    if not fields:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(
+                ValueError("No se indico ningun campo para editar.")
+            ),
+        )
+
+    project = project_root()
+    try:
+        Puriq(project).edit(item_id, fields)
+    except _CONTENT_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_TOURISM_FILE),
+        )
+
+    return _redact_value(
+        {"id": item_id, "document": contracts._load_contract(project, _TOURISM_DOC)}
+    )
+
+
+@app.delete("/api/tourism-data/{entity}/{item_id}")
+def delete_entity(entity: str, item_id: str):
+    """Elimina un Place o Event por `id` y devuelve el contrato actualizado.
+
+    Delega en `Puriq.delete`, que reusa `delete_content.delete`: al borrar un
+    Place, limpia el `placeId` colgante de los Events que lo referenciaban y
+    devuelve esos ids en `affectedEvents` para que la UI pueda avisarlo. Un `id`
+    inexistente responde `422` redactado sin modificar nada.
+
+    Nota: las imagenes asociadas quedan en `/assets`. La baja del contrato no
+    borra archivos del disco (eso lo hace `DELETE /api/assets/{name}`), asi una
+    foto subida sigue disponible para reasignarla a otra entrada.
+    """
+    if entity not in _ENTITY_KEYS:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(
+                ValueError(
+                    f"Entidad '{entity}' no soportada. Usa 'places' o 'events'."
+                )
+            ),
+        )
+
+    project = project_root()
+    try:
+        resultado = Puriq(project).delete(item_id)
+    except _CONTENT_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc, documento=_TOURISM_FILE),
+        )
+
+    return _redact_value(
+        {
+            "id": resultado["id"],
+            "affectedEvents": resultado["affectedEvents"],
+            "document": contracts._load_contract(project, _TOURISM_DOC),
+        }
+    )
+
+
+# --- Inventario de Assets ----------------------------------------------------
+#
+# La carga de Assets ya existia, pero sin forma de VER lo subido: el usuario no
+# tenia miniaturas ni sabia que fotos llevaba. Estos endpoints exponen el
+# inventario de `<project>/assets`, sirven los bytes para las miniaturas y
+# permiten dar de baja un archivo. Todo acceso por nombre pasa por
+# `resolve_within_assets`, que garantiza la contencion en el arbol y rechaza el
+# path traversal (Req 12.4).
+
+
+def _asset_usage(project: Path) -> dict[str, list[str]]:
+    """Mapea cada ruta `assets/<archivo>` a los ids del contrato que la usan.
+
+    Recorre `images` de Places y Events del `tourism-data` y el `logo` de
+    `theme-tokens`. Sirve para que la UI muestre a que entrada pertenece cada
+    foto y para advertir antes de borrar un Asset en uso.
+    """
+    uso: dict[str, list[str]] = {}
+
+    data = contracts._load_contract(project, _TOURISM_DOC)
+    for clave in ("places", "events"):
+        for item in data.get(clave) or []:
+            if not isinstance(item, dict):
+                continue
+            for ruta in item.get("images") or []:
+                uso.setdefault(ruta, []).append(str(item.get("id", "")))
+
+    theme = contracts._load_contract(project, _THEME_DOC)
+    logo = theme.get("logo")
+    if isinstance(logo, str) and logo:
+        uso.setdefault(logo, []).append("logo")
+
+    return uso
+
+
+@app.get("/api/assets")
+def list_assets() -> dict:
+    """Lista los Assets de `<project>/assets` con su tamano y quien los usa.
+
+    Devuelve, por archivo: la ruta relativa del contrato (`assets/<nombre>`), el
+    nombre, el tamano en bytes y `usedBy` (ids de Places/Events que lo
+    referencian, mas `logo` si es el logo de marca). Tolerante a la ausencia del
+    directorio: sin `/assets` devuelve una lista vacia. El orden es alfabetico
+    para que el inventario sea estable entre recargas.
+    """
+    project = project_root()
+    assets_dir = project / "assets"
+    if not assets_dir.is_dir():
+        return {"assets": []}
+
+    uso = _asset_usage(project)
+    salida = []
+    for archivo in sorted(assets_dir.iterdir()):
+        if not archivo.is_file() or archivo.name.startswith("."):
+            continue
+        rel = f"assets/{archivo.name}"
+        salida.append(
+            {
+                "path": rel,
+                "name": archivo.name,
+                "bytes": archivo.stat().st_size,
+                "usedBy": uso.get(rel, []),
+            }
+        )
+    return _redact_value({"assets": salida})
+
+
+@app.get("/api/assets/raw/{name}")
+def get_asset_bytes(name: str):
+    """Sirve los bytes de un Asset para que la UI pueda mostrar la miniatura.
+
+    La ruta se resuelve con `resolve_within_assets`, que rechaza cualquier nombre
+    que escape de `<project>/assets` (path traversal, Req 12.4). Un archivo
+    inexistente responde `404`. Se sirve desde el propio wizard porque la raiz del
+    proyecto es dinamica (`PURIQ_PROJECT`) y no se puede montar como estatico en
+    tiempo de import.
+    """
+    from fastapi.responses import FileResponse
+
+    try:
+        destino = resolve_within_assets(project_root(), name)
+    except ValueError as exc:
+        return JSONResponse(status_code=422, content=wizard_error_response(exc))
+
+    if not destino.is_file():
+        return JSONResponse(
+            status_code=404,
+            content=wizard_error_response(
+                FileNotFoundError(f"No existe el recurso '{name}' en /assets.")
+            ),
+        )
+    return FileResponse(destino)
+
+
+@app.delete("/api/assets/{name}")
+def delete_asset(name: str):
+    """Borra un Asset del disco y quita sus referencias del contrato.
+
+    Ademas de eliminar el archivo (contenido verificado con
+    `resolve_within_assets`, Req 12.4), depura la ruta de las `images` de todo
+    Place/Event que la referenciaba, para no dejar en el contrato una imagen
+    colgante que el sitio renderizaria como rota. Si el Asset era el `logo` de
+    marca, tambien se limpia ese campo.
+    """
+    project = project_root()
+    try:
+        destino = resolve_within_assets(project, name)
+    except ValueError as exc:
+        return JSONResponse(status_code=422, content=wizard_error_response(exc))
+
+    if not destino.is_file():
+        return JSONResponse(
+            status_code=404,
+            content=wizard_error_response(
+                FileNotFoundError(f"No existe el recurso '{name}' en /assets.")
+            ),
+        )
+
+    rel = f"assets/{destino.name}"
+    destino.unlink()
+
+    # Depuracion de referencias en tourism-data (images de Places/Events).
+    data = contracts._load_contract(project, _TOURISM_DOC)
+    cambiado = False
+    for clave in ("places", "events"):
+        for item in data.get(clave) or []:
+            if not isinstance(item, dict):
+                continue
+            images = item.get("images")
+            if isinstance(images, list) and rel in images:
+                item["images"] = [i for i in images if i != rel]
+                cambiado = True
+    if cambiado:
+        # Persistencia como draft: un Place puede seguir sin `coords` hasta el
+        # geocode del build, igual que en el resto del intake (DD-1).
+        from puriq.tools import _persist
+
+        _persist.save_tourism_draft(data, project / _TOURISM_FILE)
+
+    # Depuracion del logo de marca si apuntaba a este Asset.
+    theme = contracts._load_contract(project, _THEME_DOC)
+    if theme.get("logo") == rel:
+        theme.pop("logo", None)
+        contracts.save_contract(project, _THEME_DOC, theme)
+
+    return _redact_value({"deleted": rel, "unlinked": cambiado})
 
 
 # --- Generacion con progreso en vivo (Req 8, DD-2) ---------------------------

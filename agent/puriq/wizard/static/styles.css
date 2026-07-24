@@ -252,3 +252,337 @@ body {
 }
 .toast.err { background: var(--err); }
 .toast.ok { background: var(--ok); }
+
+/* ==========================================================================
+ * Listas de entidades cargadas (lugares, eventos, Q&A)
+ *
+ * Reemplazan a `.saved-list` (solo texto): ademas de mostrar lo cargado,
+ * permiten editar y borrar sin salir del paso. Un `.entity-item` en edicion
+ * despliega su formulario inline (`.entity-edit`).
+ * ========================================================================== */
+
+.entity-section { margin-top: 2rem; }
+.entity-section h3 {
+  font-size: 1rem;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Estado vacio: antes la lista no se dibujaba y el usuario no sabia si
+ * habia guardado. Ahora siempre hay una respuesta visible. */
+.empty-state {
+  margin: 0;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.entity-list { list-style: none; padding: 0; margin: 0; }
+
+.entity-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+.entity-item.is-editing { border-color: var(--primary); }
+
+.entity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.entity-main { min-width: 0; }
+.entity-name {
+  display: block;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.entity-meta {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entity-actions { display: flex; gap: 0.4rem; flex: none; }
+
+.entity-edit {
+  padding: 0.9rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--err);
+  border: 1px solid var(--err-border);
+}
+.btn-danger:hover { background: var(--err-bg); }
+
+/* ==========================================================================
+ * Paso Recursos: zona de arrastre + galeria de miniaturas
+ * ========================================================================== */
+
+.dropzone {
+  margin: 1rem 0;
+  padding: 2rem 1rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dropzone:hover,
+.dropzone:focus-visible { border-color: var(--primary); background: #fffdf9; }
+.dropzone.is-over { border-color: var(--primary); background: #fff4ec; }
+.dropzone-title { margin: 0; font-weight: 600; }
+.dropzone-hint { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.88rem; }
+
+/* Input de archivo oculto pero accesible: el foco lo maneja `.dropzone`. */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.8rem;
+}
+
+.asset-card {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.asset-thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: var(--bg);
+}
+
+.asset-caption {
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+.asset-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asset-usage { font-size: 0.75rem; color: var(--primary); }
+.asset-size { font-size: 0.72rem; color: var(--muted); }
+
+.asset-card .btn { margin: 0 0.6rem 0.6rem; }
+
+@media (max-width: 640px) {
+  .entity-row { flex-direction: column; align-items: flex-start; }
+  .entity-actions { width: 100%; }
+}
+
+/* ==========================================================================
+ * Paso Marca: paletas, selectores de color, duplas tipograficas y preview
+ *
+ * Reemplaza a los cinco campos de texto hexadecimal originales. La idea es que
+ * el usuario no-tecnico DECIDA VIENDO, no escribiendo codigos de color.
+ * ========================================================================== */
+
+.brand-legend {
+  font-size: 0.95rem;
+  margin: 1.75rem 0 0.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+.brand-legend:first-of-type { margin-top: 0.5rem; }
+
+/* --- Paletas sugeridas --- */
+.palette-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.palette:hover { border-color: var(--primary); transform: translateY(-2px); }
+.palette.is-active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.palette-chips { display: flex; gap: 3px; }
+.palette-chip {
+  width: 100%;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.palette-name { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+
+/* --- Selectores de color --- */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.9rem;
+}
+.color-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.color-field label { font-weight: 600; font-size: 0.88rem; }
+.color-controls { display: flex; gap: 0.45rem; align-items: center; }
+
+/* El selector nativo se estiliza como una muestra cuadrada. */
+.color-swatch {
+  width: 44px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  flex: none;
+}
+.color-swatch::-webkit-color-swatch-wrapper { padding: 3px; }
+.color-swatch::-webkit-color-swatch { border: none; border-radius: 5px; }
+
+.color-hex {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+.color-field .hint { font-size: 0.76rem; }
+
+/* --- Duplas tipograficas --- */
+.pairing-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.pairing {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s ease;
+}
+.pairing:hover { border-color: var(--primary); }
+.pairing.is-active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.pairing-sample { font-size: 1.6rem; line-height: 1; flex: none; }
+.pairing-names { font-size: 0.76rem; color: var(--muted); }
+
+/* --- Vista previa en vivo --- */
+/* Maqueta reducida del sitio. Usa sus propias variables (--bp-*) que el JS
+ * reescribe al vuelo, para no depender de un rebuild ni de un iframe. */
+.brand-preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bp-bg, #fff);
+  color: var(--bp-text, #111);
+  font-family: var(--bp-body, system-ui, sans-serif);
+}
+.bp-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--bp-text, #111) 12%, transparent);
+}
+.bp-brand {
+  font-family: var(--bp-heading, Georgia, serif);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.bp-cta {
+  background: var(--bp-accent, #2563eb);
+  color: var(--bp-bg, #fff);
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.bp-body { padding: 1.4rem 1rem 1.6rem; }
+.bp-eyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--bp-accent, #2563eb);
+}
+.bp-title {
+  font-family: var(--bp-heading, Georgia, serif);
+  font-size: 1.7rem;
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+.bp-text {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--bp-text, #111) 75%, transparent);
+  max-width: 46ch;
+}
+.bp-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.bp-btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--bp-primary, #1f2933);
+  color: var(--bp-bg, #fff);
+}
+.bp-btn.ghost {
+  background: transparent;
+  color: var(--bp-primary, #1f2933);
+  border: 1px solid color-mix(in srgb, var(--bp-primary, #1f2933) 45%, transparent);
+}

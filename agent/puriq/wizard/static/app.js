@@ -39,6 +39,55 @@
     testimonials: "Testimonios",
     faq: "Preguntas frecuentes"
   };
+  // --- Catalogo tipografico (espejo de template/src/design-system/fonts.ts) --
+  // Ese archivo es la unica fuente de verdad de las pilas de respaldo; aca solo
+  // se replican los NOMBRES y una pila corta para la vista previa del wizard.
+  // Si se agrega una familia alla, agregarla aca para que aparezca en el paso.
+  var FONT_CATALOG = [
+    { name: "Playfair Display", slug: "playfair-display", stack: '"Iowan Old Style", Palatino, Georgia, serif' },
+    { name: "Lora", slug: "lora", stack: '"Iowan Old Style", Constantia, Georgia, serif' },
+    { name: "Merriweather", slug: "merriweather", stack: "Georgia, Cambria, serif" },
+    { name: "Source Serif 4", slug: "source-serif-4", stack: "Charter, Cambria, Georgia, serif" },
+    { name: "Inter", slug: "inter", stack: 'system-ui, "Segoe UI", Roboto, sans-serif' },
+    { name: "Work Sans", slug: "work-sans", stack: 'system-ui, "Segoe UI", Roboto, sans-serif' },
+    { name: "Source Sans 3", slug: "source-sans-3", stack: 'system-ui, "Segoe UI", Roboto, sans-serif' },
+    { name: "Poppins", slug: "poppins", stack: '"Avenir Next", "Century Gothic", system-ui, sans-serif' },
+    { name: "Montserrat", slug: "montserrat", stack: '"Avenir Next", "Century Gothic", system-ui, sans-serif' },
+    { name: "DM Sans", slug: "dm-sans", stack: '"Avenir Next", system-ui, sans-serif' }
+  ];
+
+  // Duplas titulo+cuerpo que combinan bien (contraste de forma sin chocar).
+  var FONT_PAIRINGS = [
+    { heading: "Playfair Display", body: "Inter" },
+    { heading: "Poppins", body: "Inter" },
+    { heading: "Lora", body: "Source Sans 3" },
+    { heading: "Montserrat", body: "Work Sans" }
+  ];
+
+  // Paletas de arranque, ya balanceadas (fondo claro, texto de alto contraste y
+  // acento distinguible del primario).
+  var PALETTES = [
+    { name: "Tierra", colors: { primary: "#7A1F2B", secondary: "#B08D57", background: "#F5F1EA", text: "#241C1C", accent: "#3E5C76" } },
+    { name: "Selva", colors: { primary: "#1F4D3D", secondary: "#8CA98F", background: "#F4F7F2", text: "#1B2620", accent: "#C2703D" } },
+    { name: "Altiplano", colors: { primary: "#2B4C7E", secondary: "#7FA3C9", background: "#F3F6FA", text: "#1A2333", accent: "#D98E36" } },
+    { name: "Desierto", colors: { primary: "#C0392B", secondary: "#E0A458", background: "#FDF6EF", text: "#2A1D18", accent: "#3F7A6D" } },
+    { name: "Sobria", colors: { primary: "#1F2933", secondary: "#52606D", background: "#FFFFFF", text: "#1F2933", accent: "#2563EB" } }
+  ];
+
+  /** Pila CSS de una familia para la vista previa (familia + respaldos). */
+  function fontStackOf(name) {
+    var entry = FONT_CATALOG.filter(function (f) { return f.name === name; })[0];
+    if (!entry) return "system-ui, sans-serif";
+    return '"' + entry.name + '", ' + entry.stack;
+  }
+
+  /** True si la familia viaja con el sitio (hay `.woff2` en el catalogo). */
+  function isSelfHosted(name) {
+    var entry = FONT_CATALOG.filter(function (f) { return f.name === name; })[0];
+    if (!entry || !state.fontFiles) return false;
+    return state.fontFiles.some(function (f) { return f.indexOf(entry.slug + "-") === 0; });
+  }
+
   // Destinos de publicacion soportados (Req 10.2).
   var DEPLOY_TARGETS = [
     "aws-amplify",
@@ -61,11 +110,22 @@
       place: {},
       event: {},
       qa: {},
+      asset: { target: "", id: "" },
       brand: {},
       landing: [],
       build: { use_llm: true, enrich: false },
       deploy: { target: DEPLOY_TARGETS[0] }
     },
+    // Inventarios que NO viven en los 3 contratos y se piden aparte:
+    // `assets` = archivos de /assets (GET /api/assets), `qa` = entradas de
+    // content/qa.json (GET /api/qa). `null` significa "todavia no cargado" y
+    // dispara la carga perezosa la primera vez que se entra al paso.
+    assets: null,
+    qa: null,
+    // Archivos `.woff2` que trae el catalogo de la Template (GET /api/fonts).
+    // Sirven para marcar que familias viajan con el sitio y para inyectar los
+    // `@font-face` de la vista previa del paso Marca.
+    fontFiles: null,
     built: false, // true cuando /ws/build informa "done"
     current: 0
   };
@@ -359,7 +419,12 @@
     container.appendChild(el("p", { class: "hint", text: "Agrega lugares turisticos. Podes dar coordenadas o solo una direccion (se geocodifica al generar)." }));
 
     container.appendChild(textField("Nombre", d, "name"));
-    container.appendChild(textField("Categoria", d, "category"));
+    // Categoria: <select> cuando el contrato ya declara categorias (evita
+    // duplicados por tipeo); texto libre solo si todavia no hay ninguna.
+    var cats = categoryOptions();
+    container.appendChild(cats.length
+      ? selectField("Categoria", d, "category", cats, "Elegi una categoria")
+      : textField("Categoria", d, "category"));
     container.appendChild(el("div", { class: "row" }, [
       textField("Latitud (opcional)", d, "lat"),
       textField("Longitud (opcional)", d, "lng")
@@ -371,8 +436,29 @@
       onclick: function () { savePlace(container); }
     }));
 
-    appendSavedList(container, "Lugares guardados", (state.server["tourism-data"] || {}).places, function (p) {
-      return p.name + (p.coords ? "" : (p.address ? " (direccion, sin coords)" : ""));
+    appendEntityList(container, {
+      title: "Lugares cargados",
+      entity: "places",
+      items: (state.server["tourism-data"] || {}).places,
+      emptyText: "Todavia no cargaste ningun lugar. Agrega el primero con el formulario de arriba.",
+      describe: function (p) {
+        var partes = [];
+        if (p.category) partes.push(p.category);
+        var fotos = (p.images || []).length;
+        partes.push(fotos === 1 ? "1 foto" : fotos + " fotos");
+        // Señal util: sin coords el lugar no aparece en el mapa hasta geocodificar.
+        if (!p.coords) partes.push(p.address ? "sin coords (se geocodifica)" : "sin ubicacion");
+        return partes.join("  ·  ");
+      },
+      fields: [
+        { key: "name", label: "Nombre" },
+        cats.length
+          ? { key: "category", label: "Categoria", type: "select", options: categoryOptions, placeholder: "Elegi una categoria" }
+          : { key: "category", label: "Categoria" },
+        { key: "address", label: "Direccion" },
+        { key: "shortDescription", label: "Descripcion corta" },
+        { key: "hours", label: "Horario" }
+      ]
     });
   }
 
@@ -404,7 +490,12 @@
       textField("Fecha de inicio (AAAA-MM-DD)", d, "startDate"),
       textField("Fecha de fin (opcional)", d, "endDate")
     ]));
-    container.appendChild(textField("Lugar asociado (id, opcional)", d, "placeId"));
+    // Lugar asociado: se elige por NOMBRE de una lista de lugares ya cargados.
+    // Antes habia que tipear el id (slug), que el usuario no conoce.
+    var lugares = entityOptions("places");
+    container.appendChild(lugares.length
+      ? selectField("Lugar asociado (opcional)", d, "placeId", lugares, "Sin lugar asociado")
+      : el("p", { class: "hint", text: "Para asociar un lugar a un evento, carga primero los lugares en el paso anterior." }));
     container.appendChild(textareaField("Descripcion (opcional)", d, "description"));
 
     container.appendChild(el("button", {
@@ -412,8 +503,29 @@
       onclick: function () { saveEvent(container); }
     }));
 
-    appendSavedList(container, "Eventos guardados", (state.server["tourism-data"] || {}).events, function (ev) {
-      return ev.name + (ev.startDate ? " - " + ev.startDate : "");
+    appendEntityList(container, {
+      title: "Eventos cargados",
+      entity: "events",
+      items: (state.server["tourism-data"] || {}).events,
+      emptyText: "Todavia no cargaste ningun evento. Agrega el primero con el formulario de arriba.",
+      describe: function (ev) {
+        var partes = [];
+        if (ev.startDate) partes.push(ev.startDate + (ev.endDate ? " a " + ev.endDate : ""));
+        // Se resuelve el nombre del lugar; mostrar el slug no le dice nada al usuario.
+        if (ev.placeId) {
+          var lugar = ((state.server["tourism-data"] || {}).places || [])
+            .filter(function (p) { return p.id === ev.placeId; })[0];
+          partes.push("en " + (lugar ? lugar.name : ev.placeId));
+        }
+        return partes.join("  ·  ");
+      },
+      fields: [
+        { key: "name", label: "Nombre" },
+        { key: "startDate", label: "Fecha de inicio (AAAA-MM-DD)" },
+        { key: "endDate", label: "Fecha de fin" },
+        { key: "placeId", label: "Lugar asociado", type: "select", options: function () { return entityOptions("places"); }, placeholder: "Sin lugar asociado" },
+        { key: "description", label: "Descripcion", type: "textarea" }
+      ]
     });
   }
 
@@ -435,47 +547,228 @@
   }
 
   // --- Paso: Recursos / Assets (Req 4.1-4.5) -------------------------------
-  function renderAssets(container) {
-    container.appendChild(el("h2", { text: "5. Recursos (imagenes y logo)" }));
-    container.appendChild(el("p", { class: "hint", text: "Subi fotos de lugares/eventos o el logo de la provincia. Formatos: jpg, png, webp, gif, svg, avif." }));
+  //
+  // Rediseño del paso: antes era un `<input type=file>` de a un archivo por vez,
+  // sin ver nunca lo subido, y para asociar una foto habia que TIPEAR el id del
+  // lugar. Ahora hay (a) una zona de arrastre que acepta varios archivos, (b) una
+  // galeria con miniaturas de lo ya cargado y a quien pertenece cada foto, y (c)
+  // seleccion del destino por NOMBRE del lugar/evento.
 
-    var fileInput = el("input", { type: "file", accept: "image/*" });
-    var targetSel = el("select", null, [
-      el("option", { value: "", text: "Sin asociar (solo subir)" }),
-      el("option", { value: "logo", text: "Logo de marca" }),
-      el("option", { value: "place", text: "Imagen de un lugar" }),
-      el("option", { value: "event", text: "Imagen de un evento" })
-    ]);
-    var idInput = el("input", { type: "text", placeholder: "id del lugar/evento (si aplica)" });
+  // Inventario de assets del servidor. Se cachea en `state` para que volver al
+  // paso no parpadee, y se refresca tras cada alta/baja.
+  function refreshAssets(container) {
+    return apiRequest("GET", "/api/assets")
+      .then(function (res) {
+        state.assets = res.assets || [];
+        render();
+      })
+      .catch(function (err) {
+        // Ante un fallo hay que salir del estado `null`: si no, el paso se queda
+        // en "Cargando galeria..." para siempre (la carga perezosa solo se
+        // dispara con `null`) y el usuario no puede ni subir archivos.
+        state.assets = [];
+        render();
+        if (container) handleStepError(document.getElementById("step-panel"), err);
+      });
+  }
 
-    container.appendChild(el("div", { class: "field" }, [el("label", { text: "Archivo" }), fileInput]));
-    container.appendChild(el("div", { class: "field" }, [el("label", { text: "Asociar a" }), targetSel]));
-    container.appendChild(el("div", { class: "field" }, [el("label", { text: "Id destino (para lugar/evento)" }), idInput]));
+  // Sube una lista de archivos en secuencia, informando el resultado agregado.
+  // Se hace secuencial (y no en paralelo) para que la desambiguacion de nombres
+  // del backend (`slug-1.jpg`, `slug-2.jpg`) sea determinista.
+  function uploadFiles(container, files, target, entityId) {
+    var lista = Array.prototype.slice.call(files);
+    if (!lista.length) return;
 
-    container.appendChild(el("button", {
-      class: "btn", text: "Subir recurso",
-      onclick: function () {
-        if (!fileInput.files || !fileInput.files[0]) {
-          renderError(container, { cause: "Selecciona un archivo primero.", fix: "", doc: "" });
-          return;
-        }
+    var subidos = [];
+    var fallidos = [];
+    var panel = document.getElementById("step-panel");
+    var progreso = el("p", { class: "hint", text: "Subiendo 0 de " + lista.length + "..." });
+    container.appendChild(progreso);
+
+    var cadena = Promise.resolve();
+    lista.forEach(function (file) {
+      cadena = cadena.then(function () {
         var fd = new FormData();
-        fd.append("file", fileInput.files[0]);
-        if (targetSel.value) fd.append("target", targetSel.value);
-        if (idInput.value) fd.append("id", idInput.value);
-        apiRequest("POST", "/api/assets", { form: fd })
+        fd.append("file", file);
+        if (target) fd.append("target", target);
+        if (entityId) fd.append("id", entityId);
+        return apiRequest("POST", "/api/assets", { form: fd })
           .then(function (res) {
+            subidos.push(res.path);
             if (res.document) {
-              // El asset se enlazo al contrato (tourism-data o theme-tokens).
               if (res.document.places || res.document.events) state.server["tourism-data"] = res.document;
               else state.server["theme-tokens"] = res.document;
             }
-            markDone("assets");
-            renderOk(document.getElementById("step-panel"), "Recurso guardado en: " + res.path);
           })
-          .catch(function (err) { handleStepError(container, err); });
+          .catch(function (err) {
+            var msg = err && err.__wizardError ? err.normalized.cause : "error de red";
+            fallidos.push(file.name + ": " + msg);
+          })
+          .then(function () {
+            progreso.textContent = "Subiendo " + (subidos.length + fallidos.length) + " de " + lista.length + "...";
+          });
+      });
+    });
+
+    cadena.then(function () {
+      if (subidos.length) markDone("assets");
+      return refreshAssets(container);
+    }).then(function () {
+      panel = document.getElementById("step-panel");
+      if (subidos.length) {
+        renderOk(panel, subidos.length === 1
+          ? "Se subio 1 recurso."
+          : "Se subieron " + subidos.length + " recursos.");
       }
+      // Los fallos se muestran uno por uno: el usuario necesita saber CUAL
+      // archivo fallo y por que, no un "hubo errores" generico.
+      if (fallidos.length) {
+        renderError(panel, {
+          cause: "No se pudieron subir " + fallidos.length + " archivo(s).",
+          fix: fallidos.join(" | "),
+          doc: ""
+        });
+      }
+    });
+  }
+
+  function renderAssets(container) {
+    container.appendChild(el("h2", { text: "5. Recursos (imagenes y logo)" }));
+    container.appendChild(el("p", { class: "hint", text: "Arrastra las fotos o elegilas de tu computadora. Podes subir varias a la vez. Formatos: jpg, png, webp, gif, svg, avif (hasta 10 MB cada una)." }));
+
+    // --- Destino de la carga ---
+    var d = state.draft.asset || (state.draft.asset = { target: "", id: "" });
+    var lugares = entityOptions("places");
+    var eventos = entityOptions("events");
+
+    var destinos = [
+      { value: "", label: "Sin asociar (solo subir a la galeria)" },
+      { value: "logo", label: "Logo de la marca" }
+    ];
+    if (lugares.length) destinos.push({ value: "place", label: "Foto de un lugar" });
+    if (eventos.length) destinos.push({ value: "event", label: "Foto de un evento" });
+
+    // Al cambiar el destino hay que re-renderizar: de `target` depende que
+    // aparezca (o no) el selector de lugar/evento de abajo.
+    container.appendChild(selectField("Asociar a", d, "target", destinos, null, function () {
+      d.id = "";
+      render();
     }));
+
+    // El id destino se ELIGE por nombre; solo aparece si el destino lo requiere.
+    if (d.target === "place" || d.target === "event") {
+      var opciones = d.target === "place" ? lugares : eventos;
+      container.appendChild(
+        selectField(
+          d.target === "place" ? "¿A que lugar?" : "¿A que evento?",
+          d, "id", opciones, "Elegi uno"
+        )
+      );
+    }
+    if ((d.target === "place" && !lugares.length) || (d.target === "event" && !eventos.length)) {
+      container.appendChild(el("p", { class: "hint", text: "Todavia no hay entradas para asociar. Cargalas en los pasos anteriores." }));
+    }
+
+    // --- Zona de arrastre + selector de archivos ---
+    var fileInput = el("input", {
+      type: "file", accept: "image/*", multiple: true, class: "visually-hidden",
+      onchange: function (e) {
+        uploadFiles(container, e.target.files, d.target, d.id);
+        e.target.value = "";
+      }
+    });
+
+    var dropzone = el("div", {
+      class: "dropzone", tabindex: "0", role: "button",
+      onclick: function () { fileInput.click(); },
+      onkeydown: function (e) {
+        // Accesible por teclado: Enter/Espacio abren el selector de archivos.
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+      },
+      ondragover: function (e) { e.preventDefault(); dropzone.classList.add("is-over"); },
+      ondragleave: function () { dropzone.classList.remove("is-over"); },
+      ondrop: function (e) {
+        e.preventDefault();
+        dropzone.classList.remove("is-over");
+        if (e.dataTransfer && e.dataTransfer.files) {
+          uploadFiles(container, e.dataTransfer.files, d.target, d.id);
+        }
+      }
+    }, [
+      el("p", { class: "dropzone-title", text: "Arrastra las imagenes aca" }),
+      el("p", { class: "dropzone-hint", text: "o hace clic para elegirlas" })
+    ]);
+
+    container.appendChild(dropzone);
+    container.appendChild(fileInput);
+
+    // --- Galeria de lo ya cargado ---
+    if (state.assets == null) {
+      container.appendChild(el("p", { class: "hint", text: "Cargando galeria..." }));
+      refreshAssets(container);
+      return;
+    }
+
+    var galeria = el("div", { class: "entity-section" });
+    galeria.appendChild(el("h3", { text: "Galeria (" + state.assets.length + ")" }));
+
+    if (!state.assets.length) {
+      galeria.appendChild(el("p", { class: "empty-state", text: "Todavia no subiste ninguna imagen." }));
+      container.appendChild(galeria);
+      return;
+    }
+
+    var grid = el("div", { class: "asset-grid" });
+    state.assets.forEach(function (a) {
+      var usos = a.usedBy || [];
+      grid.appendChild(el("figure", { class: "asset-card" }, [
+        el("img", {
+          class: "asset-thumb",
+          src: "/api/assets/raw/" + encodeURIComponent(a.name),
+          alt: a.name, loading: "lazy"
+        }),
+        el("figcaption", { class: "asset-caption" }, [
+          el("span", { class: "asset-name", title: a.name, text: a.name }),
+          // Saber a que entrada pertenece cada foto es lo que convierte la
+          // galeria en algo revisable (antes no habia forma de saberlo).
+          el("span", {
+            class: "asset-usage",
+            text: usos.length ? "en " + usos.join(", ") : "sin asociar"
+          }),
+          el("span", { class: "asset-size", text: Math.round(a.bytes / 1024) + " KB" })
+        ]),
+        el("button", {
+          class: "btn btn-danger btn-sm",
+          text: "Borrar",
+          onclick: function () { deleteAsset(container, a); }
+        })
+      ]));
+    });
+    galeria.appendChild(grid);
+    container.appendChild(galeria);
+  }
+
+  function deleteAsset(container, asset) {
+    var usos = asset.usedBy || [];
+    // Si la imagen esta en uso se advierte a que entrada afecta antes de borrar.
+    var aviso = usos.length
+      ? "«" + asset.name + "» se esta usando en: " + usos.join(", ") + ".\nSe quitara de esas entradas.\n\n¿Borrar igual?"
+      : "¿Borrar «" + asset.name + "»?";
+    if (!window.confirm(aviso)) return;
+
+    apiRequest("DELETE", "/api/assets/" + encodeURIComponent(asset.name))
+      .then(function () {
+        // El borrado depura las referencias del contrato: hay que recargar el
+        // estado para que las fichas dejen de contar esa foto.
+        return apiRequest("GET", "/api/state").then(function (st) {
+          state.server = st;
+          return refreshAssets(container);
+        });
+      })
+      .then(function () {
+        renderOk(document.getElementById("step-panel"), "Recurso borrado.");
+      })
+      .catch(function (err) { handleStepError(container, err); });
   }
 
   // --- Paso: Q&A (Req 5.1, 5.4) --------------------------------------------
@@ -495,12 +788,78 @@
             if (res.document) state.server["site-config"] = res.document;
             state.draft.qa = {};
             markDone("qa");
-            render();
-            renderOk(document.getElementById("step-panel"), "Q&A guardada (fuente: " + res.knowledgeSource + ").");
+            return refreshQA(container);
+          })
+          .then(function () {
+            renderOk(document.getElementById("step-panel"), "Q&A guardada.");
           })
           .catch(function (err) { handleStepError(container, err); });
       }
     }));
+
+    // --- Lista de lo ya cargado ---
+    // El Q&A alimenta al chat del sitio: sin verlo, el usuario no puede detectar
+    // duplicados ni respuestas desactualizadas. Se carga una sola vez y se
+    // refresca tras cada alta/baja.
+    if (state.qa == null) {
+      container.appendChild(el("p", { class: "hint", text: "Cargando preguntas..." }));
+      refreshQA(container);
+      return;
+    }
+
+    var section = el("div", { class: "entity-section" });
+    section.appendChild(el("h3", { text: "Preguntas cargadas (" + state.qa.length + ")" }));
+
+    if (!state.qa.length) {
+      section.appendChild(el("p", { class: "empty-state", text: "Todavia no cargaste ninguna pregunta. El chat del sitio usara estas respuestas." }));
+      container.appendChild(section);
+      return;
+    }
+
+    var ul = el("ul", { class: "entity-list" });
+    state.qa.forEach(function (item) {
+      ul.appendChild(el("li", { class: "entity-item" }, [
+        el("div", { class: "entity-row" }, [
+          el("div", { class: "entity-main" }, [
+            el("span", { class: "entity-name", text: item.question }),
+            el("span", { class: "entity-meta", text: item.answer })
+          ]),
+          el("div", { class: "entity-actions" }, [
+            el("button", {
+              class: "btn btn-danger btn-sm", text: "Borrar",
+              onclick: function () { deleteQA(container, item); }
+            })
+          ])
+        ])
+      ]));
+    });
+    section.appendChild(ul);
+    container.appendChild(section);
+  }
+
+  function refreshQA(container) {
+    return apiRequest("GET", "/api/qa")
+      .then(function (res) {
+        state.qa = res.entries || [];
+        render();
+      })
+      .catch(function (err) {
+        // Mismo motivo que en `refreshAssets`: salir de `null` para no dejar el
+        // paso atascado en "Cargando preguntas...".
+        state.qa = [];
+        render();
+        if (container) handleStepError(document.getElementById("step-panel"), err);
+      });
+  }
+
+  function deleteQA(container, item) {
+    if (!window.confirm("¿Borrar la pregunta «" + item.question + "»?")) return;
+    apiRequest("DELETE", "/api/qa/" + item.index)
+      .then(function () { return refreshQA(container); })
+      .then(function () {
+        renderOk(document.getElementById("step-panel"), "Pregunta borrada.");
+      })
+      .catch(function (err) { handleStepError(container, err); });
   }
 
   // --- Paso: Marca (Req 6.1-6.4) -------------------------------------------
@@ -521,28 +880,178 @@
       d._init = true;
     }
 
+    // Valores por defecto: sin ellos el selector de color arranca en negro y la
+    // vista previa se ve rota antes de que el usuario toque nada.
+    if (!d.primary) d.primary = "#1F2933";
+    if (!d.background) d.background = "#FFFFFF";
+    if (!d.text) d.text = "#1F2933";
+    if (!d.accent) d.accent = "#2563EB";
+    if (!d.secondary) d.secondary = "#52606D";
+
     container.appendChild(el("h2", { text: "7. Marca" }));
-    container.appendChild(el("p", { class: "hint", text: "Colores en formato hexadecimal (ej. #C1440E), tipografia y tono de voz." }));
+    container.appendChild(el("p", { class: "hint", text: "Elegi los colores y las tipografias de tu sitio. Todo lo que cambies se ve al instante en la vista previa de abajo." }));
+
+    // --- Paletas sugeridas ---
+    // Un usuario no-tecnico no tiene por que saber armar una paleta accesible
+    // desde cero. Estas combinaciones ya estan balanceadas (fondo claro, texto
+    // de alto contraste, acento diferenciado del primario) y sirven de punto de
+    // partida editable.
+    container.appendChild(el("h3", { class: "brand-legend", text: "Paletas sugeridas" }));
+    var paletas = el("div", { class: "palette-row" });
+    PALETTES.forEach(function (p) {
+      var activa = p.colors.primary.toLowerCase() === (d.primary || "").toLowerCase();
+      paletas.appendChild(el("button", {
+        class: "palette" + (activa ? " is-active" : ""),
+        type: "button",
+        title: p.name,
+        "aria-label": "Aplicar paleta " + p.name,
+        onclick: function () {
+          Object.keys(p.colors).forEach(function (k) { d[k] = p.colors[k]; });
+          render();
+        }
+      }, [
+        el("span", { class: "palette-chips" }, ["primary", "accent", "secondary", "background"].map(function (k) {
+          return el("span", { class: "palette-chip", style: "background:" + p.colors[k] });
+        })),
+        el("span", { class: "palette-name", text: p.name })
+      ]));
+    });
+    container.appendChild(paletas);
+
+    // --- Colores individuales ---
+    container.appendChild(el("h3", { class: "brand-legend", text: "Colores" }));
+    var grid = el("div", { class: "color-grid" });
+    [
+      ["primary", "Primario", "Color principal de la marca."],
+      ["accent", "Acento", "Botones, enlaces y detalles."],
+      ["background", "Fondo", "Fondo general de las paginas."],
+      ["text", "Texto", "Color del texto sobre el fondo."],
+      ["secondary", "Secundario", "Color de apoyo (opcional)."]
+    ].forEach(function (spec) {
+      grid.appendChild(colorField(spec[0], spec[1], spec[2], d));
+    });
+    container.appendChild(grid);
+
+    // --- Tipografia ---
+    container.appendChild(el("h3", { class: "brand-legend", text: "Tipografia" }));
+    container.appendChild(el("p", { class: "hint", text: "Las familias marcadas como incluidas viajan con tu sitio: se ven igual en cualquier computadora, sin depender de internet." }));
+
+    var duplas = el("div", { class: "pairing-row" });
+    FONT_PAIRINGS.forEach(function (par) {
+      var activa = par.heading === d.headingFont && par.body === d.bodyFont;
+      duplas.appendChild(el("button", {
+        class: "pairing" + (activa ? " is-active" : ""), type: "button",
+        onclick: function () { d.headingFont = par.heading; d.bodyFont = par.body; render(); }
+      }, [
+        el("span", { class: "pairing-sample", style: "font-family:" + fontStackOf(par.heading), text: "Aa" }),
+        el("span", { class: "pairing-names", text: par.heading + " + " + par.body })
+      ]));
+    });
+    container.appendChild(duplas);
 
     container.appendChild(el("div", { class: "row" }, [
-      textField("Color primario (#hex)", d, "primary"),
-      textField("Color secundario (#hex, opcional)", d, "secondary")
+      fontSelect("Tipografia de titulos", d, "headingFont"),
+      fontSelect("Tipografia de cuerpo", d, "bodyFont")
     ]));
-    container.appendChild(el("div", { class: "row" }, [
-      textField("Color de fondo (#hex)", d, "background"),
-      textField("Color de texto (#hex)", d, "text")
-    ]));
-    container.appendChild(textField("Color de acento (#hex, opcional)", d, "accent"));
-    container.appendChild(el("div", { class: "row" }, [
-      textField("Tipografia de titulos", d, "headingFont"),
-      textField("Tipografia de cuerpo", d, "bodyFont")
-    ]));
+
     container.appendChild(textField("Tono de voz (opcional)", d, "tone"));
+
+    // --- Vista previa en vivo ---
+    // Es lo que convierte este paso de "cinco campos de texto" en una decision
+    // informada: el usuario ve la identidad aplicada antes de generar el sitio.
+    container.appendChild(el("h3", { class: "brand-legend", text: "Vista previa" }));
+    container.appendChild(brandPreview(d));
 
     container.appendChild(el("button", {
       class: "btn", text: "Guardar marca",
       onclick: function () { saveBrand(container); }
     }));
+  }
+
+  // --- Piezas del paso Marca ------------------------------------------------
+
+  // Campo de color: selector nativo + hex escribible, sincronizados en ambos
+  // sentidos. El selector solo entiende `#rrggbb`, asi que el texto se valida
+  // antes de reflejarlo (si no, tipear "#ab" reseteaba el selector a negro).
+  function colorField(key, label, hint, d) {
+    var HEX = /^#[0-9a-fA-F]{6}$/;
+    var picker = el("input", {
+      type: "color", class: "color-swatch", value: HEX.test(d[key] || "") ? d[key] : "#000000",
+      "aria-label": label,
+      oninput: function (e) { d[key] = e.target.value.toUpperCase(); texto.value = d[key]; repaintPreview(d); }
+    });
+    var texto = el("input", {
+      type: "text", class: "color-hex", value: d[key] || "", spellcheck: "false",
+      oninput: function (e) {
+        var v = e.target.value.trim();
+        d[key] = v;
+        if (HEX.test(v)) { picker.value = v; repaintPreview(d); }
+      }
+    });
+    return el("div", { class: "color-field" }, [
+      el("label", { text: label }),
+      el("div", { class: "color-controls" }, [picker, texto]),
+      el("small", { class: "hint", text: hint })
+    ]);
+  }
+
+  // Desplegable de familias del catalogo. Antes era texto libre: habia que saber
+  // de memoria el nombre exacto de una fuente, y cualquier error dejaba al sitio
+  // con la tipografia por defecto sin avisar.
+  function fontSelect(label, d, key) {
+    var sel = el("select", {
+      onchange: function (e) { d[key] = e.target.value; render(); }
+    });
+    FONT_CATALOG.forEach(function (f) {
+      var incluida = isSelfHosted(f.name);
+      sel.appendChild(el("option", {
+        value: f.name,
+        text: f.name + (incluida ? "  (incluida)" : "  (del sistema)")
+      }));
+    });
+    sel.value = d[key] || "";
+    return el("div", { class: "field" }, [el("label", { text: label }), sel]);
+  }
+
+  // Maqueta reducida del sitio con los tokens elegidos. Usa las MISMAS variables
+  // CSS que la plantilla (--color-*, --font-*), de modo que lo que se ve aca es
+  // lo que se va a generar.
+  function brandPreview(d) {
+    var box = el("div", { class: "brand-preview", id: "brand-preview" }, [
+      el("div", { class: "bp-bar" }, [
+        el("span", { class: "bp-brand", text: (state.server["tourism-data"] || {}).site
+          ? ((state.server["tourism-data"] || {}).site.name || "Tu sitio") : "Tu sitio" }),
+        el("span", { class: "bp-cta", text: "Contacto" })
+      ]),
+      el("div", { class: "bp-body" }, [
+        el("p", { class: "bp-eyebrow", text: "TU REGION" }),
+        el("h4", { class: "bp-title", text: "Un titular de ejemplo" }),
+        el("p", { class: "bp-text", text: "Asi se va a ver el texto de tu sitio con los colores y las tipografias que elegiste." }),
+        el("div", { class: "bp-actions" }, [
+          el("span", { class: "bp-btn", text: "Boton principal" }),
+          el("span", { class: "bp-btn ghost", text: "Secundario" })
+        ])
+      ])
+    ]);
+    applyPreviewVars(box, d);
+    return box;
+  }
+
+  // Escribe los tokens elegidos como variables CSS sobre el nodo de la preview.
+  function applyPreviewVars(box, d) {
+    box.style.setProperty("--bp-primary", d.primary || "#1F2933");
+    box.style.setProperty("--bp-accent", d.accent || "#2563EB");
+    box.style.setProperty("--bp-bg", d.background || "#FFFFFF");
+    box.style.setProperty("--bp-text", d.text || "#1F2933");
+    box.style.setProperty("--bp-heading", fontStackOf(d.headingFont));
+    box.style.setProperty("--bp-body", fontStackOf(d.bodyFont));
+  }
+
+  // Repinta sin re-renderizar el paso: al arrastrar el selector de color, un
+  // `render()` completo recrearia el input y cortaria el gesto del usuario.
+  function repaintPreview(d) {
+    var box = document.getElementById("brand-preview");
+    if (box) applyPreviewVars(box, d);
   }
 
   function saveBrand(container) {
@@ -992,12 +1501,174 @@
     return el("div", { class: "field" }, [el("label", { text: labelText }), ta]);
   }
 
-  function appendSavedList(container, title, items, describe) {
-    if (!items || !items.length) return;
-    container.appendChild(el("h3", { text: title }));
-    var ul = el("ul", { class: "saved-list" });
-    items.forEach(function (it) { ul.appendChild(el("li", { text: describe(it) })); });
-    container.appendChild(ul);
+  // Campo <select> enlazado a `obj[key]`. `options` es una lista de
+  // {value,label}; se antepone `placeholder` como opcion vacia cuando se indica.
+  // `onChanged` es un callback opcional para los selects cuyo valor cambia QUE
+  // se muestra despues (p. ej. el destino de un asset decide si aparece el
+  // selector de lugar/evento); sin el, el campo dependiente no se dibujaria
+  // hasta el siguiente re-render.
+  function selectField(labelText, obj, key, options, placeholder, onChanged) {
+    var sel = el("select", {
+      onchange: function (e) {
+        obj[key] = e.target.value;
+        if (onChanged) onChanged(e.target.value);
+      }
+    });
+    if (placeholder != null) {
+      sel.appendChild(el("option", { value: "", text: placeholder }));
+    }
+    options.forEach(function (opt) {
+      sel.appendChild(el("option", { value: opt.value, text: opt.label }));
+    });
+    sel.value = obj[key] != null ? obj[key] : "";
+    return el("div", { class: "field" }, [el("label", { text: labelText }), sel]);
+  }
+
+  // Opciones {value,label} de los Places/Events ya cargados. Sustituyen a los
+  // campos donde antes habia que TIPEAR el id (`placeId`, destino de un asset):
+  // el usuario elige por nombre y la UI manda el id, que es lo que el usuario
+  // no-tecnico no tiene por que conocer.
+  function entityOptions(entityKey) {
+    var items = (state.server["tourism-data"] || {})[entityKey] || [];
+    return items.map(function (it) {
+      return { value: it.id, label: it.name || it.id };
+    });
+  }
+
+  // Categorias declaradas en el contrato, para ofrecerlas como <select> en vez
+  // de texto libre (evita que "Naturaleza" y "naturaleza" convivan como dos
+  // categorias distintas). Si el contrato aun no declara ninguna, se cae a un
+  // campo de texto (ver `renderPlaces`).
+  function categoryOptions() {
+    var cats = (state.server["tourism-data"] || {}).categories || [];
+    return cats.map(function (c) {
+      return { value: c.id, label: c.label || c.id };
+    });
+  }
+
+  // Estado de "que fila esta en edicion", por entidad. Guarda el id abierto y el
+  // borrador de sus campos, para que re-renderizar no cierre el formulario.
+  var editing = { places: null, events: null };
+  var editDraft = {};
+
+  // --- Lista de entidades cargadas, con editar y borrar --------------------
+  // Reemplaza al antiguo `appendSavedList` (solo texto): ademas de mostrar lo
+  // cargado, permite corregir y dar de baja sin salir del paso. Editar hace PUT
+  // y borrar hace DELETE sobre /api/tourism-data/<entity>/<id>, que delegan en
+  // `puriq.core.Puriq` (mismo punto de orquestacion que CLI y MCP).
+  //
+  // `fields` describe los campos editables: [{key, label, type, options}].
+  function appendEntityList(container, opts) {
+    var items = opts.items || [];
+    var section = el("div", { class: "entity-section" });
+    section.appendChild(
+      el("h3", { text: opts.title + " (" + items.length + ")" })
+    );
+
+    // Estado vacio explicito: antes la lista simplemente no se dibujaba y el
+    // usuario no sabia si habia guardado o no.
+    if (!items.length) {
+      section.appendChild(el("p", { class: "empty-state", text: opts.emptyText }));
+      container.appendChild(section);
+      return;
+    }
+
+    var ul = el("ul", { class: "entity-list" });
+    items.forEach(function (item) {
+      var abierto = editing[opts.entity] === item.id;
+      var li = el("li", { class: "entity-item" + (abierto ? " is-editing" : "") });
+
+      li.appendChild(el("div", { class: "entity-row" }, [
+        el("div", { class: "entity-main" }, [
+          el("span", { class: "entity-name", text: item.name || item.id }),
+          el("span", { class: "entity-meta", text: opts.describe(item) })
+        ]),
+        el("div", { class: "entity-actions" }, [
+          el("button", {
+            class: "btn btn-ghost btn-sm",
+            text: abierto ? "Cancelar" : "Editar",
+            onclick: function () {
+              editing[opts.entity] = abierto ? null : item.id;
+              editDraft = abierto ? {} : JSON.parse(JSON.stringify(item));
+              render();
+            }
+          }),
+          el("button", {
+            class: "btn btn-danger btn-sm",
+            text: "Borrar",
+            onclick: function () { deleteEntity(container, opts, item); }
+          })
+        ])
+      ]));
+
+      if (abierto) {
+        var form = el("div", { class: "entity-edit" });
+        opts.fields.forEach(function (f) {
+          if (f.type === "textarea") {
+            form.appendChild(textareaField(f.label, editDraft, f.key));
+          } else if (f.type === "select") {
+            form.appendChild(
+              selectField(f.label, editDraft, f.key, f.options(), f.placeholder)
+            );
+          } else {
+            form.appendChild(textField(f.label, editDraft, f.key));
+          }
+        });
+        form.appendChild(el("button", {
+          class: "btn", text: "Guardar cambios",
+          onclick: function () { saveEntityEdit(container, opts, item); }
+        }));
+        li.appendChild(form);
+      }
+
+      ul.appendChild(li);
+    });
+    section.appendChild(ul);
+    container.appendChild(section);
+  }
+
+  function saveEntityEdit(container, opts, item) {
+    var payload = {};
+    opts.fields.forEach(function (f) {
+      var v = editDraft[f.key];
+      // Solo se envian los campos con valor: el backend hace merge y los
+      // ausentes no se tocan (no se pisa `images` ni nada que no este en el form).
+      if (v != null && v !== "") payload[f.key] = v;
+    });
+    apiRequest("PUT", "/api/tourism-data/" + opts.entity + "/" + encodeURIComponent(item.id), { json: payload })
+      .then(function (res) {
+        state.server["tourism-data"] = res.document;
+        editing[opts.entity] = null;
+        editDraft = {};
+        render();
+        renderOk(document.getElementById("step-panel"), "Cambios guardados.");
+      })
+      .catch(function (err) { handleStepError(container, err); });
+  }
+
+  function deleteEntity(container, opts, item) {
+    var nombre = item.name || item.id;
+    if (!window.confirm("¿Borrar «" + nombre + "»? Esta accion no se puede deshacer.")) return;
+    apiRequest("DELETE", "/api/tourism-data/" + opts.entity + "/" + encodeURIComponent(item.id))
+      .then(function (res) {
+        state.server["tourism-data"] = res.document;
+        editing[opts.entity] = null;
+        render();
+        var panel = document.getElementById("step-panel");
+        var afectados = res.affectedEvents || [];
+        // Integridad referencial: al borrar un Place, los Events que lo
+        // referenciaban quedan sin `placeId`. Se avisa en vez de callarlo,
+        // resolviendo el id a nombre (el slug no le dice nada al usuario).
+        var nombresAfectados = afectados.map(function (id) {
+          var ev = ((state.server["tourism-data"] || {}).events || [])
+            .filter(function (e) { return e.id === id; })[0];
+          return ev && ev.name ? ev.name : id;
+        });
+        renderOk(panel, nombresAfectados.length
+          ? "Se borro «" + nombre + "». Eventos que quedaron sin lugar: " + nombresAfectados.join(", ")
+          : "Se borro «" + nombre + "».");
+      })
+      .catch(function (err) { handleStepError(container, err); });
   }
 
   function toNum(v) {
@@ -1051,6 +1722,16 @@
     document.getElementById("btn-prev").addEventListener("click", function () { goTo(state.current - 1); });
     document.getElementById("btn-next").addEventListener("click", function () { goTo(state.current + 1); });
 
+    // Catalogo tipografico: se pide una sola vez y se inyectan los `@font-face`
+    // para que la vista previa del paso Marca muestre la tipografia REAL. Si
+    // falla, la preview cae a las fuentes del sistema (no bloquea el wizard).
+    apiRequest("GET", "/api/fonts")
+      .then(function (res) {
+        state.fontFiles = res.files || [];
+        injectFontFaces(state.fontFiles);
+      })
+      .catch(function () { state.fontFiles = []; });
+
     // Prellenar desde el estado del servidor (Req 1.5).
     apiRequest("GET", "/api/state")
       .then(function (data) {
@@ -1064,6 +1745,28 @@
         toast("No se pudo cargar el estado previo; se arranca en blanco.", "err");
       })
       .then(function () { render(); });
+  }
+
+  // Declara en el propio wizard las fuentes que sirve `/fonts`, para que la
+  // vista previa de Marca se vea con la tipografia que realmente va a llevar el
+  // sitio y no con una aproximacion del sistema.
+  function injectFontFaces(files) {
+    if (!files || !files.length) return;
+    var reglas = files.map(function (archivo) {
+      var m = /^(.+)-(var|\d+)\.woff2$/.exec(archivo);
+      if (!m) return "";
+      var entry = FONT_CATALOG.filter(function (f) { return f.slug === m[1]; })[0];
+      if (!entry) return "";
+      // Una fuente variable cubre todo el rango con un solo archivo.
+      var peso = m[2] === "var" ? "100 900" : m[2];
+      return '@font-face{font-family:"' + entry.name + '";font-style:normal;' +
+        "font-weight:" + peso + ";font-display:swap;" +
+        'src:local("' + entry.name + '"),url("/fonts/' + archivo + '") format("woff2");}';
+    }).filter(Boolean).join("\n");
+    if (!reglas) return;
+    var style = document.createElement("style");
+    style.textContent = reglas;
+    document.head.appendChild(style);
   }
 
   if (document.readyState === "loading") {
