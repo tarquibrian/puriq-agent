@@ -82,6 +82,7 @@
         "enabled": { "type": "boolean" },
         "order": { "type": "integer", "minimum": 1 },
         "label": { "type": "string" },
+        "display": { "enum": ["floating", "section"], "description": "Cómo se muestra el asistente: 'floating' es un botón burbuja fijo presente en todas las páginas (por defecto); 'section' lo inserta como una sección más de la portada." },
         "persona": { "type": "string", "description": "Tono/personalidad del asistente." },
         "knowledgeSource": { "type": "string", "description": "Ruta a los Q&A que alimentan el RAG." },
         "apiEndpoint": { "type": "string", "description": "URL opcional del proxy RAG (Bedrock). Si se define, el asistente consulta este endpoint; si no, usa recuperacion client-side sobre el FAQ publico." }

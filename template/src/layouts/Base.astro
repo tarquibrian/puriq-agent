@@ -9,7 +9,8 @@
 // `--container-*`, `--motion-*`, ...).
 import { resolveTokens, tokensToCssVars } from "../design-system/defaults";
 import { fontStack, fontFaces } from "../design-system/fonts";
-import { site, themeTokens, siteConfig, activeModules } from "../lib/data";
+import { site, themeTokens, siteConfig, activeModules, chatFloating } from "../lib/data";
+import Chat from "../modules/chatweb/Chat.astro";
 
 // Conjunto completo de variables CSS a partir del tema del usuario + defaults.
 // `tokensToCssVars` devuelve claves ya prefijadas con `--` (p.ej. "--color-primary"),
@@ -57,15 +58,17 @@ const faceRules = fontFaces([headingFamily, bodyFamily], availableFonts);
 const variant = siteConfig.layout ?? "clasico";
 const nav = activeModules();
 
-// CTA del header (data-driven): se prefiere un modulo de contacto/chat; si no
-// existe, se enlaza al ultimo modulo activo; si no hay modulos, cae a "#" de
-// forma elegante. La etiqueta reutiliza el label del modulo elegido.
+// CTA del header (data-driven). Si el asistente flota, el CTA lo ABRE (marcado
+// con `data-open-chat`, que el script del chat escucha), porque el asistente ya
+// no es una seccion con ancla a la que enlazar. Si no, se prefiere un modulo de
+// contacto/chat de la navegacion; si no lo hay, el ultimo modulo activo.
 const ctaTarget =
   nav.find((m) => ["chatweb", "chat", "contacto", "contact"].includes(m.key)) ??
   nav[nav.length - 1] ??
   null;
-const ctaHref = ctaTarget ? `#${ctaTarget.key}` : "#";
-const ctaLabel = ctaTarget?.label ?? "Contacto";
+const ctaOpensChat = chatFloating;
+const ctaHref = ctaOpensChat ? "#" : ctaTarget ? `#${ctaTarget.key}` : "#";
+const ctaLabel = ctaOpensChat ? "Asistente" : ctaTarget?.label ?? "Contacto";
 
 // Datos de contacto del organismo (`Site_Config.contact`), para el pie.
 const contactEmail = siteConfig.contact?.email?.trim() ?? "";
@@ -559,7 +562,9 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
               {nav.map((m) => <a href={`#${m.key}`}>{m.label}</a>)}
             </nav>
           </details>
-          <a class="header-cta" href={ctaHref}>{ctaLabel}</a>
+          {/* `data-open-chat` solo cuando el asistente flota: el script del
+              chat lo intercepta y abre el panel en vez de navegar. */}
+          <a class="header-cta" href={ctaHref} data-open-chat={ctaOpensChat ? "" : undefined}>{ctaLabel}</a>
         </div>
       </div>
     </header>
@@ -606,6 +611,12 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
         {site.region && <p class="footer-region">{site.region}</p>}
       </div>
     </footer>
+
+    {/* Asistente flotante: widget global presente en TODAS las paginas (por eso
+        vive en el layout y no en la home). Solo se monta cuando el asistente
+        esta activo y en modo "floating"; en modo "section" lo renderiza la home
+        como una seccion mas. */}
+    {chatFloating && <Chat mode="floating" />}
 
     <!-- Scroll-reveal (dependency-free). Robusto: si no hay IntersectionObserver
          o el usuario prefiere movimiento reducido, se marca todo visible al

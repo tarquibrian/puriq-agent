@@ -1,93 +1,88 @@
 ---
 // Modulo CHATWEB: asistente que responde dudas del visitante sobre el destino.
 //
-// Dos caminos, resueltos en runtime en el cliente:
-//   A) Por defecto (sin `apiEndpoint`): recuperacion 100% client-side sobre la
-//      base de conocimiento publica `faq` (inyectada en build desde content/).
-//      No hay red ni secretos: solo se usa el Q&A publico embebido.
-//   B) Seam a futuro: si `siteConfig.modules.chatweb.apiEndpoint` esta definido,
-//      el widget hace POST {question} a ese endpoint (proxy RAG de Bedrock que
-//      se agregara en el dia 4) y renderiza la respuesta devuelta. El endpoint
-//      es el UNICO lugar donde vivirian credenciales; el cliente nunca las ve.
+// Dos MODOS de presentacion (prop `mode`, derivada de `chatweb.display`):
+//   - "floating" (por defecto): un boton burbuja fijo en la esquina que abre un
+//     panel de chat. Vive en el layout (Base.astro), asi que acompana al
+//     visitante en TODAS las paginas, no solo en la portada.
+//   - "section": una seccion mas de la portada, en el orden configurado.
+// El marcado de la conversacion (registro, chips, formulario) es COMUN a ambos
+// modos: lo aporta `ChatConversation.astro`. Aqui solo cambia el envoltorio.
 //
-// Uplift de presentacion (DD-7, Req 9): el marcado usa los UI_Component
-// `Section`, `Card` y `Button` y variables CSS de Design_Tokens. Los mensajes
-// se presentan como burbujas comodas y el formulario con campos redondeados. La
-// logica de recuperacion client-side, el `faq` de entrada, el comportamiento de
-// `apiEndpoint` y los `id` del DOM (`chat-log`, `chat-form`, `chat-input`) y el
-// campo `name="question"` se conservan intactos (Req 9.4, 16.3).
+// Dos CAMINOS de respuesta, resueltos en el cliente:
+//   A) Por defecto (sin `apiEndpoint`): recuperacion 100% client-side sobre la
+//      base de conocimiento publica `faq`. No hay red ni secretos.
+//   B) Si `chatweb.apiEndpoint` esta definido: POST {question} a ese endpoint
+//      (proxy RAG). El endpoint es el UNICO lugar donde vivirian credenciales;
+//      el cliente nunca las ve.
 import { siteConfig, faq } from "../../lib/data";
 import Section from "../../design-system/ui/Section.astro";
 import Card from "../../design-system/ui/Card.astro";
-import Button from "../../design-system/ui/Button.astro";
+import ChatConversation from "./ChatConversation.astro";
+
+interface Props {
+  /** "floating" (widget global) | "section" (seccion de la portada). */
+  mode?: "floating" | "section";
+}
+const { mode = "section" } = Astro.props as Props;
+
 const persona = siteConfig.modules?.chatweb?.persona ?? "asistente turistico";
 const apiEndpoint: string = siteConfig.modules?.chatweb?.apiEndpoint ?? "";
 const hasKnowledge = Array.isArray(faq) && faq.length > 0;
-// Primeras preguntas del Q&A publicado, como sugerencias pulsables. Sale del
-// mismo `faq` que alimenta la recuperacion, asi que una sugerencia SIEMPRE tiene
-// respuesta (no se prometen preguntas que el asistente no sabe contestar).
+// Primeras preguntas del Q&A publicado, como sugerencias pulsables. Salen del
+// mismo `faq` que alimenta la recuperacion: una sugerencia SIEMPRE tiene
+// respuesta. En el panel flotante caben menos, asi que se recortan a 3.
+const maxSugerencias = mode === "floating" ? 3 : 4;
 const sugerencias: string[] = hasKnowledge
-  ? faq.map((e: any) => (e?.question ?? "").trim()).filter(Boolean).slice(0, 4)
+  ? faq.map((e: any) => (e?.question ?? "").trim()).filter(Boolean).slice(0, maxSugerencias)
   : [];
 // Datos que se pasan al script del cliente (solo Q&A publico + config no secreta).
 const clientData = { persona, apiEndpoint, faq };
+
+const conversationProps = { persona, hasKnowledge, apiEndpoint, sugerencias };
 ---
-{/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
-<Section id="chatweb" eyebrow="Pregúntanos" title="Asistente turístico">
-  {/* Composicion a dos columnas: contexto a la izquierda, conversacion a la
-    * derecha. Antes el modulo era una tarjeta angosta y sola en una seccion
-    * ancha, que quedaba perdida y cortaba el ritmo de la pagina. */}
-  <div class="chat-layout">
-    <aside class="chat-aside">
-      <p class="chat-lead">
-        Resuelve tus dudas al instante con la informacion oficial publicada del
-        destino.
-      </p>
+{mode === "floating" ? (
+  /* Widget flotante: boton burbuja + panel plegable. `<details>` da el
+     abrir/cerrar accesible por teclado y sin JS; el script solo mejora el foco
+     y cierra con Escape. */
+  <details class="chat-fab" id="chat-fab">
+    <summary class="chat-fab-btn" aria-label={`Abrir asistente: ${persona}`}>
+      {/* Icono de chat (abierto) y de cerrar (X); el CSS alterna cual se ve. */}
+      <svg class="chat-fab-icon chat-fab-open" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 5h16v11H8l-4 4V5Z" />
+        <path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" />
+      </svg>
+      <svg class="chat-fab-icon chat-fab-close" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </summary>
 
-      {/* Preguntas sugeridas tomadas del propio Q&A del sitio. Una caja de texto
-        * vacia no le dice al visitante QUE puede preguntar; estas muestran el
-        * alcance real del asistente y, al pulsarlas, envian la consulta. Se
-        * limitan a cuatro para no convertir la ayuda en un muro de texto. */}
-      {sugerencias.length > 0 && (
-        <div class="chat-suggest">
-          <p class="chat-suggest-title">Preguntas frecuentes</p>
-          <ul class="chat-chips">
-            {sugerencias.map((q) => (
-              <li>
-                <button type="button" class="chat-chip" data-question={q}>{q}</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </aside>
-
-    <Card class="chat-card">
-      <div id="chat-log" class="chat-log">
-        <div class="chat-msg chat-bot">
-          Hola, soy tu {persona}. Preguntame sobre lugares, eventos y como llegar.
-        </div>
-        {!hasKnowledge && !apiEndpoint && (
-          <div class="chat-msg chat-bot chat-muted">
-            Todavia no tengo informacion cargada. Volve a consultarme cuando el sitio
-            tenga sus preguntas frecuentes publicadas.
-          </div>
-        )}
+    <div class="chat-panel" role="dialog" aria-label={`Asistente: ${persona}`}>
+      <div class="chat-panel-head">
+        <span class="chat-panel-title">Asistente</span>
+        <span class="chat-panel-sub">{persona}</span>
       </div>
-      <form id="chat-form" class="chat-form">
-        <input
-          id="chat-input"
-          class="chat-input"
-          name="question"
-          autocomplete="off"
-          placeholder="Escribi tu pregunta..."
-        />
-        <Button type="submit">Enviar</Button>
-      </form>
+      <ChatConversation {...conversationProps} />
       <small class="chat-note">Responde con la informacion oficial publicada del destino.</small>
-    </Card>
-  </div>
-</Section>
+    </div>
+  </details>
+) : (
+  /* Seccion de la portada: contexto a la izquierda, conversacion a la derecha. */
+  <Section id="chatweb" eyebrow="Pregúntanos" title="Asistente turístico">
+    <div class="chat-layout">
+      <aside class="chat-aside">
+        <p class="chat-lead">
+          Resuelve tus dudas al instante con la informacion oficial publicada del
+          destino.
+        </p>
+      </aside>
+      <Card class="chat-card">
+        <ChatConversation {...conversationProps} />
+        <small class="chat-note">Responde con la informacion oficial publicada del destino.</small>
+      </Card>
+    </div>
+  </Section>
+)}
 
 <script define:vars={{ clientData }}>
   // === Configuracion inyectada desde el servidor (Q&A publico, sin secretos) ===
@@ -115,7 +110,7 @@ const clientData = { persona, apiEndpoint, faq };
     const clean = (text || "")
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9\s]/g, " ");
     const out = [];
     for (const tok of clean.split(/\s+/)) {
@@ -165,9 +160,7 @@ const clientData = { persona, apiEndpoint, faq };
 
   // La apariencia de la burbuja vive ENTERA en el CSS (`.chat-msg`, `.chat-bot`,
   // `.chat-user`, declaradas como globales porque estos nodos se crean en
-  // tiempo de ejecucion y no llevan el atributo de alcance de Astro). Antes solo
-  // el mensaje del usuario se estilaba, con estilos en linea; la respuesta del
-  // asistente salia sin burbuja, como texto suelto en el panel.
+  // tiempo de ejecucion y no llevan el atributo de alcance de Astro).
   function appendMessage(text, who) {
     const div = document.createElement("div");
     div.className = "chat-msg chat-" + who;
@@ -231,13 +224,36 @@ const clientData = { persona, apiEndpoint, faq };
       });
     });
   }
+
+  // --- Mejoras del widget flotante (solo si existe el `<details>`) ---
+  const fab = document.getElementById("chat-fab");
+  if (fab) {
+    // Al abrir, se enfoca el campo para escribir de inmediato.
+    fab.addEventListener("toggle", () => {
+      if (fab.open && input) input.focus();
+    });
+    // Escape cierra el panel, como espera cualquier dialogo.
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && fab.open) fab.open = false;
+    });
+    // Un CTA en otra parte de la pagina (p. ej. el boton del header) puede abrir
+    // el asistente marcandose con `data-open-chat`.
+    document.querySelectorAll("[data-open-chat]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        fab.open = true;
+        if (input) input.focus();
+      });
+    });
+  }
 </script>
 
 <style>
   /* Presentacion derivada de variables CSS de Design_Tokens (Req 9.1). */
 
-  /* Dos columnas desde el breakpoint medio; una sola en movil, con el contexto
-   * arriba y la conversacion debajo. */
+  /* ==========================================================================
+   * Modo SECCION (portada)
+   * ======================================================================== */
   .chat-layout {
     display: grid;
     grid-template-columns: 1fr;
@@ -247,7 +263,6 @@ const clientData = { persona, apiEndpoint, faq };
   @media (min-width: 768px) {
     .chat-layout { grid-template-columns: 1fr 1.15fr; gap: var(--space-2xl); }
   }
-
   .chat-lead {
     margin: 0 0 var(--space-lg);
     font-size: var(--fs-body);
@@ -255,112 +270,111 @@ const clientData = { persona, apiEndpoint, faq };
     color: color-mix(in srgb, var(--color-text) 72%, var(--color-background));
     max-width: 46ch;
   }
+  .chat-card { max-width: none; }
 
-  .chat-suggest-title {
-    margin: 0 0 var(--space-sm);
-    font-size: var(--fs-small);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
+  /* ==========================================================================
+   * Modo FLOTANTE (widget global)
+   * ======================================================================== */
+  .chat-fab {
+    position: fixed;
+    right: clamp(var(--space-md), 4vw, var(--space-xl));
+    bottom: clamp(var(--space-md), 4vw, var(--space-xl));
+    z-index: 100;
   }
-  .chat-chips {
+
+  /* Boton burbuja: circulo de acento con sombra, sobre cualquier contenido. */
+  .chat-fab-btn {
     list-style: none;
-    margin: 0;
-    padding: 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-  }
-  /* Chip pulsable: superficie tenue de acento, se realza al pasar el puntero. */
-  .chat-chip {
-    font: inherit;
-    font-size: var(--fs-small);
-    text-align: left;
-    padding: 0.45em 0.9em;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-left: auto;
     border-radius: var(--radius-pill);
-    border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
-    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-    color: var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-background);
+    box-shadow: var(--shadow-lg);
     cursor: pointer;
     transition:
-      background var(--motion-duration-fast) var(--motion-easing),
-      transform var(--motion-duration-fast) var(--motion-easing);
+      transform var(--motion-duration-fast) var(--motion-easing),
+      background var(--motion-duration-base) var(--motion-easing);
   }
-  .chat-chip:hover {
-    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
-    transform: translateY(-1px);
+  .chat-fab-btn:hover { transform: translateY(-2px); }
+  .chat-fab-btn::-webkit-details-marker { display: none; }
+  .chat-fab-btn:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 3px;
   }
 
-  /* La tarjeta ocupa su columna: el `container-sm` la dejaba angosta y perdida
-   * en el ancho completo de la seccion. */
-  .chat-card { max-width: none; }
-  .chat-log {
-    min-height: 5rem;
-    /* Alto comodo con desplazamiento cuando la conversacion crece. */
-    max-height: clamp(16rem, 40vh, 26rem);
-    overflow-y: auto;
-    font-size: var(--fs-body);
-    line-height: var(--lh-body);
+  /* El icono de cerrar solo se muestra con el panel abierto, y viceversa. */
+  .chat-fab-close { display: none; }
+  .chat-fab[open] .chat-fab-open { display: none; }
+  .chat-fab[open] .chat-fab-close { display: block; }
+
+  /* Panel de conversacion sobre el boton. Ancho comodo en desktop; a sangre
+   * (casi pantalla completa) en movil, donde un panelito seria incomodo. */
+  .chat-panel {
+    position: absolute;
+    right: 0;
+    bottom: calc(3.5rem + var(--space-md));
+    width: min(23rem, calc(100vw - 2 * var(--space-md)));
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
-    color: var(--color-text);
-  }
-  /* Burbujas comodas: relleno generoso y radio grande (esquina inferior
-   * "hablante" mas ajustada para dar direccion a cada mensaje).
-   *
-   * Estas reglas van en `:global()` A PROPOSITO: los mensajes de la conversacion
-   * los crea el script en tiempo de ejecucion, y esos nodos no llevan el
-   * atributo de alcance que Astro agrega al marcado renderizado. Con las reglas
-   * con alcance, solo el saludo inicial (server-rendered) se veia como burbuja y
-   * las respuestas del asistente salian como texto suelto. */
-  :global(.chat-msg) {
-    align-self: flex-start;
-    max-width: 85%;
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-lg);
-    /* Una respuesta larga sin cortes no debe ensanchar el panel. */
-    overflow-wrap: anywhere;
-  }
-  /* Burbuja del asistente: superficie sutil derivada del texto de marca. */
-  :global(.chat-bot) {
-    background: color-mix(in srgb, var(--color-text) 6%, var(--color-background));
-    border-bottom-left-radius: var(--radius-sm);
-  }
-  /* Burbuja del visitante: superficie de marca, alineada a la derecha. */
-  :global(.chat-user) {
-    align-self: flex-end;
-    background: var(--color-primary);
-    color: var(--color-background);
-    border-bottom-right-radius: var(--radius-sm);
-  }
-  :global(.chat-muted) {
-    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
-  }
-  .chat-form {
-    display: flex;
-    gap: var(--space-sm);
-    margin-top: var(--space-md);
-  }
-  .chat-input {
-    flex: 1;
-    padding: var(--space-sm) var(--space-md);
-    border: 1px solid color-mix(in srgb, var(--color-text) 25%, var(--color-background));
-    border-radius: var(--radius-pill);
-    font-family: var(--font-body);
-    font-size: var(--fs-body);
+    gap: var(--space-md);
+    padding: var(--space-lg);
     background: var(--color-background);
     color: var(--color-text);
-    transition: border-color var(--motion-duration-base) var(--motion-easing);
+    border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    /* Animacion de entrada; el estado cerrado no renderiza el panel (details). */
+    transform-origin: bottom right;
+    animation: chat-panel-in var(--motion-duration-base) var(--motion-easing);
   }
-  .chat-input:focus-visible {
-    outline: none;
-    border-color: var(--color-accent);
+  @keyframes chat-panel-in {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to { opacity: 1; transform: none; }
   }
+
+  .chat-panel-head {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  }
+  .chat-panel-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--fs-h3);
+    line-height: 1.1;
+  }
+  .chat-panel-sub {
+    font-size: var(--fs-small);
+    color: color-mix(in srgb, var(--color-text) 60%, var(--color-background));
+  }
+
+  @media (max-width: 480px) {
+    /* En movil el panel ocupa casi todo el ancho y se ancla a los bordes. */
+    .chat-fab { left: var(--space-md); right: var(--space-md); }
+    .chat-panel {
+      width: auto;
+      left: 0;
+      right: 0;
+      max-height: 70vh;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chat-fab-btn { transition: none; }
+    .chat-fab-btn:hover { transform: none; }
+    .chat-panel { animation: none; }
+  }
+
+  /* Nota al pie de la conversacion (la renderiza este componente en ambos
+   * modos, por eso su estilo vive aca y no en ChatConversation). */
   .chat-note {
     display: block;
-    margin-top: var(--space-sm);
     color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
   }
 </style>

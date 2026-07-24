@@ -1,0 +1,153 @@
+---
+// Contenido interno del asistente: registro de mensajes, chips de preguntas
+// sugeridas y formulario de entrada. Es COMPARTIDO por los dos modos de
+// presentacion (`Chat.astro`): la seccion de la portada y el widget flotante.
+//
+// No lleva script: la logica de recuperacion vive una sola vez en `Chat.astro`,
+// que envuelve este componente segun el modo. Se apoya en los `id` fijos
+// (`chat-log`, `chat-form`, `chat-input`) y el campo `name="question"` que ese
+// script busca, y en las clases globales `.chat-msg`/`.chat-bot`/`.chat-user`.
+import Button from "../../design-system/ui/Button.astro";
+
+interface Props {
+  persona: string;
+  hasKnowledge: boolean;
+  apiEndpoint: string;
+  sugerencias: string[];
+}
+const { persona, hasKnowledge, apiEndpoint, sugerencias } = Astro.props as Props;
+---
+<div id="chat-log" class="chat-log">
+  <div class="chat-msg chat-bot">
+    Hola, soy tu {persona}. Preguntame sobre lugares, eventos y como llegar.
+  </div>
+  {!hasKnowledge && !apiEndpoint && (
+    <div class="chat-msg chat-bot chat-muted">
+      Todavia no tengo informacion cargada. Volve a consultarme cuando el sitio
+      tenga sus preguntas frecuentes publicadas.
+    </div>
+  )}
+</div>
+
+{/* Preguntas sugeridas del propio Q&A del sitio: muestran de que puede hablar el
+    asistente y, al pulsarlas, envian la consulta. */}
+{sugerencias.length > 0 && (
+  <div class="chat-suggest">
+    <ul class="chat-chips">
+      {sugerencias.map((q) => (
+        <li>
+          <button type="button" class="chat-chip" data-question={q}>{q}</button>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+<form id="chat-form" class="chat-form">
+  <input
+    id="chat-input"
+    class="chat-input"
+    name="question"
+    autocomplete="off"
+    placeholder="Escribi tu pregunta..."
+  />
+  <Button type="submit">Enviar</Button>
+</form>
+
+<style>
+  /* Los estilos de la conversacion viven AQUI, con su marcado. Antes estaban en
+   * Chat.astro (el componente padre) y no aplicaban: al vivir el marcado en este
+   * componente, lleva el identificador de alcance de ESTE archivo, y una regla
+   * escrita en el padre nunca lo alcanzaba (los chips salian con vinetas del
+   * navegador y el input sin estilo). Todo deriva de Design_Tokens (Req 9.1). */
+  .chat-log {
+    min-height: 5rem;
+    max-height: clamp(14rem, 40vh, 24rem);
+    overflow-y: auto;
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    color: var(--color-text);
+  }
+
+  /* Burbujas. En `:global()` a proposito: los mensajes se crean en runtime y no
+   * llevan el atributo de alcance de Astro, asi que una regla con alcance no los
+   * alcanzaria. */
+  :global(.chat-msg) {
+    align-self: flex-start;
+    max-width: 85%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    overflow-wrap: anywhere;
+  }
+  :global(.chat-bot) {
+    background: color-mix(in srgb, var(--color-text) 6%, var(--color-background));
+    border-bottom-left-radius: var(--radius-sm);
+  }
+  :global(.chat-user) {
+    align-self: flex-end;
+    background: var(--color-primary);
+    color: var(--color-background);
+    border-bottom-right-radius: var(--radius-sm);
+  }
+  :global(.chat-muted) {
+    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
+  }
+
+  .chat-suggest { margin-top: var(--space-xs); }
+  .chat-chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .chat-chip {
+    font: inherit;
+    font-size: var(--fs-small);
+    text-align: left;
+    padding: 0.4em 0.85em;
+    border-radius: var(--radius-pill);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    color: var(--color-accent);
+    cursor: pointer;
+    transition:
+      background var(--motion-duration-fast) var(--motion-easing),
+      transform var(--motion-duration-fast) var(--motion-easing);
+  }
+  .chat-chip:hover {
+    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .chat-form {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+  }
+  .chat-input {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid color-mix(in srgb, var(--color-text) 25%, var(--color-background));
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    background: var(--color-background);
+    color: var(--color-text);
+    transition: border-color var(--motion-duration-base) var(--motion-easing);
+  }
+  .chat-input:focus-visible {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chat-chip { transition: none; }
+    .chat-chip:hover { transform: none; }
+  }
+</style>
