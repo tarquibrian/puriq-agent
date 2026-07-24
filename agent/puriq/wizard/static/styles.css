@@ -290,6 +290,31 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
 }
 @keyframes sk-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
+/* Cada seccion del esqueleto: su etiqueta arriba + la forma debajo. La etiqueta
+ * hace que TODA seccion se identifique (antes solo algunas la tenian, y no se
+ * entendia que era el hero, el mapa o el pie). */
+.sk-item { display: flex; flex-direction: column; gap: 4px; }
+.sk-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--sk-text) 52%, var(--sk-bg));
+}
+
+/* Encabezado de grupo (Portada / Secciones): separa los dos grandes bloques del
+ * sitio con una linea, para que la estructura se lea de un vistazo. */
+.sk-group {
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid color-mix(in srgb, var(--sk-text) 12%, transparent);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: color-mix(in srgb, var(--sk-text) 45%, var(--sk-bg));
+}
+.sk-group:first-of-type { margin-top: 0; }
+
 /* Barra superior del sitio: nombre + puntos de navegacion. */
 .sk-header {
   display: flex;
@@ -304,26 +329,27 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
 .sk-nav i { width: 14px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--sk-text) 18%, transparent); }
 .sk-cta { width: 26px; height: 12px; border-radius: 999px; background: var(--sk-accent); }
 
-/* Hero: bloque grande de acento con lineas de titular. */
+/* Hero: banda de marca con lineas de titular y un CTA. Se mantiene contenida en
+ * altura para que no domine la maqueta y las lineas usen buen contraste sobre
+ * cualquier color de marca (incluido uno muy oscuro). */
 .sk-hero {
-  padding: 0.9rem 0.7rem;
-  min-height: 74px;
+  padding: 0.85rem 0.75rem;
+  min-height: 66px;
   border-radius: 10px;
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--sk-primary) 90%, black),
+    color-mix(in srgb, var(--sk-primary) 88%, black),
     var(--sk-primary));
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
 }
-.sk-hero .sk-line { background: color-mix(in srgb, white 78%, transparent); }
-.sk-hero .sk-line.lg { height: 9px; width: 78%; }
-.sk-hero .sk-line.sm { height: 5px; width: 55%; opacity: 0.7; }
-.sk-hero .sk-pill { margin-top: 4px; width: 40px; height: 12px; border-radius: 999px; background: var(--sk-accent); }
+.sk-hero .sk-line { border-radius: 3px; background: color-mix(in srgb, white 82%, transparent); }
+.sk-hero .sk-line.lg { height: 9px; width: 72%; }
+.sk-hero .sk-line.sm { height: 5px; width: 52%; opacity: 0.72; }
+.sk-hero .sk-pill { margin-top: 3px; width: 42px; height: 13px; border-radius: 999px; background: var(--sk-accent); }
 
-/* Seccion generica: titulo + fila de tarjetas o barras. */
-.sk-section .sk-title { height: 7px; width: 45%; border-radius: 3px; background: color-mix(in srgb, var(--sk-text) 22%, transparent); margin-bottom: 6px; }
+/* Cuadricula de tarjetas (destacados, lugares, noticias). */
 .sk-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .sk-cards .sk-card { height: 30px; border-radius: 6px; background: color-mix(in srgb, var(--sk-text) 8%, var(--sk-bg)); border: 1px solid color-mix(in srgb, var(--sk-text) 8%, transparent); }
 .sk-cards .sk-card.feat { background: color-mix(in srgb, var(--sk-accent) 22%, var(--sk-bg)); }
@@ -346,13 +372,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
 /* CTA banda. */
 .sk-cta-band { height: 34px; border-radius: 8px; background: color-mix(in srgb, var(--sk-primary) 55%, var(--sk-text)); display: grid; place-items: center; }
 .sk-cta-band i { width: 44px; height: 11px; border-radius: 999px; background: var(--sk-accent); }
-/* Burbuja del asistente flotante. */
-.sk-fab { align-self: flex-end; width: 22px; height: 22px; border-radius: 50%; background: var(--sk-accent); flex: none; }
+/* Burbuja del asistente flotante: se ancla abajo a la derecha, como en el sitio.
+ * Un margen negativo la superpone al pie, reforzando que "flota" sobre todo. */
+.sk-fab { align-self: flex-end; width: 22px; height: 22px; border-radius: 50%; background: var(--sk-accent); flex: none; margin-top: -10px; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
 /* Footer. */
-.sk-footer { height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--sk-text) 88%, black); }
-
-/* Etiqueta de un modulo/seccion con su conteo real. */
-.sk-tag { font-size: 0.62rem; color: color-mix(in srgb, var(--sk-text) 55%, transparent); }
+.sk-footer { height: 24px; border-radius: 8px; background: color-mix(in srgb, var(--sk-text) 88%, black); }
 
 /* Estado vacio del esqueleto: aun no hay nada que mostrar. */
 .sk-empty {

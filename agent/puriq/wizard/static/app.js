@@ -1782,10 +1782,6 @@
   // marca tine el esqueleto, las secciones activas de la portada y los modulos
   // aparecen como bloques, y los conteos (lugares, eventos) se muestran reales.
   // Es lo que hace ver el resultado tomando forma mientras se avanza.
-  var LANDING_SK_LABEL = {
-    hero: "Portada", features: "Destacados", cta: "Llamado",
-    gallery: "Galeria", stats: "Cifras", testimonials: "Testimonios", faq: "Preguntas"
-  };
 
   // Modulos EFECTIVOS para el esqueleto: enabled, ordenados por `order`. Se
   // prefiere el borrador del paso Modulos (`state.draft.modules`) sobre el
@@ -1851,49 +1847,81 @@
       return;
     }
 
-    // Header del sitio.
+    // Barra superior del sitio (cromo, no una seccion de contenido).
     sk.appendChild(el("div", { class: "sk-block sk-header" }, [
       el("span", { class: "sk-brand", text: site.name || "Tu sitio" }),
       el("span", { class: "sk-nav" }, [el("i"), el("i"), el("i")]),
       el("span", { class: "sk-cta" })
     ]));
 
-    // Secciones de portada activas, en orden. Cada tipo tiene su forma.
     var chatFloating = activeMods.some(function (m) {
       return m.key === "chatweb" && (m.display || "floating") === "floating";
     });
 
-    if (landing.length) {
-      landing.forEach(function (s) { sk.appendChild(landingBlock(s.type)); });
-    } else if (cfg.hero || site.name) {
-      // Sin `landing` explicito, el hero heredado igual da una portada.
-      sk.appendChild(landingBlock("hero"));
+    // --- Grupo PORTADA: las secciones de la pagina principal, en orden. ---
+    var landingTypes = landing.length
+      ? landing.map(function (s) { return s.type; })
+      : ((cfg.hero || site.name) ? ["hero"] : []);
+    if (landingTypes.length) {
+      sk.appendChild(skGroup("Portada"));
+      landingTypes.forEach(function (type) {
+        sk.appendChild(skItem(SK_LABEL[type] || "Seccion", landingShape(type)));
+      });
     }
 
-    // Modulos de contenido EN EL ORDEN configurado (antes iban en orden fijo, y
-    // por eso reordenarlos no cambiaba nada en el previsualizador).
-    activeMods.forEach(function (m) {
-      if (m.key === "map") {
-        sk.appendChild(el("div", { class: "sk-block sk-map" }));
-      } else if (m.key === "places") {
-        sk.appendChild(moduleBlock("Lugares", places.length, "sk-cards", 3, places.length));
-      } else if (m.key === "events") {
-        sk.appendChild(moduleBlock("Eventos", events.length, "sk-rows", 3, events.length));
-      } else if (m.key === "blog") {
-        sk.appendChild(moduleBlock("Noticias", 0, "sk-cards", 3, 0));
-      }
-      // chatweb no ocupa una banda: es la burbuja flotante (se agrega abajo).
-    });
+    // --- Grupo SECCIONES: los modulos de contenido, en el orden configurado. ---
+    var contentMods = activeMods.filter(function (m) { return m.key !== "chatweb"; });
+    if (contentMods.length) {
+      sk.appendChild(skGroup("Secciones"));
+      contentMods.forEach(function (m) {
+        if (m.key === "map") {
+          sk.appendChild(skItem("Mapa", el("div", { class: "sk-map" })));
+        } else if (m.key === "places") {
+          sk.appendChild(skItem("Lugares" + count(places), cardsShape()));
+        } else if (m.key === "events") {
+          sk.appendChild(skItem("Eventos" + count(events), rowsShape()));
+        } else if (m.key === "blog") {
+          sk.appendChild(skItem("Noticias", cardsShape()));
+        }
+      });
+    }
 
-    // CTA de cierre y footer siempre cierran la maqueta.
-    sk.appendChild(el("div", { class: "sk-block sk-footer" }));
+    // Pie de pagina, siempre cierra la maqueta.
+    sk.appendChild(skItem("Pie de pagina", el("div", { class: "sk-footer" })));
 
     // Asistente flotante (burbuja) si corresponde.
-    if (chatFloating) sk.appendChild(el("div", { class: "sk-fab sk-block" }));
+    if (chatFloating) {
+      sk.appendChild(el("div", { class: "sk-fab sk-block", title: "Asistente" }));
+    }
   }
 
-  // Bloque de una seccion de portada segun su tipo.
-  function landingBlock(type) {
+  // Nombre legible de cada tipo de seccion de portada, para su etiqueta.
+  var SK_LABEL = {
+    hero: "Portada", features: "Destacados", stats: "En numeros",
+    gallery: "Galeria", testimonials: "Testimonios", faq: "Preguntas frecuentes",
+    cta: "Contacto"
+  };
+
+  // Sufijo " · N" cuando hay conteo, para mostrar cuanto lleva cargado.
+  function count(arr) { return arr && arr.length ? " · " + arr.length : ""; }
+
+  // Envuelve una forma con su etiqueta arriba, para que cada seccion del
+  // esqueleto se identifique de forma consistente (antes solo algunas la tenian).
+  function skItem(label, shape) {
+    return el("div", { class: "sk-item" }, [
+      el("span", { class: "sk-label", text: label }),
+      shape
+    ]);
+  }
+
+  // Encabezado de grupo (Portada / Secciones): separa visualmente los dos
+  // grandes bloques del sitio para que se entienda como se estructura.
+  function skGroup(text) {
+    return el("div", { class: "sk-group", text: text });
+  }
+
+  // Forma (sin etiqueta) de una seccion de portada segun su tipo.
+  function landingShape(type) {
     if (type === "hero") {
       return el("div", { class: "sk-block sk-hero" }, [
         el("span", { class: "sk-line lg" }),
@@ -1905,38 +1933,29 @@
       return el("div", { class: "sk-block sk-stats" }, [el("i"), el("i"), el("i")]);
     }
     if (type === "gallery") {
-      return el("div", { class: "sk-block sk-gallery" },
-        [el("b"), el("b"), el("b"), el("b")]);
+      return el("div", { class: "sk-block sk-gallery" }, [el("b"), el("b"), el("b"), el("b")]);
     }
     if (type === "cta") {
       return el("div", { class: "sk-block sk-cta-band" }, [el("i")]);
     }
     if (type === "faq" || type === "testimonials") {
-      return el("div", { class: "sk-block sk-section" }, [
-        el("div", { class: "sk-title" }),
-        el("div", { class: "sk-rows" }, [el("i"), el("i"), el("i")])
-      ]);
+      return rowsShape();
     }
-    // features (default): titulo + tarjetas, la primera destacada.
-    return el("div", { class: "sk-block sk-section" }, [
-      el("div", { class: "sk-title" }),
-      el("div", { class: "sk-cards" }, [
-        el("div", { class: "sk-card feat" }), el("div", { class: "sk-card" }), el("div", { class: "sk-card" })
-      ])
+    // features (default): tarjetas, la primera destacada.
+    return el("div", { class: "sk-block sk-cards" }, [
+      el("div", { class: "sk-card feat" }), el("div", { class: "sk-card" }), el("div", { class: "sk-card" })
     ]);
   }
 
-  // Bloque de un modulo de contenido, con su nombre y conteo real.
-  function moduleBlock(nombre, count, gridClass, cols, filled) {
-    var kids = [];
-    for (var i = 0; i < cols; i++) {
-      var cls = gridClass === "sk-cards" ? "sk-card" : "";
-      kids.push(el(gridClass === "sk-cards" ? "div" : "i", cls ? { class: cls } : null));
-    }
-    return el("div", { class: "sk-block sk-section" }, [
-      el("div", { class: "sk-tag", text: nombre + (count ? " · " + count : "") }),
-      el("div", { class: gridClass }, kids)
+  // Cuadricula de tarjetas (destacados, lugares, noticias).
+  function cardsShape() {
+    return el("div", { class: "sk-block sk-cards" }, [
+      el("div", { class: "sk-card" }), el("div", { class: "sk-card" }), el("div", { class: "sk-card" })
     ]);
+  }
+  // Lista de filas (eventos, FAQ, testimonios).
+  function rowsShape() {
+    return el("div", { class: "sk-block sk-rows" }, [el("i"), el("i"), el("i")]);
   }
 
   // ========================================================================
