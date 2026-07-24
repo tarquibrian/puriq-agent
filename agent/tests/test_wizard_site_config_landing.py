@@ -71,9 +71,20 @@ def test_put_site_config_persists_valid_landing(tmp_path):
     assert landing[0]["content"] == {"headline": "Potosi", "subheadline": "Plata y sal"}
     assert landing[2]["enabled"] is False
 
-    # Los modulos se conservan intactos junto a la portada.
-    assert on_disk["modules"]["places"] == {"enabled": True, "order": 1}
-    assert on_disk["modules"]["map"] == {"enabled": True, "order": 2}
+    # Los modulos se conservan intactos junto a la portada. Cada uno lleva su
+    # `label` legible por defecto (`DEFAULT_MODULE_LABELS`), que es lo que la
+    # Template usa como texto de navegacion; sin el, el menu del sitio generado
+    # mostraria la clave cruda del modulo ("places", "map").
+    assert on_disk["modules"]["places"] == {
+        "enabled": True,
+        "order": 1,
+        "label": "Qué visitar",
+    }
+    assert on_disk["modules"]["map"] == {
+        "enabled": True,
+        "order": 2,
+        "label": "Mapa",
+    }
 
 
 def test_put_site_config_rejects_out_of_catalog_section(tmp_path):

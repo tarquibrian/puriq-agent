@@ -23,6 +23,21 @@ from typing import Any
 # catalogo; el `order` efectivo lo define la seleccion del usuario.
 MODULE_CATALOG: tuple[str, ...] = ("map", "places", "events", "blog", "chatweb")
 
+# Etiqueta legible por defecto de cada modulo del catalogo. La Template usa
+# `label` como texto de la navegacion, del pie y del CTA del header, cayendo a la
+# CLAVE del modulo si falta (ver template/src/lib/data.ts, `activeModules`). Sin
+# este default, un sitio creado por el Wizard mostraba "map", "places" o
+# "chatweb" en su menu: los ejemplos de /examples solo se veian bien porque su
+# `label` estaba escrito a mano. El usuario puede sobreescribirlo enviando
+# `label` en el descriptor.
+DEFAULT_MODULE_LABELS: dict[str, str] = {
+    "map": "Mapa",
+    "places": "Qué visitar",
+    "events": "Eventos",
+    "blog": "Noticias",
+    "chatweb": "Asistente",
+}
+
 # Modulo que admite campos extra (persona / knowledgeSource) segun el esquema.
 CHATWEB = "chatweb"
 
@@ -54,6 +69,9 @@ def build_modules(selection: Iterable[Mapping[str, Any]]) -> dict[str, dict[str,
       - ``key`` (str, requerido): clave del modulo, debe pertenecer a
         ``MODULE_CATALOG`` (Req 2.3).
       - ``enabled`` (bool, opcional, default ``True``): estado on/off (Req 2.1).
+      - ``label`` (str, opcional): texto de la navegacion del sitio. Si no se
+        aporta, se usa ``DEFAULT_MODULE_LABELS[key]`` para que el menu nunca
+        muestre la clave cruda del modulo.
       - ``persona`` / ``knowledgeSource`` (str, opcionales): solo validos para
         ``chatweb``; se copian al modulo si estan presentes.
 
@@ -76,9 +94,10 @@ def build_modules(selection: Iterable[Mapping[str, Any]]) -> dict[str, dict[str,
             {"key": "chatweb", "enabled": False, "persona": "amable"},
         ])
         # -> {
-        #   "places": {"enabled": True, "order": 1},
-        #   "map": {"enabled": True, "order": 2},
-        #   "chatweb": {"enabled": False, "order": 3, "persona": "amable"},
+        #   "places": {"enabled": True, "order": 1, "label": "Qué visitar"},
+        #   "map": {"enabled": True, "order": 2, "label": "Mapa"},
+        #   "chatweb": {"enabled": False, "order": 3, "label": "Asistente",
+        #               "persona": "amable"},
         # }
     """
     modules: dict[str, dict[str, Any]] = {}
@@ -119,6 +138,16 @@ def build_modules(selection: Iterable[Mapping[str, Any]]) -> dict[str, dict[str,
 
         # Req 2.2: `order` entero >= 1 consistente con el orden de la seleccion.
         module: dict[str, Any] = {"enabled": enabled, "order": position}
+
+        # Etiqueta legible para la navegacion del sitio. Se toma la del
+        # descriptor si el usuario la personalizo; si no, el default del
+        # catalogo, para que la navegacion nunca muestre la clave cruda.
+        label = descriptor.get("label")
+        if label is not None and not isinstance(label, str):
+            raise ModuleCatalogError(
+                f"El campo 'label' de '{key}' debe ser texto"
+            )
+        module["label"] = label if label else DEFAULT_MODULE_LABELS[key]
 
         # Campos extra: solo validos en chatweb; se copian si vienen presentes.
         for field in _CHATWEB_EXTRA_FIELDS:
