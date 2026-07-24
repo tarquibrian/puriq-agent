@@ -23,35 +23,70 @@ import Button from "../../design-system/ui/Button.astro";
 const persona = siteConfig.modules?.chatweb?.persona ?? "asistente turistico";
 const apiEndpoint: string = siteConfig.modules?.chatweb?.apiEndpoint ?? "";
 const hasKnowledge = Array.isArray(faq) && faq.length > 0;
+// Primeras preguntas del Q&A publicado, como sugerencias pulsables. Sale del
+// mismo `faq` que alimenta la recuperacion, asi que una sugerencia SIEMPRE tiene
+// respuesta (no se prometen preguntas que el asistente no sabe contestar).
+const sugerencias: string[] = hasKnowledge
+  ? faq.map((e: any) => (e?.question ?? "").trim()).filter(Boolean).slice(0, 4)
+  : [];
 // Datos que se pasan al script del cliente (solo Q&A publico + config no secreta).
 const clientData = { persona, apiEndpoint, faq };
 ---
 {/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
 <Section id="chatweb" eyebrow="Pregúntanos" title="Asistente turístico">
-  <Card class="chat-card">
-    <div id="chat-log" class="chat-log">
-      <div class="chat-msg chat-bot">
-        Hola, soy tu {persona}. Preguntame sobre lugares, eventos y como llegar.
-      </div>
-      {!hasKnowledge && !apiEndpoint && (
-        <div class="chat-msg chat-bot chat-muted">
-          Todavia no tengo informacion cargada. Volve a consultarme cuando el sitio
-          tenga sus preguntas frecuentes publicadas.
+  {/* Composicion a dos columnas: contexto a la izquierda, conversacion a la
+    * derecha. Antes el modulo era una tarjeta angosta y sola en una seccion
+    * ancha, que quedaba perdida y cortaba el ritmo de la pagina. */}
+  <div class="chat-layout">
+    <aside class="chat-aside">
+      <p class="chat-lead">
+        Resuelve tus dudas al instante con la informacion oficial publicada del
+        destino.
+      </p>
+
+      {/* Preguntas sugeridas tomadas del propio Q&A del sitio. Una caja de texto
+        * vacia no le dice al visitante QUE puede preguntar; estas muestran el
+        * alcance real del asistente y, al pulsarlas, envian la consulta. Se
+        * limitan a cuatro para no convertir la ayuda en un muro de texto. */}
+      {sugerencias.length > 0 && (
+        <div class="chat-suggest">
+          <p class="chat-suggest-title">Preguntas frecuentes</p>
+          <ul class="chat-chips">
+            {sugerencias.map((q) => (
+              <li>
+                <button type="button" class="chat-chip" data-question={q}>{q}</button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-    </div>
-    <form id="chat-form" class="chat-form">
-      <input
-        id="chat-input"
-        class="chat-input"
-        name="question"
-        autocomplete="off"
-        placeholder="Escribi tu pregunta..."
-      />
-      <Button type="submit">Enviar</Button>
-    </form>
-    <small class="chat-note">Responde con la informacion oficial publicada del destino.</small>
-  </Card>
+    </aside>
+
+    <Card class="chat-card">
+      <div id="chat-log" class="chat-log">
+        <div class="chat-msg chat-bot">
+          Hola, soy tu {persona}. Preguntame sobre lugares, eventos y como llegar.
+        </div>
+        {!hasKnowledge && !apiEndpoint && (
+          <div class="chat-msg chat-bot chat-muted">
+            Todavia no tengo informacion cargada. Volve a consultarme cuando el sitio
+            tenga sus preguntas frecuentes publicadas.
+          </div>
+        )}
+      </div>
+      <form id="chat-form" class="chat-form">
+        <input
+          id="chat-input"
+          class="chat-input"
+          name="question"
+          autocomplete="off"
+          placeholder="Escribi tu pregunta..."
+        />
+        <Button type="submit">Enviar</Button>
+      </form>
+      <small class="chat-note">Responde con la informacion oficial publicada del destino.</small>
+    </Card>
+  </div>
 </Section>
 
 <script define:vars={{ clientData }}>
@@ -128,18 +163,15 @@ const clientData = { persona, apiEndpoint, faq };
   const form = document.getElementById("chat-form");
   const input = document.getElementById("chat-input");
 
+  // La apariencia de la burbuja vive ENTERA en el CSS (`.chat-msg`, `.chat-bot`,
+  // `.chat-user`, declaradas como globales porque estos nodos se crean en
+  // tiempo de ejecucion y no llevan el atributo de alcance de Astro). Antes solo
+  // el mensaje del usuario se estilaba, con estilos en linea; la respuesta del
+  // asistente salia sin burbuja, como texto suelto en el panel.
   function appendMessage(text, who) {
     const div = document.createElement("div");
     div.className = "chat-msg chat-" + who;
     div.textContent = text;
-    div.style.alignSelf = who === "user" ? "flex-end" : "flex-start";
-    if (who === "user") {
-      // Estilo del mensaje del usuario derivado de tokens de marca (Req 9.1).
-      div.style.background = "var(--color-primary)";
-      div.style.color = "var(--color-background)";
-      div.style.padding = "var(--space-xs) var(--space-sm)";
-      div.style.borderRadius = "var(--radius-md)";
-    }
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
     return div;
@@ -186,12 +218,83 @@ const clientData = { persona, apiEndpoint, faq };
         input.focus();
       }
     });
+
+    // Preguntas sugeridas: rellenan el campo y disparan el MISMO envio, en vez
+    // de duplicar la logica de consulta. `requestSubmit` respeta el flujo normal
+    // del formulario (a diferencia de `submit()`, que se salta el listener).
+    document.querySelectorAll(".chat-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        input.value = chip.dataset.question || chip.textContent.trim();
+        form.requestSubmit
+          ? form.requestSubmit()
+          : form.dispatchEvent(new Event("submit", { cancelable: true }));
+      });
+    });
   }
 </script>
 
 <style>
   /* Presentacion derivada de variables CSS de Design_Tokens (Req 9.1). */
-  .chat-card { max-width: var(--container-sm); }
+
+  /* Dos columnas desde el breakpoint medio; una sola en movil, con el contexto
+   * arriba y la conversacion debajo. */
+  .chat-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+    align-items: start;
+  }
+  @media (min-width: 768px) {
+    .chat-layout { grid-template-columns: 1fr 1.15fr; gap: var(--space-2xl); }
+  }
+
+  .chat-lead {
+    margin: 0 0 var(--space-lg);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: color-mix(in srgb, var(--color-text) 72%, var(--color-background));
+    max-width: 46ch;
+  }
+
+  .chat-suggest-title {
+    margin: 0 0 var(--space-sm);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
+  }
+  .chat-chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  /* Chip pulsable: superficie tenue de acento, se realza al pasar el puntero. */
+  .chat-chip {
+    font: inherit;
+    font-size: var(--fs-small);
+    text-align: left;
+    padding: 0.45em 0.9em;
+    border-radius: var(--radius-pill);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    color: var(--color-accent);
+    cursor: pointer;
+    transition:
+      background var(--motion-duration-fast) var(--motion-easing),
+      transform var(--motion-duration-fast) var(--motion-easing);
+  }
+  .chat-chip:hover {
+    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+    transform: translateY(-1px);
+  }
+
+  /* La tarjeta ocupa su columna: el `container-sm` la dejaba angosta y perdida
+   * en el ancho completo de la seccion. */
+  .chat-card { max-width: none; }
   .chat-log {
     min-height: 5rem;
     /* Alto comodo con desplazamiento cuando la conversacion crece. */
@@ -205,19 +308,34 @@ const clientData = { persona, apiEndpoint, faq };
     color: var(--color-text);
   }
   /* Burbujas comodas: relleno generoso y radio grande (esquina inferior
-   * "hablante" mas ajustada para dar direccion a cada mensaje). */
-  .chat-msg {
+   * "hablante" mas ajustada para dar direccion a cada mensaje).
+   *
+   * Estas reglas van en `:global()` A PROPOSITO: los mensajes de la conversacion
+   * los crea el script en tiempo de ejecucion, y esos nodos no llevan el
+   * atributo de alcance que Astro agrega al marcado renderizado. Con las reglas
+   * con alcance, solo el saludo inicial (server-rendered) se veia como burbuja y
+   * las respuestas del asistente salian como texto suelto. */
+  :global(.chat-msg) {
     align-self: flex-start;
     max-width: 85%;
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-lg);
+    /* Una respuesta larga sin cortes no debe ensanchar el panel. */
+    overflow-wrap: anywhere;
   }
   /* Burbuja del asistente: superficie sutil derivada del texto de marca. */
-  .chat-bot {
+  :global(.chat-bot) {
     background: color-mix(in srgb, var(--color-text) 6%, var(--color-background));
     border-bottom-left-radius: var(--radius-sm);
   }
-  .chat-muted {
+  /* Burbuja del visitante: superficie de marca, alineada a la derecha. */
+  :global(.chat-user) {
+    align-self: flex-end;
+    background: var(--color-primary);
+    color: var(--color-background);
+    border-bottom-right-radius: var(--radius-sm);
+  }
+  :global(.chat-muted) {
     color: color-mix(in srgb, var(--color-text) 55%, var(--color-background));
   }
   .chat-form {
