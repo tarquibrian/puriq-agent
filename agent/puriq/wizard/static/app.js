@@ -64,29 +64,33 @@
     { heading: "Montserrat", body: "Work Sans" }
   ];
 
-  // Paletas de arranque: combinaciones VIBRANTES y modernas, pensadas para que
-  // un destino turistico se vea vivo, no apagado. Cada una empareja un color de
-  // marca saturado con un acento contrastante (esquema complementario o de
-  // contraste calido/frio). Todas mantienen fondo casi blanco tenido y texto muy
-  // oscuro, de modo que el contraste de lectura quede holgado (>= 4.5:1) y el
-  // `primary` sirva de superficie para texto blanco en botones.
-  // Todos los pares primary/blanco (>=4.5), text/fondo (>=13) y accent/fondo
-  // (>=4) fueron verificados para que boton, texto y detalle sean legibles.
+  // Paletas de arranque, construidas sobre principios de UX/UI, no solo "colores
+  // lindos". Cada una sigue la regla 60-30-10:
+  //   - FONDO NEUTRO (60%): casi blanco, con un tinte MINIMO. La base no compite;
+  //     deja respirar al contenido. Un fondo muy tenido se ve recargado.
+  //   - PRIMARY (30%): el color de marca, en header, botones y bandas de enfasis.
+  //   - ACCENT (10%): el UNICO pop, complementario del primary. Es lo que "da
+  //     juego" —eyebrows, enlaces, detalles— usado con moderacion.
+  //   - SECONDARY: una variante mas clara del PROPIO primary (misma familia), no
+  //     un tercer color distinto. Asi los colores se relacionan y armonizan en
+  //     vez de chocar.
+  //   - TEXT: casi negro, para lectura holgada sobre el fondo claro.
+  //
+  // Contrastes verificados: texto/fondo >= 15:1, primary/blanco >= 4.5:1 (texto
+  // blanco en botones), accent/fondo >= 4:1 (eyebrows y enlaces legibles).
   var PALETTES = [
-    // Turquesa profundo + coral calido.
-    { name: "Caribe", colors: { primary: "#0E7C7B", secondary: "#F2A65A", background: "#F0FAF9", text: "#0B2E2D", accent: "#DB4324" } },
-    // Magenta vibrante + naranja quemado.
-    { name: "Atardecer", colors: { primary: "#B5179E", secondary: "#7209B7", background: "#FFF4FA", text: "#2A0A24", accent: "#D14E00" } },
-    // Azul brillante + naranja.
-    { name: "Oceano", colors: { primary: "#0466C8", secondary: "#33A1FD", background: "#EEF6FF", text: "#0A1C3D", accent: "#DD4E0A" } },
-    // Esmeralda + dorado tostado.
-    { name: "Tropical", colors: { primary: "#0A7C54", secondary: "#4CC9A0", background: "#EFFBF5", text: "#0A2A1E", accent: "#B45309" } },
-    // Violeta profundo + esmeralda.
-    { name: "Amatista", colors: { primary: "#6D28D9", secondary: "#A78BFA", background: "#F7F3FF", text: "#1E1140", accent: "#047857" } },
-    // Rosa cereza + turquesa.
-    { name: "Cereza", colors: { primary: "#C81D4E", secondary: "#F26A8D", background: "#FFF3F6", text: "#2B0913", accent: "#0E8A8A" } },
-    // Indigo nocturno + rosa. Mas sobria pero igual moderna.
-    { name: "Indigo", colors: { primary: "#3730A3", secondary: "#818CF8", background: "#F2F3FF", text: "#131235", accent: "#E11D48" } }
+    // Teal profundo + coral. Frio sereno con un pop calido.
+    { name: "Oceano", colors: { primary: "#0E6E6D", secondary: "#5EAAA8", background: "#F7FAFA", text: "#132322", accent: "#D14A2C" } },
+    // Verde bosque + terracota. Natural, ideal para turismo.
+    { name: "Bosque", colors: { primary: "#1E6B4F", secondary: "#74A892", background: "#F8FAF7", text: "#15221C", accent: "#C15B2E" } },
+    // Indigo + dorado tostado. Confiable y moderno.
+    { name: "Indigo", colors: { primary: "#3B3A8F", secondary: "#8C8AC9", background: "#F8F8FC", text: "#16162A", accent: "#B45309" } },
+    // Borgona + teal. Patrimonial y elegante, con un juego frio.
+    { name: "Borgona", colors: { primary: "#7A2233", secondary: "#B57A84", background: "#FBF8F6", text: "#241318", accent: "#0E7C7B" } },
+    // Pizarra + azul brillante. Sobria e institucional, con un acento nitido.
+    { name: "Pizarra", colors: { primary: "#334155", secondary: "#8593A8", background: "#F8FAFC", text: "#0F172A", accent: "#2563EB" } },
+    // Cobre + teal. Calida y terrosa con un contrapunto frio.
+    { name: "Cobre", colors: { primary: "#B04A12", secondary: "#E0A96D", background: "#FBFAF8", text: "#231710", accent: "#0E6E6D" } }
   ];
 
   /** Pila CSS de una familia para la vista previa (familia + respaldos). */
