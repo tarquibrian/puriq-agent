@@ -13,6 +13,7 @@
 // la seccion se omite por completo (no se renderiza nada).
 import Section from "../ui/Section.astro";
 import Button from "../ui/Button.astro";
+import { assetExists } from "../assets";
 
 interface CtaLink {
   label?: string;
@@ -21,6 +22,13 @@ interface CtaLink {
 interface CtaContent {
   /** Etiqueta editorial opcional sobre el mensaje (kicker). */
   eyebrow?: string;
+  /**
+   * Titular de la banda. Es el campo que uno espera poder poner en un cierre
+   * ("Planificá tu viaje") y antes se descartaba en silencio: la seccion solo
+   * leia `message`, asi que un `title` configurado no aparecia en ninguna parte
+   * y no habia forma de darse cuenta salvo mirando el sitio.
+   */
+  title?: string;
   message?: string;
   /** Imagen opcional para el banner de dos columnas. */
   image?: string;
@@ -35,6 +43,7 @@ interface Props {
 const { content } = Astro.props;
 
 const eyebrow = content?.eyebrow?.trim();
+const title = content?.title?.trim();
 const message = content?.message?.trim();
 
 const cta = content?.cta;
@@ -45,10 +54,14 @@ const hasCta = Boolean(ctaLabel && ctaHref);
 // Imagen opcional para el layout de dos columnas.
 const image = content?.image?.trim();
 const imageAlt = content?.imageAlt?.trim() ?? "";
-const hasImage = Boolean(image);
+// La imagen debe EXISTIR: una referencia colgante partia la banda en dos
+// columnas con una imagen rota al lado del texto.
+const hasImage = assetExists(image);
 
 // Contenido esencial: mensaje y CTA valido (Req 12.5).
-const hasEssentials = Boolean(message && hasCta);
+// Basta con titular O mensaje (ademas del CTA): exigir `message` descartaba
+// una banda perfectamente valida que solo trajera titular.
+const hasEssentials = Boolean((title || message) && hasCta);
 ---
 
 {hasEssentials && (
@@ -56,7 +69,8 @@ const hasEssentials = Boolean(message && hasCta);
     <div class="ds-cta" data-layout={hasImage ? "split" : "center"}>
       <div class="ds-cta-body">
         {eyebrow && <p class="eyebrow ds-cta-eyebrow">{eyebrow}</p>}
-        <p class="ds-cta-message">{message}</p>
+        {title && <h2 class="ds-cta-title">{title}</h2>}
+        {message && <p class="ds-cta-message">{message}</p>}
         <p class="ds-cta-actions">
           <Button href={ctaHref} variant="primary" arrow>{ctaLabel}</Button>
         </p>
@@ -71,6 +85,12 @@ const hasEssentials = Boolean(message && hasCta);
 )}
 
 <style>
+  /* Titular de la banda: hereda el color claro de la variante oscura. */
+  .ds-cta-title {
+    margin: 0 0 var(--space-sm);
+    text-wrap: balance;
+  }
+
   .ds-cta {
     display: flex;
     flex-direction: column;
@@ -103,6 +123,19 @@ const hasEssentials = Boolean(message && hasCta);
     max-width: 22ch;
   }
   .ds-cta[data-layout="center"] .ds-cta-message { max-width: 30ch; }
+
+  /* Con titular presente, el mensaje deja de ser el titular y pasa a ser el
+   * parrafo de apoyo: dos piezas a escala h2 competirian entre si. */
+  .ds-cta-title + .ds-cta-message {
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    font-weight: 400;
+    letter-spacing: normal;
+    max-width: 52ch;
+    color: color-mix(in srgb, currentColor 82%, transparent);
+  }
+  .ds-cta[data-layout="center"] .ds-cta-title + .ds-cta-message { max-width: 52ch; }
   .ds-cta-actions { margin: 0; }
 
   /* Imagen del banner de dos columnas. */

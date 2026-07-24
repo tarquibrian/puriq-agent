@@ -66,6 +66,10 @@ const ctaTarget =
   null;
 const ctaHref = ctaTarget ? `#${ctaTarget.key}` : "#";
 const ctaLabel = ctaTarget?.label ?? "Contacto";
+
+// Datos de contacto del organismo (`Site_Config.contact`), para el pie.
+const contactEmail = siteConfig.contact?.email?.trim() ?? "";
+const contactPhone = siteConfig.contact?.phone?.trim() ?? "";
 ---
 <!doctype html>
 <html lang={site.defaultLocale ?? "es"} data-variant={variant}>
@@ -388,14 +392,34 @@ const ctaLabel = ctaTarget?.label ?? "Contacto";
         font-size: var(--fs-small);
       }
       .footer-nav a:hover { color: var(--color-background); }
+      /* Lista de contacto: mismo tratamiento que la navegacion del pie. */
       .footer-contact {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
         font-size: var(--fs-small);
         line-height: var(--lh-small);
         color: color-mix(in srgb, var(--color-background) 78%, transparent);
       }
+      .footer-contact a {
+        color: color-mix(in srgb, var(--color-background) 88%, transparent);
+        text-decoration: none;
+        overflow-wrap: anywhere;
+      }
+      .footer-contact a:hover { color: var(--color-background); }
+
+      /* Region en la barra inferior, alineada al lado opuesto del copyright. */
+      .footer-region { margin: 0; }
       .footer-bottom {
         max-width: var(--container-lg);
         margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: var(--space-sm);
         padding: var(--space-md) clamp(var(--space-md), 5vw, var(--space-lg)) var(--space-xl);
         border-top: 1px solid color-mix(in srgb, var(--color-background) 14%, transparent);
         font-size: var(--fs-small);
@@ -509,19 +533,30 @@ const ctaLabel = ctaTarget?.label ?? "Contacto";
             </nav>
           </div>
         )}
-        <div class="footer-col">
-          <h2>Contacto</h2>
-          <p class="footer-contact">
-            {ctaTarget ? (
-              <a class="footer-nav" href={ctaHref}>{ctaLabel}</a>
-            ) : (
-              <span>{site.name}</span>
-            )}
-          </p>
-        </div>
+        {/* Contacto REAL del organismo, tomado de `Site_Config.contact`. Antes
+            esta columna solo repetia el enlace al CTA del header, que no es un
+            dato de contacto: el visitante que queria escribir o llamar no tenia
+            donde hacerlo. Cada dato se renderiza solo si existe. */}
+        {(contactEmail || contactPhone || ctaTarget) && (
+          <div class="footer-col">
+            <h2>Contacto</h2>
+            <ul class="footer-contact">
+              {contactEmail && (
+                <li><a href={`mailto:${contactEmail}`}>{contactEmail}</a></li>
+              )}
+              {contactPhone && (
+                /* `tel:` sin espacios ni guiones: es lo que el marcador del
+                   telefono espera; el texto visible conserva el formato legible. */
+                <li><a href={`tel:${contactPhone.replace(/[^\d+]/g, "")}`}>{contactPhone}</a></li>
+              )}
+              {ctaTarget && <li><a href={ctaHref}>{ctaLabel}</a></li>}
+            </ul>
+          </div>
+        )}
       </div>
       <div class="footer-bottom">
         <p>&copy; {new Date().getFullYear()} {site.name}. Generado con Puriq.</p>
+        {site.region && <p class="footer-region">{site.region}</p>}
       </div>
     </footer>
 

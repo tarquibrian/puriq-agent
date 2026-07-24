@@ -14,6 +14,7 @@ import { getCollection } from "astro:content";
 import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Card from "../../design-system/ui/Card.astro";
+import { assetExists } from "../../design-system/assets";
 
 const entries = (await getCollection("blog")).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
@@ -50,14 +51,20 @@ const fmt = (d: Date) =>
   {posts.length === 0 ? (
     <p class="blog-empty">Aún no hay artículos publicados.</p>
   ) : (
-    <Grid min="360px">
-      {posts.map((post) => {
+    <Grid min="340px" cols={posts.length === 2 ? 2 : 3} gap="lg">
+      {posts.map((post, i) => {
         const Content = post.Content;
         // Imagen opcional del frontmatter (se pasa al recorte de la Card).
-        const image = (post.data as any).image as string | undefined;
+        // Solo se usa si el archivo existe: una portada colgante dejaba un
+        // hueco roto arriba de la tarjeta.
+        const declarada = (post.data as any).image as string | undefined;
+        const image = assetExists(declarada) ? declarada : undefined;
         return (
           <Card class="blog-card" image={image} imageAlt={post.data.title}>
-            <div class="blog-date">{fmt(post.data.date)}</div>
+            <div class="blog-meta">
+              <span class="ds-index">{String(i + 1).padStart(2, "0")}</span>
+              <time class="blog-date" datetime={post.data.date.toISOString().slice(0, 10)}>{fmt(post.data.date)}</time>
+            </div>
             <h3 class="blog-title">{post.data.title}</h3>
             {post.data.summary && (
               <p class="blog-summary">{post.data.summary}</p>
@@ -72,12 +79,19 @@ const fmt = (d: Date) =>
 
 <style>
   /* Apariencia derivada de variables CSS de Design_Tokens (Req 9.1). */
+
+  /* Indice + fecha en una linea, como cabecera de la ficha. */
+  .blog-meta {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
   .blog-empty {
     color: color-mix(in srgb, var(--color-text) 60%, var(--color-background));
   }
   /* Fecha como kicker de acento, coherente con el modulo de eventos. */
   .blog-date {
-    margin-bottom: var(--space-sm);
     color: var(--color-accent);
     font-size: var(--fs-small);
     line-height: var(--lh-small);
