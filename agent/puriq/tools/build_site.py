@@ -674,6 +674,20 @@ ASSETS_DIRNAME = "assets"
 # a `<work>/public/assets/`.
 PUBLIC_ASSETS_SUBDIR = Path("public") / "assets"
 
+# Subdirectorio OPCIONAL del proyecto con las fuentes tipograficas de la marca
+# (`.woff2`). Se auto-hospedan: la Template emite un `@font-face` por archivo
+# presente y lo sirve desde el propio sitio, sin pedirle nada a un CDN de
+# terceros (un sitio de gobierno no deberia filtrar la IP de sus visitantes, y
+# asi el sitio tambien funciona sin salida a internet).
+#
+# Convencion de nombre: `<familia-en-slug>-<peso>.woff2`, p. ej.
+# `playfair-display-700.woff2`. El catalogo de familias y sus pesos vive en
+# `template/src/design-system/fonts.ts`. Si el directorio no existe, el sitio usa
+# la pila de respaldo del catalogo (fuentes del sistema parecidas) y no se emite
+# ningun `@font-face`.
+FONTS_DIRNAME = "fonts"
+PUBLIC_FONTS_SUBDIR = Path("public") / "fonts"
+
 
 def _inject_assets(work: Path, project: Path) -> int:
     """Copia los recursos estaticos del proyecto para que queden servidos en `/assets/`.
@@ -712,6 +726,91 @@ def _inject_assets(work: Path, project: Path) -> int:
         shutil.copyfile(archivo, salida)
         copiados += 1
     return copiados
+
+
+def _font_slug(name: str) -> str:
+    """Convierte un nombre de familia al prefijo de sus archivos.
+
+    Espeja `fontSlug` de `template/src/design-system/fonts.ts`: minusculas, sin
+    acentos y con los tramos no alfanumericos colapsados en `-`
+    (``"Playfair Display"`` -> ``playfair-display``).
+    """
+    import re
+    import unicodedata
+
+    normalizado = unicodedata.normalize("NFD", name.strip().lower())
+    sin_acentos = "".join(c for c in normalizado if unicodedata.category(c) != "Mn")
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9]+", "-", sin_acentos))
+
+
+def _inject_fonts(work: Path, project: Path, theme: dict) -> int:
+    """Deja en `/fonts/` SOLO las fuentes de las familias que usa la marca.
+
+    Las fuentes son OPCIONALES: `theme.tokens.json` declara la marca tipografica
+    por NOMBRE de familia (`"Playfair Display"`), y la Template resuelve ese
+    nombre contra su catalogo. Si el archivo esta disponible, la Template emite un
+    `@font-face` y lo sirve desde el propio sitio; si no, usa la pila de respaldo
+    del catalogo (fuentes del sistema elegidas por parecido) sin emitir ninguna
+    regla, de modo que no haya peticiones fallidas.
+
+    Dos fuentes de archivos, en este orden:
+      1. El catalogo que la Template trae en `public/fonts/` (ya presente en el
+         directorio de trabajo por la copia de la Template).
+      2. `<project>/fonts/*.woff2`, que PISA al catalogo: asi un gobierno puede
+         aportar su tipografia institucional propia.
+
+    Y una PODA: se borran del directorio de trabajo los `.woff2` que no
+    pertenezcan a las familias del tema. Sin esto, cada sitio publicaba el
+    catalogo entero —el sitio de Potosi (Playfair + Inter) se llevaba tambien los
+    tres archivos de Poppins— y ese peso muerto crece con cada familia que se
+    agregue al catalogo.
+
+    Solo se manejan archivos `.woff2` (el unico formato que declara la Template);
+    cualquier otro archivo del directorio del proyecto se ignora.
+
+    Args:
+        work: directorio de trabajo (copia parametrizable de la Template).
+        project: raiz del proyecto Puriq, donde puede vivir `fonts/`.
+        theme: documento Theme_Tokens, de donde salen las familias en uso.
+
+    Returns:
+        La cantidad de archivos de fuente que quedan publicados.
+    """
+    destino = work / PUBLIC_FONTS_SUBDIR
+
+    # 1. Fuentes propias del proyecto: pisan al catalogo de la Template.
+    origen = Path(project) / FONTS_DIRNAME
+    if origen.is_dir():
+        destino.mkdir(parents=True, exist_ok=True)
+        for archivo in sorted(origen.glob("*.woff2")):
+            if archivo.is_file():
+                shutil.copyfile(archivo, destino / archivo.name)
+
+    if not destino.is_dir():
+        return 0
+
+    # 2. Poda: se conservan solo los archivos de las familias que declara la marca.
+    typography = theme.get("typography") or {}
+    familias = [typography.get("headingFont"), typography.get("bodyFont")]
+    prefijos = {_font_slug(f) for f in familias if isinstance(f, str) and f.strip()}
+
+    conservados = 0
+    for archivo in sorted(destino.iterdir()):
+        if not archivo.is_file():
+            continue
+        # Todo lo que no sea una fuente (p. ej. el README del catalogo) es
+        # documentacion para quien mantiene la Template, no algo que deba
+        # terminar publicado en el sitio del gobierno.
+        if archivo.suffix != ".woff2":
+            archivo.unlink()
+            continue
+        # `playfair-display-var.woff2` / `poppins-600.woff2` -> prefijo de familia.
+        nombre = archivo.stem
+        if any(nombre == p or nombre.startswith(f"{p}-") for p in prefijos):
+            conservados += 1
+        else:
+            archivo.unlink()
+    return conservados
 
 
 def _npm(args: list[str], work: Path, *, paso: str) -> subprocess.CompletedProcess[str]:
@@ -841,6 +940,7 @@ def assemble(project: Path, data: dict, config: dict, theme: dict) -> Path:
     _inject_articles(work, Path(project))
     _inject_faq(work, Path(project))
     _inject_assets(work, Path(project))
+    _inject_fonts(work, Path(project), theme)
     return _run_astro_build(work, Path(project))
 
 
