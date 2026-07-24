@@ -11,7 +11,6 @@
 // Render defensivo (Req 12.5): si no hay metricas con contenido, la seccion se
 // omite por completo (no se renderiza nada).
 import Section from "../ui/Section.astro";
-import Grid from "../ui/Grid.astro";
 
 interface StatMetric {
   value?: string;
@@ -43,7 +42,7 @@ const hasMetrics = metrics.length > 0;
 
 {hasMetrics && (
   <Section eyebrow={eyebrow} title={title} variant="dark" align="center">
-    <Grid min="180px" gap="lg">
+    <div class="ds-stats-row" data-count={metrics.length}>
       {metrics.map((metric) => (
         <div class="ds-stat">
           {metric.value?.trim() && (
@@ -54,31 +53,66 @@ const hasMetrics = metrics.length > 0;
           )}
         </div>
       ))}
-    </Grid>
+    </div>
   </Section>
 )}
 
 <style>
+  /* Fila de metricas con separadores finos entre columnas (recurso editorial de
+   * banda de cifras). Se usa grid explicito en vez de `auto-fit` para que las
+   * cifras queden alineadas en columnas parejas y la fila cierre sin huerfanos.
+   * Mobile-first: 2 columnas en movil, la cuenta real a partir de --bp-md. */
+  .ds-stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+  @media (min-width: 768px) {
+    .ds-stats-row[data-count="3"] { grid-template-columns: repeat(3, 1fr); }
+    .ds-stats-row[data-count="4"] { grid-template-columns: repeat(4, 1fr); }
+    .ds-stats-row[data-count="5"] { grid-template-columns: repeat(5, 1fr); }
+    /* Hairline divisorio entre metricas: refuerza la lectura de "tabla de
+     * cifras" sin agregar peso visual. */
+    .ds-stats-row .ds-stat + .ds-stat {
+      border-left: 1px solid color-mix(in srgb, var(--color-background) 18%, transparent);
+      padding-left: var(--space-lg);
+    }
+  }
+
   .ds-stat {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: var(--space-xs);
+    min-width: 0;
   }
-  /* Cifra grande a la escala de titulares (h1), en color de acento. */
+
+  /* Cifra grande. Tres decisiones deliberadas:
+   *  - `nowrap` + tamano fluido propio: con `--fs-h1` un valor como "10 582 km²"
+   *    se partia en dos lineas y desalineaba la fila. Ahora escala con el
+   *    viewport y nunca rompe.
+   *  - color claro derivado del fondo, NO `--color-accent`: sobre la banda
+   *    oscura el acento de marca puede quedar con muy poco contraste (con el
+   *    tema de Potosi, azul sobre bordo daba una cifra apagada).
+   *  - `tabular-nums` para que las cifras alineen verticalmente entre columnas.
+   */
   .ds-stat-value {
-    font-family: var(--font-heading), Georgia, serif;
-    font-size: var(--fs-h1);
-    line-height: var(--lh-h1);
-    color: var(--color-accent);
+    font-family: var(--font-heading);
+    font-size: clamp(1.9rem, 3.4vw, 3.1rem);
+    line-height: 1.05;
+    color: var(--color-background);
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
+
   /* Etiqueta clara/tenue sobre el fondo oscuro de la banda. */
   .ds-stat-label {
     font-size: var(--fs-small);
     line-height: var(--lh-small);
-    color: color-mix(in srgb, var(--color-background) 82%, transparent);
+    color: color-mix(in srgb, var(--color-background) 72%, transparent);
+    text-wrap: balance;
   }
 </style>

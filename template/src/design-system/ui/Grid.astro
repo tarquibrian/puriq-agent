@@ -9,14 +9,26 @@
 interface Props {
   /** Ancho minimo de cada columna antes de envolver (por defecto 240px). */
   min?: string;
+  /**
+   * Numero MAXIMO de columnas en pantalla ancha. Con `auto-fit` puro, una fila
+   * de 4 tarjetas se parte en 3 + 1 y deja un hueco visible al final (efecto
+   * "huerfano"). Fijando el tope de columnas al numero de items, la fila cierra
+   * pareja. Sigue siendo responsive: los breakpoints reducen a 2 y luego a 1.
+   */
+  cols?: 2 | 3 | 4;
   /** Paso de la Spacing_Scale para el gap: xs | sm | md | lg | xl (por defecto xl). */
   gap?: "xs" | "sm" | "md" | "lg" | "xl";
   /** Clase(s) adicionales opcionales. */
   class?: string;
 }
-const { min = "240px", gap = "xl", class: className } = Astro.props;
+const { min = "240px", cols, gap = "xl", class: className } = Astro.props;
 ---
-<div class:list={["ds-grid", className]} data-gap={gap} style={`--ds-grid-min: ${min};`}>
+<div
+  class:list={["ds-grid", className]}
+  data-gap={gap}
+  data-cols={cols}
+  style={`--ds-grid-min: ${min};`}
+>
   <slot />
 </div>
 
@@ -34,6 +46,20 @@ const { min = "240px", gap = "xl", class: className } = Astro.props;
   .ds-grid[data-gap="md"] { gap: var(--space-md); }
   .ds-grid[data-gap="lg"] { gap: var(--space-lg); }
   .ds-grid[data-gap="xl"] { gap: var(--space-xl); }
+
+  /* Columnas fijas en pantalla ancha para que la fila cierre pareja (sin
+   * huerfanos). Mobile-first: se aplican solo a partir del breakpoint medio;
+   * por debajo sigue mandando el `auto-fit` responsive de arriba.
+   * Los valores coinciden con los tokens `breakpoints.md` / `breakpoints.lg`. */
+  @media (min-width: 768px) {
+    .ds-grid[data-cols="2"],
+    .ds-grid[data-cols="3"],
+    .ds-grid[data-cols="4"] { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1024px) {
+    .ds-grid[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
+    .ds-grid[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
+  }
 
   /* Las imagenes escalan dentro de su celda sin desbordar (Req 5.5). */
   .ds-grid :global(img) { max-width: 100%; height: auto; display: block; }

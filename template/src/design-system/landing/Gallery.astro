@@ -43,10 +43,23 @@ const hasImages = images.length > 0;
 
 {hasImages && (
   <Section eyebrow={eyebrow} title={title}>
-    <div class="ds-mosaic">
+    {/* El patron del mosaico depende de la CANTIDAD de imagenes: la pieza
+      * destacada 2x2 solo cierra pareja con 3 o 5+ imagenes. Con 4, esa misma
+      * regla dejaba la ultima sola en una fila nueva y un hueco grande a su
+      * derecha, asi que 4 se dispone como cuadricula 2x2 uniforme. */}
+    <div class="ds-mosaic" data-count={images.length}>
       {images.map((img, i) => (
         <figure class:list={["ds-mosaic-item", i === 0 && "is-feature"]}>
           <img src={img.src} alt={img.alt} loading="lazy" decoding="async" />
+          {/* Leyenda sobre la imagen: indice numerado + texto alternativo como
+            * pie. Solo aparece cuando la imagen trae `alt` con contenido (una
+            * imagen decorativa no debe arrastrar un pie vacio). */}
+          {img.alt && (
+            <figcaption class="ds-mosaic-caption">
+              <span class="ds-index">{String(i + 1).padStart(2, "0")}</span>
+              <span class="ds-mosaic-alt">{img.alt}</span>
+            </figcaption>
+          )}
         </figure>
       ))}
     </div>
@@ -63,10 +76,44 @@ const hasImages = images.length > 0;
     gap: var(--space-md);
   }
   .ds-mosaic-item {
+    position: relative;
     margin: 0;
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
+  }
+
+  /* Pie numerado sobre un velo inferior: mantiene legible el texto sobre
+   * cualquier foto sin oscurecer la imagen entera. El velo se deriva del color
+   * de texto de marca, no de un negro fijo. */
+  .ds-mosaic-caption {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: var(--space-lg) var(--space-md) var(--space-md);
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--color-text) 78%, transparent),
+      transparent
+    );
+    color: var(--color-background);
+    font-size: var(--fs-small);
+    line-height: var(--lh-small);
+    /* No intercepta el hover/zoom de la imagen. */
+    pointer-events: none;
+  }
+  /* El indice hereda `currentColor` (claro) en vez del mix tenue por defecto. */
+  .ds-mosaic-caption .ds-index {
+    color: color-mix(in srgb, var(--color-background) 75%, transparent);
+    flex: none;
+  }
+  .ds-mosaic-alt {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .ds-mosaic-item img {
     display: block;
@@ -96,6 +143,37 @@ const hasImages = images.length > 0;
       grid-row: span 2;
     }
     .ds-mosaic-item img { aspect-ratio: auto; }
+
+    /* 4 imagenes: cuadricula 2x2 pareja. Con la destacada 2x2 sobre 3 columnas,
+     * la cuarta imagen caia sola en una tercera fila. */
+    .ds-mosaic[data-count="4"] {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 260px;
+    }
+    .ds-mosaic[data-count="4"] .ds-mosaic-item.is-feature {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
+
+    /* 2 imagenes: una al lado de la otra, sin destacada. */
+    .ds-mosaic[data-count="2"] {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 320px;
+    }
+    .ds-mosaic[data-count="2"] .ds-mosaic-item.is-feature {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
+
+    /* 1 imagen: pieza unica a todo el ancho. */
+    .ds-mosaic[data-count="1"] {
+      grid-template-columns: 1fr;
+      grid-auto-rows: 420px;
+    }
+    .ds-mosaic[data-count="1"] .ds-mosaic-item.is-feature {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
   }
 
   /* Reduced_Motion: sin zoom en hover (Req 6.2). */

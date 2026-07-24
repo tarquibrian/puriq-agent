@@ -53,22 +53,65 @@ const items = Array.isArray(content?.items)
     )
   : [];
 const hasItems = items.length > 0;
+
+// Columnas de la cuadricula segun la cantidad de destacados, para que la ultima
+// fila cierre pareja: 4 items -> 4 columnas; 2 -> 2; el resto -> 3.
+const gridCols: 2 | 3 | 4 =
+  items.length === 4 ? 4 : items.length === 2 ? 2 : 3;
 ---
 
 {hasItems && (
   <Section eyebrow={eyebrow} title={title} intro={intro}>
-    <Grid min="260px">
-      {items.map((item) => (
+    {/* Columnas ajustadas a la cantidad de destacados: con `auto-fit` puro, 4
+      * items se partian en 3 + 1 y dejaban un hueco al final de la fila. */}
+    <Grid min="240px" cols={gridCols} gap="lg" class="ds-features">
+      {items.map((item, i) => (
+        /* El titulo NO se pasa por el prop `title` de Card: se renderiza aqui,
+         * despues del indice, para que el orden de lectura (indice -> titulo ->
+         * texto) surja del propio marcado. Ordenarlo por CSS exigiria alcanzar
+         * el interior de Card desde fuera, que es justo lo que el sistema de
+         * estilos con alcance evita. */
         <Card
           icon={item.icon?.trim() || undefined}
           featured={item.highlight === true}
-          title={item.title?.trim()}
           image={item.image?.trim() || undefined}
           imageAlt={item.imageAlt?.trim() ?? ""}
+          class="ds-feature-card"
         >
-          {item.description?.trim() && <p>{item.description.trim()}</p>}
+          {/* Indice editorial: ordena la coleccion y da el aire de revista. */}
+          <span class="ds-index ds-feature-idx">
+            {String(i + 1).padStart(2, "0")}
+          </span>
+          {item.title?.trim() && (
+            <h3 class="ds-feature-title">{item.title.trim()}</h3>
+          )}
+          {item.description?.trim() && (
+            <p class="ds-feature-desc">{item.description.trim()}</p>
+          )}
         </Card>
       ))}
     </Grid>
   </Section>
 )}
+
+<style>
+  /* Indice sobre el titulo: el orden lo da el marcado, no `order`. */
+  .ds-feature-idx {
+    display: block;
+    margin-bottom: var(--space-xs);
+  }
+  .ds-feature-title {
+    margin-bottom: var(--space-sm);
+    /* Titulos de tarjeta un paso por debajo del h3 global: en una fila de 4
+     * columnas el h3 fluido se comia el alto util y forzaba saltos de linea. */
+    font-size: clamp(1.15rem, 1.4vw, 1.35rem);
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .ds-feature-desc {
+    margin: 0;
+    font-size: var(--fs-small);
+    line-height: var(--lh-small);
+    color: color-mix(in srgb, currentColor 72%, transparent);
+  }
+</style>

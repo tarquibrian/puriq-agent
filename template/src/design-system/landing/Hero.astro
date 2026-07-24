@@ -285,19 +285,21 @@ const bgStyle = isImage
    * Modo editorial (IMAGE-ROW): texto sobre el fondo de la pagina, sin scrim.
    * ----------------------------------------------------------------------- */
   .ds-hero--editorial {
-    max-width: var(--container-xl);
+    /* Ancho y gutter estandar del sistema (igual que Container/secciones). */
+    max-width: var(--container-lg);
     margin-inline: auto;
-    padding: clamp(2.5rem, 7vw, 6rem) clamp(var(--space-md), 5vw, var(--space-2xl));
+    padding: clamp(3rem, 8vw, 7rem) clamp(var(--space-md), 5vw, var(--space-lg));
     display: flex;
     flex-direction: column;
     gap: var(--space-2xl);
   }
+  /* El bloque de texto NO se estrecha en conjunto: el titulo y el lead limitan
+   * su propio ancho de lectura individualmente (ver mas abajo). */
   .ds-hero-text {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-md);
-    max-width: 22ch;
   }
   .ds-hero-text .eyebrow { margin: 0; }
   .ds-hero-text .ds-hero-title {
@@ -359,9 +361,10 @@ const bgStyle = isImage
    * Modo SPLIT: dos columnas (texto | media). Movil: una columna, texto arriba.
    * ----------------------------------------------------------------------- */
   .ds-hero--split {
-    max-width: var(--container-xl);
+    /* Ancho y gutter estandar del sistema (igual que Container/secciones). */
+    max-width: var(--container-lg);
     margin-inline: auto;
-    padding: clamp(2.5rem, 7vw, 6rem) clamp(var(--space-md), 5vw, var(--space-2xl));
+    padding: clamp(3rem, 8vw, 7rem) clamp(var(--space-md), 5vw, var(--space-lg));
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--space-2xl);
@@ -456,7 +459,7 @@ const bgStyle = isImage
     box-shadow: var(--shadow-lg);
   }
   .ds-hero-stat-value {
-    font-family: var(--font-heading), system-ui, sans-serif;
+    font-family: var(--font-heading);
     font-size: var(--fs-h3);
     line-height: 1.1;
     font-weight: 700;
@@ -507,7 +510,9 @@ const bgStyle = isImage
     justify-content: center;
     min-height: var(--hero-min-height, 48vh);
     overflow: hidden;
-    padding: var(--space-xl) var(--space-lg);
+    /* Full-bleed: el fondo llega a los bordes; el contenido usa el gutter
+     * estandar del sistema y se centra en un ancho comodo (container-md). */
+    padding: clamp(3rem, 8vw, 7rem) clamp(var(--space-md), 5vw, var(--space-lg));
     color: #ffffff;
     text-align: center;
     background-size: cover;
@@ -571,7 +576,7 @@ const bgStyle = isImage
   .ds-hero-content .ds-hero-actions { justify-content: center; }
 
   @media (min-width: 768px) {
-    .ds-hero--cover { padding: var(--space-2xl) var(--space-xl); }
+    .ds-hero--cover { padding-inline: clamp(var(--space-md), 5vw, var(--space-lg)); }
   }
 
   /* Reduced_Motion: sin zoom en las imagenes editoriales (Req 6.2). */

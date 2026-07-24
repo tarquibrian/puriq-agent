@@ -58,14 +58,17 @@ function initialOf(author?: string): string {
 
 {hasItems && (
   <Section eyebrow={eyebrow} title={title}>
-    <Grid min="300px">
-      {items.map((item) => {
+    <Grid min="280px" cols={items.length === 4 ? 4 : items.length === 2 ? 2 : 3} gap="lg">
+      {items.map((item, i) => {
         const quote = item.quote!.trim();
         const author = item.author?.trim();
         const role = item.role?.trim();
         const avatar = item.avatar?.trim();
+        // Se destaca el PRIMER testimonio como pieza solida de acento. Una fila
+        // de tarjetas identicas se lee como relleno; una destacada crea el punto
+        // de entrada de lectura (patron de las landings de referencia).
         return (
-          <Card>
+          <Card featured={i === 0} class="ds-testimonial-card">
             <blockquote class="ds-testimonial-quote">
               <span class="ds-testimonial-mark" aria-hidden="true">&ldquo;</span>
               <p class="ds-testimonial-text">{quote}</p>
@@ -108,17 +111,21 @@ function initialOf(author?: string): string {
   /* Comilla de apertura tipografica a escala de titular, tenida con el acento. */
   .ds-testimonial-mark {
     display: block;
-    font-family: var(--font-heading), Georgia, serif;
+    font-family: var(--font-heading);
     font-size: var(--fs-h1);
     line-height: 0.6;
     font-weight: 800;
-    color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+    /* `--card-accent` lo declara la Card: vale `--color-accent` en una tarjeta
+     * normal y `--color-background` en la destacada (donde el acento seria
+     * invisible sobre su propio fondo). El fallback cubre el uso fuera de una
+     * Card. */
+    color: color-mix(in srgb, var(--card-accent, var(--color-accent)) 55%, transparent);
   }
 
   /* Texto de la cita a escala destacada (~h3 / lead). */
   .ds-testimonial-text {
     margin: var(--space-sm) 0 0;
-    font-family: var(--font-heading), Georgia, serif;
+    font-family: var(--font-heading);
     font-size: var(--fs-h3);
     line-height: var(--lh-h3);
     font-weight: 500;
@@ -153,9 +160,11 @@ function initialOf(author?: string): string {
     height: 44px;
     border-radius: 50%;
     flex: none;
-    background: color-mix(in srgb, var(--color-accent) 16%, var(--color-background));
-    color: var(--color-accent);
-    font-family: var(--font-heading), Georgia, serif;
+    /* Mismo mecanismo que la comilla: el chip se tine con el acento que declare
+     * la Card, para conservar contraste tambien en la tarjeta destacada. */
+    background: color-mix(in srgb, var(--card-accent, var(--color-accent)) 20%, transparent);
+    color: var(--card-accent, var(--color-accent));
+    font-family: var(--font-heading);
     font-weight: 700;
     font-size: 1.15rem;
     line-height: 1;
@@ -172,4 +181,9 @@ function initialOf(author?: string): string {
     font-size: var(--fs-small);
     color: color-mix(in srgb, currentColor 65%, transparent);
   }
+
+  /* El testimonio destacado NO necesita reglas propias: la comilla y el chip ya
+   * se tinen con `--card-accent`, que la Card redefine sobre su superficie de
+   * acento. Intentar seleccionar la Card desde aca no funcionaria, porque su
+   * raiz lleva el identificador de alcance de Card y no el de este archivo. */
 </style>

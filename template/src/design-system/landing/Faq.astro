@@ -5,8 +5,8 @@
 // `Section`) y un acordeon accesible construido con <details>/<summary> nativos
 // (teclado y lectores de pantalla por defecto, sin JS). Cada item muestra la
 // `question` en el <summary> con un indicador +/x que rota al abrir, y la
-// `answer` en el cuerpo. El ancho se limita (Container size "md") para una
-// lectura comoda.
+// `answer` en el cuerpo. La seccion usa el ancho estandar (lg); es el acordeon
+// el que limita su propio ancho de lectura (~68ch) para una lectura comoda.
 //
 // Toda la apariencia deriva de variables CSS de Design_Tokens: separadores con
 // color-mix del texto, relleno comodo, radio y una transicion suave de apertura
@@ -45,11 +45,15 @@ const hasItems = items.length > 0;
 ---
 
 {hasItems && (
-  <Section eyebrow={eyebrow} title={title} size="md">
+  <Section eyebrow={eyebrow} title={title}>
     <div class="ds-faq">
-      {items.map((item) => (
-        <details class="ds-faq-item">
+      {items.map((item, i) => (
+        /* El primer item arranca ABIERTO: muestra de entrada como se ve una
+         * respuesta (y que el bloque es desplegable), en vez de una lista de
+         * titulos cerrados que parece inerte. */
+        <details class="ds-faq-item" open={i === 0}>
           <summary class="ds-faq-question">
+            <span class="ds-index ds-faq-idx">{String(i + 1).padStart(2, "0")}</span>
             <span class="ds-faq-question-text">{item.question!.trim()}</span>
             <span class="ds-faq-indicator" aria-hidden="true"></span>
           </summary>
@@ -65,12 +69,32 @@ const hasItems = items.length > 0;
 )}
 
 <style>
-  /* Lista de items con separadores sutiles derivados del color de texto. */
+  /* Lista de items con separadores sutiles derivados del color de texto. La
+   * seccion usa el ancho estandar (lg) como el resto; el acordeon limita su
+   * PROPIO ancho de lectura (~68ch) y se centra para una lectura comoda. */
   .ds-faq {
+    max-width: 68ch;
+    margin-inline: auto;
     border-top: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
   }
   .ds-faq-item {
     border-bottom: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+    /* Sangria interior para que el item abierto pueda tintarse sin pegarse a
+     * los bordes del texto. */
+    padding-inline: var(--space-md);
+    border-radius: var(--radius-md);
+    transition: background var(--motion-duration-base) var(--motion-easing);
+  }
+  /* El item abierto se tinta con el acento: marca cual esta activo de un vistazo
+   * en una lista larga (recurso de acordeon de las landings de referencia). */
+  .ds-faq-item[open] {
+    background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  }
+
+  /* Indice numerado de la pregunta, alineado con el texto. */
+  .ds-faq-idx {
+    flex: none;
+    align-self: center;
   }
 
   /* Pregunta: fila clicable con relleno comodo; se elimina el marcador nativo. */
@@ -82,7 +106,7 @@ const hasItems = items.length > 0;
     padding-block: var(--space-lg);
     cursor: pointer;
     list-style: none;
-    font-family: var(--font-heading), Georgia, serif;
+    font-family: var(--font-heading);
     font-size: var(--fs-h3);
     line-height: var(--lh-h3);
     font-weight: 600;
@@ -92,7 +116,8 @@ const hasItems = items.length > 0;
   .ds-faq-question::-webkit-details-marker { display: none; }
   .ds-faq-question::marker { content: ""; }
 
-  .ds-faq-question-text { min-width: 0; }
+  /* El texto ocupa el espacio libre entre el indice y el indicador. */
+  .ds-faq-question-text { min-width: 0; flex: 1; }
 
   /* Indicador +/x tipo cruz: dos trazos; el vertical rota al abrir. */
   .ds-faq-indicator {

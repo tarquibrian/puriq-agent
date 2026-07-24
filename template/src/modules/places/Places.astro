@@ -3,34 +3,78 @@
 //
 // Uplift de presentacion (DD-7, Req 9): el marcado usa los UI_Component
 // `Section`, `Grid` y `Card` y variables CSS de Design_Tokens en lugar de
-// estilos inline hardcodeados. La imagen del lugar viaja por el prop `image` de
-// Card (recorte + zoom en hover) y la categoria se muestra como chip/pill con
-// tinte de acento via color-mix. Los datos de entrada (`places`, `categories`)
-// y el comportamiento no cambian: se preserva el lookup `labelOf` y el orden
+// estilos inline hardcodeados. Los datos de entrada (`places`, `categories`) y
+// el comportamiento no cambian: se preserva el lookup `labelOf` y el orden
 // original de `places` (Req 9.4, 16.3).
+//
+// Direccion editorial: cada ficha es una tarjeta con area de medios de
+// proporcion FIJA y un indice numerado, de modo que la cuadricula lea como una
+// coleccion ordenada (recurso de las landings de referencia) en vez de como
+// tarjetas sueltas de alturas dispares.
+//
+// Decision clave (uniformidad de la cuadricula): un Place puede no tener foto
+// —es el caso normal cuando el usuario todavia no la subio por el wizard—. Antes
+// las tarjetas con imagen y sin imagen tenian alturas MUY distintas y la
+// cuadricula quedaba dentada, con cajas huecas. Ahora la tarjeta SIEMPRE
+// reserva el area de medios: con foto la muestra; sin foto pinta un placeholder
+// derivado de los tokens de marca (degradado sutil + icono de la categoria), de
+// forma que la fila cierra pareja y un sitio sin fotos igual se ve terminado.
 import { places, categories } from "../../lib/data";
 import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
-import Card from "../../design-system/ui/Card.astro";
+import Icon from "../../design-system/ui/Icon.astro";
 const labelOf = (id: string) =>
   categories.find((c: any) => c.id === id)?.label ?? id;
-// Icono de la categoria del lugar (p. ej. mountain/landmark/clock) para el chip
-// de icono de la Card; si la categoria no define icono, la Card usa su fallback.
+// Icono de la categoria del lugar (p. ej. mountain/landmark/clock); alimenta
+// tanto el placeholder sin foto como el chip de meta.
 const iconOf = (id: string) =>
-  categories.find((c: any) => c.id === id)?.icon ?? undefined;
+  categories.find((c: any) => c.id === id)?.icon ?? "map-pin";
+
+// Numero de columnas: se ajusta a la cantidad para que la ultima fila cierre
+// pareja en vez de dejar una tarjeta huerfana.
+const cols = places.length % 3 === 0 ? 3 : places.length % 4 === 0 ? 4 : 3;
+
+// Indice de dos digitos ([01], [02], ...) para la numeracion editorial.
+const idx = (i: number) => String(i + 1).padStart(2, "0");
 ---
 {/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
 <Section id="places" eyebrow="Qué visitar" title="Lugares para descubrir">
   {/* Cuadricula responsive de tarjetas (Req 5.3, 9.3); columnas segun ancho. */}
-  <Grid min="260px">
-    {places.map((p) => (
-      <Card class="place-card" icon={iconOf(p.category)} image={p.images?.[0]} imageAlt={p.name}>
-        {/* Categoria como chip/pill con tinte de acento derivado por color-mix. */}
-        <span class="place-cat">{labelOf(p.category)}</span>
-        <h3 class="place-name">{p.name}</h3>
-        <p class="place-desc">{p.shortDescription}</p>
-        {p.hours && <small class="place-hours">Horario: {p.hours}</small>}
-      </Card>
+  <Grid min="260px" cols={cols as 3 | 4} gap="lg">
+    {places.map((p, i) => (
+      <article class="place-card">
+        <div class="place-media">
+          {p.images?.[0] ? (
+            <img src={p.images[0]} alt={p.name} loading="lazy" decoding="async" />
+          ) : (
+            /* Placeholder de marca: mantiene la proporcion del area de medios
+             * para que la cuadricula no se dente cuando falta la foto. */
+            <div class="place-media-empty" aria-hidden="true">
+              <Icon name={iconOf(p.category)} size="2rem" />
+            </div>
+          )}
+          <span class="place-cat">{labelOf(p.category)}</span>
+        </div>
+
+        <div class="place-body">
+          <span class="ds-index place-idx">{idx(i)}</span>
+          <h3 class="place-name">{p.name}</h3>
+          {p.shortDescription && <p class="place-desc">{p.shortDescription}</p>}
+
+          {/* Meta con iconos: solo se renderiza lo que el contrato realmente
+           * trae, para no dejar filas vacias en fichas incompletas. */}
+          {(p.hours || p.address) && (
+            <ul class="place-meta">
+              {p.hours && (
+                <li><Icon name="clock" size="1em" /><span>{p.hours}</span></li>
+              )}
+              {p.address && (
+                <li><Icon name="map-pin" size="1em" /><span>{p.address}</span></li>
+              )}
+            </ul>
+          )}
+        </div>
+      </article>
     ))}
   </Grid>
 </Section>
@@ -38,29 +82,126 @@ const iconOf = (id: string) =>
 <style>
   /* Toda la apariencia deriva de variables CSS de Design_Tokens (Req 9.1). */
 
-  /* Chip/pill de categoria: tinte de acento sutil, texto de acento, radio pill. */
+  /* La tarjeta es una columna flex para que el cuerpo estire y todas las fichas
+   * de una fila terminen a la misma altura, con la meta anclada abajo. */
+  .place-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-background);
+    border: var(--card-border, 1px solid color-mix(in srgb, var(--color-text) 8%, transparent));
+    border-radius: var(--card-radius, var(--radius-lg));
+    box-shadow: var(--card-shadow, var(--shadow-sm));
+    overflow: hidden;
+    height: 100%;
+    transition:
+      transform var(--motion-duration-base) var(--motion-easing),
+      box-shadow var(--motion-duration-base) var(--motion-easing);
+  }
+  .place-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Area de medios de proporcion fija: es lo que garantiza que la cuadricula
+   * quede pareja tenga o no foto cada lugar. */
+  .place-media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    flex: none;
+  }
+  .place-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--motion-duration-base) var(--motion-easing);
+  }
+  .place-card:hover .place-media img { transform: scale(1.05); }
+
+  /* Placeholder sin foto: degradado derivado de la marca + icono de categoria. */
+  .place-media-empty {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary) 14%, var(--color-background)),
+      color-mix(in srgb, var(--color-accent) 12%, var(--color-background))
+    );
+    color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  }
+
+  /* Chip de categoria sobre la imagen (patron de tarjeta editorial): libera
+   * espacio en el cuerpo y ancla la lectura de la foto. */
   .place-cat {
-    display: inline-block;
-    margin-bottom: var(--space-sm);
-    padding: var(--space-xs) var(--space-sm);
+    position: absolute;
+    left: var(--space-md);
+    bottom: var(--space-md);
+    padding: 0.3em 0.7em;
     border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-background) 92%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: var(--color-primary);
     font-size: var(--fs-small);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    line-height: 1;
+    line-height: 1.2;
   }
-  .place-name { margin: 0 0 var(--space-sm); }
+
+  /* El cuerpo crece para igualar alturas dentro de la fila. */
+  .place-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    flex: 1;
+  }
+
+  .place-idx { margin-bottom: calc(-1 * var(--space-xs)); }
+
+  .place-name { margin: 0; }
+
   .place-desc {
+    margin: 0;
     font-size: var(--fs-small);
     line-height: var(--lh-small);
     /* Texto secundario derivado del color de marca, sin valores fijos. */
     color: color-mix(in srgb, var(--color-text) 70%, var(--color-background));
   }
-  .place-hours {
-    display: block;
-    color: color-mix(in srgb, var(--color-text) 60%, var(--color-background));
+
+  /* Meta anclada al pie de la tarjeta (`margin-top:auto`) para que las fichas
+   * con y sin descripcion mantengan la misma linea de base. */
+  .place-meta {
+    list-style: none;
+    margin: auto 0 0;
+    padding: var(--space-md) 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--fs-small);
+    color: color-mix(in srgb, var(--color-text) 62%, var(--color-background));
+  }
+  .place-meta li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+  }
+  .place-meta span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .place-card,
+    .place-media img { transition: none; }
+    .place-card:hover { transform: none; }
+    .place-card:hover .place-media img { transform: none; }
   }
 </style>

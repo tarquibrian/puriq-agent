@@ -43,7 +43,7 @@ const hasHeader = Boolean(eyebrow || title || intro);
 ---
 <section
   id={id}
-  class:list={["ds-section", className]}
+  class:list={["ds-section", "reveal", className]}
   data-variant={variant}
   data-align={align}
 >
@@ -63,9 +63,11 @@ const hasHeader = Boolean(eyebrow || title || intro);
   /* Ritmo vertical generoso y fluido entre secciones (Req 3.2, 3.3). */
   .ds-section { padding-block: clamp(3rem, 8vw, 7rem); }
 
-  /* Variante con fondo sutil derivado del texto de marca (~4%). */
+  /* Variante con fondo sutil derivado del texto de marca (~4%). Un hairline
+   * superior muy tenue refuerza la separacion entre secciones consecutivas. */
   .ds-section[data-variant="muted"] {
     background: color-mix(in srgb, var(--color-text) 4%, var(--color-background));
+    border-top: 1px solid color-mix(in srgb, var(--color-text) 7%, transparent);
   }
 
   /* Variante oscura: banda de enfasis (mezcla primario/texto, texto claro). */

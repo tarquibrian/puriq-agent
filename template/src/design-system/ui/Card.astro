@@ -72,6 +72,16 @@ const Tag = href ? "a" : "article";
     display: block;
     background: var(--color-background);
     color: var(--color-text);
+    /* Color para las decoraciones "de acento" que viven DENTRO de la tarjeta
+     * (comillas, chips, iconos) y que aportan los componentes que la usan.
+     *
+     * Existe porque los estilos con alcance no permiten que un componente
+     * padre estilice la raiz de un hijo: al pasar `class` a la Card, la raiz
+     * conserva el identificador de alcance de Card, no el del padre. Una
+     * variable CSS si atraviesa esa frontera, porque hereda por el DOM. Asi la
+     * tarjeta declara "de que color se pinta el acento aca adentro" y cada
+     * seccion la consume sin conocer el estado interno de la Card. */
+    --card-accent: var(--color-accent);
     border-radius: var(--card-radius, var(--radius-lg));
     /* Superficie mas presente en reposo: borde sutil pero visible + sombra
      * media, con ganchos de Layout_Variant que pueden sobreescribir (Req 7.3). */
@@ -101,11 +111,31 @@ const Tag = href ? "a" : "article";
     line-height: 1;
   }
 
-  /* Tarjeta destacada: borde de acento + tinte suave; la protagonista. */
+  /* Tarjeta destacada: superficie SOLIDA de acento con texto invertido, no un
+   * tinte. Con el tinte al 6% la tarjeta marcada como `featured` era
+   * practicamente indistinguible de sus vecinas y el enfasis se perdia; una
+   * pieza solida entre tarjetas claras es lo que hace legible la jerarquia. */
   .ds-card.is-featured {
-    border: 1.5px solid var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-background));
+    border: none;
+    background: var(--color-accent);
+    color: var(--color-background);
+    box-shadow: var(--shadow-lg);
+    /* Sobre la superficie de acento, el "acento interior" pasa a ser el color
+     * de fondo: pintar una comilla o un chip con `--color-accent` aqui los
+     * volveria invisibles contra su propio fondo. */
+    --card-accent: var(--color-background);
   }
+  .ds-card.is-featured .ds-card-title { color: var(--color-background); }
+  /* El chip de icono invierte: superficie translucida clara sobre el acento. */
+  .ds-card.is-featured .ds-card-icon-chip {
+    background: color-mix(in srgb, var(--color-background) 22%, transparent);
+    color: var(--color-background);
+  }
+  .ds-card.is-featured .ds-card-arrow { color: var(--color-background); }
+  /* Texto slotteado (parrafos que aporta la seccion): sin esto, el color
+   * heredado del contenido del slot queda en el `--color-text` oscuro sobre la
+   * superficie de acento. */
+  .ds-card.is-featured :global(p) { color: var(--color-background); }
 
   /* Area de medios: recorta la imagen y respeta el radio superior de la card. */
   .ds-card-media {
