@@ -201,4 +201,7 @@ Construido spec-driven en Kiro (ver `.kiro/specs/`).
 
 ## Licencia
 
-MIT (propuesta).
+MIT — ver [LICENSE](LICENSE).
+
+Las fuentes tipográficas incluidas en `template/public/fonts/` están bajo la
+SIL Open Font License 1.1 (ver `template/public/fonts/README.md`).
