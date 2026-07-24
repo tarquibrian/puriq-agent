@@ -2,40 +2,68 @@
 // Modulo MAP: mapa interactivo con Leaflet + OpenStreetMap (sin API key).
 // Modulo core pre-construido y probado; el agente NO lo reescribe, solo lo alimenta.
 //
-// Uplift de presentacion (DD-7, Req 9): SOLO cambia la envoltura de presentacion
-// (Section con eyebrow + titulo) y el estilo del contenedor, derivado de
-// variables CSS de Design_Tokens. La logica de Leaflet, el `id` del elemento del
-// mapa (`puriq-map`) y sus datos (`site.center`, `points`) NO se tocan
-// (Req 9.4, 16.3).
+// Uplift de presentacion (DD-7, Req 9): la envoltura usa `Section` (eyebrow +
+// titulo) y el estilo del contenedor deriva de variables CSS de Design_Tokens.
+// El `id` del elemento del mapa (`puriq-map`) y sus datos (`site.center`,
+// `points`) NO cambian (Req 9.4, 16.3).
+//
+// AUTO-HOSPEDAJE DE LEAFLET
+// La biblioteca se importa del paquete npm y viaja en el bundle del sitio. Antes
+// se cargaba `leaflet.js` y `leaflet.css` desde unpkg.com, aunque `leaflet` ya
+// era una dependencia declarada del proyecto. Traerlo de un CDN de terceros
+// significaba: filtrar la IP de cada visitante a unpkg, ejecutar codigo de
+// tercero en el sitio de un gobierno, y un mapa que se rompe entero sin salida a
+// internet. Es el mismo criterio que ya se aplica a las fuentes.
+//
+// Los TILES si vienen de openstreetmap.org: son datos cartograficos que se piden
+// por zona a medida que se navega, no hay forma de empaquetarlos. Para produccion
+// con trafico alto conviene un proveedor propio de tiles (la politica de uso de
+// OSM desaconseja apoyarse en sus servidores).
 import { site, places } from "../../lib/data";
 import Section from "../../design-system/ui/Section.astro";
 const points = places.filter((p) => p.coords);
+
+// Los datos viajan por un atributo `data-*` en vez de `define:vars`, porque este
+// script se BUNDLEA (no es `is:inline`) para poder importar Leaflet.
+const mapData = JSON.stringify({ center: site.center, points });
 ---
 {/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
 <Section id="map" eyebrow="Cómo llegar" title="Mapa turístico">
-  <div id="puriq-map" class="puriq-map"></div>
+  <div id="puriq-map" class="puriq-map" data-map={mapData}></div>
 </Section>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script is:inline define:vars={{ center: site.center, points }}>
-  const load = () =>
-    new Promise((res) => {
-      const s = document.createElement("script");
-      s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      s.onload = res;
-      document.head.appendChild(s);
-    });
-  load().then(() => {
-    const map = L.map("puriq-map").setView([center.lat, center.lng], center.zoom ?? 8);
+<script>
+  import L from "leaflet";
+  import "leaflet/dist/leaflet.css";
+  // Los iconos por defecto de Leaflet se referencian con rutas relativas al CSS,
+  // que dejan de resolver al empaquetar. Se importan explicitamente para que el
+  // bundler emita su URL final y los marcadores no salgan invisibles.
+  //
+  // El sufijo `?url` es necesario: sin el, Astro entrega un objeto de metadatos
+  // de imagen ({src,width,height}) y no una cadena, y Leaflet acababa poniendo
+  // `src="[object Object]"` en cada marcador.
+  import iconUrl from "leaflet/dist/images/marker-icon.png?url";
+  import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png?url";
+  import shadowUrl from "leaflet/dist/images/marker-shadow.png?url";
+
+  const el = document.getElementById("puriq-map");
+  if (el) {
+    L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
+
+    const { center, points } = JSON.parse(el.dataset.map || "{}");
+    const map = L.map("puriq-map").setView(
+      [center.lat, center.lng],
+      center.zoom ?? 8,
+    );
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap",
     }).addTo(map);
-    for (const p of points) {
+    for (const p of points ?? []) {
       L.marker([p.coords.lat, p.coords.lng])
         .addTo(map)
         .bindPopup(`<strong>${p.name}</strong><br>${p.shortDescription ?? ""}`);
     }
-  });
+  }
 </script>
 
 <style>
