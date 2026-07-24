@@ -64,14 +64,29 @@
     { heading: "Montserrat", body: "Work Sans" }
   ];
 
-  // Paletas de arranque, ya balanceadas (fondo claro, texto de alto contraste y
-  // acento distinguible del primario).
+  // Paletas de arranque: combinaciones VIBRANTES y modernas, pensadas para que
+  // un destino turistico se vea vivo, no apagado. Cada una empareja un color de
+  // marca saturado con un acento contrastante (esquema complementario o de
+  // contraste calido/frio). Todas mantienen fondo casi blanco tenido y texto muy
+  // oscuro, de modo que el contraste de lectura quede holgado (>= 4.5:1) y el
+  // `primary` sirva de superficie para texto blanco en botones.
+  // Todos los pares primary/blanco (>=4.5), text/fondo (>=13) y accent/fondo
+  // (>=4) fueron verificados para que boton, texto y detalle sean legibles.
   var PALETTES = [
-    { name: "Tierra", colors: { primary: "#7A1F2B", secondary: "#B08D57", background: "#F5F1EA", text: "#241C1C", accent: "#3E5C76" } },
-    { name: "Selva", colors: { primary: "#1F4D3D", secondary: "#8CA98F", background: "#F4F7F2", text: "#1B2620", accent: "#C2703D" } },
-    { name: "Altiplano", colors: { primary: "#2B4C7E", secondary: "#7FA3C9", background: "#F3F6FA", text: "#1A2333", accent: "#D98E36" } },
-    { name: "Desierto", colors: { primary: "#C0392B", secondary: "#E0A458", background: "#FDF6EF", text: "#2A1D18", accent: "#3F7A6D" } },
-    { name: "Sobria", colors: { primary: "#1F2933", secondary: "#52606D", background: "#FFFFFF", text: "#1F2933", accent: "#2563EB" } }
+    // Turquesa profundo + coral calido.
+    { name: "Caribe", colors: { primary: "#0E7C7B", secondary: "#F2A65A", background: "#F0FAF9", text: "#0B2E2D", accent: "#DB4324" } },
+    // Magenta vibrante + naranja quemado.
+    { name: "Atardecer", colors: { primary: "#B5179E", secondary: "#7209B7", background: "#FFF4FA", text: "#2A0A24", accent: "#D14E00" } },
+    // Azul brillante + naranja.
+    { name: "Oceano", colors: { primary: "#0466C8", secondary: "#33A1FD", background: "#EEF6FF", text: "#0A1C3D", accent: "#DD4E0A" } },
+    // Esmeralda + dorado tostado.
+    { name: "Tropical", colors: { primary: "#0A7C54", secondary: "#4CC9A0", background: "#EFFBF5", text: "#0A2A1E", accent: "#B45309" } },
+    // Violeta profundo + esmeralda.
+    { name: "Amatista", colors: { primary: "#6D28D9", secondary: "#A78BFA", background: "#F7F3FF", text: "#1E1140", accent: "#047857" } },
+    // Rosa cereza + turquesa.
+    { name: "Cereza", colors: { primary: "#C81D4E", secondary: "#F26A8D", background: "#FFF3F6", text: "#2B0913", accent: "#0E8A8A" } },
+    // Indigo nocturno + rosa. Mas sobria pero igual moderna.
+    { name: "Indigo", colors: { primary: "#3730A3", secondary: "#818CF8", background: "#F2F3FF", text: "#131235", accent: "#E11D48" } }
   ];
 
   /** Pila CSS de una familia para la vista previa (familia + respaldos). */
