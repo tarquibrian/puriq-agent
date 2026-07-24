@@ -16,6 +16,8 @@ publicar el core (invariante de capa fina).
 """
 from __future__ import annotations
 
+import re
+
 from puriq.tools.deploy import ADAPTERS
 
 # Catálogo de destinos de publicación soportados (Req 10.2). Se toma tal cual de
@@ -118,3 +120,69 @@ def validate_deploy_target(target: object) -> str:
             f"Destinos válidos: {validos}."
         )
     return target
+
+
+class DomainError(ValueError):
+    """Error accionable: la dirección web indicada no tiene forma de dominio.
+
+    El mensaje explica el formato esperado para que el Wizard_UI pueda mostrar
+    una corrección concreta (Req 7.3).
+    """
+
+
+# Dominio con al menos un punto y un TLD alfabético de 2+ letras
+# (``turismo.potosi.gob.bo``). Se admiten subdominios y guiones internos.
+_DOMAIN_RE = re.compile(
+    r"^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$"
+)
+
+
+def validate_domain(domain: object) -> str:
+    """Normaliza y valida la dirección web pública del sitio.
+
+    Este dato NO es solo cosmético: alimenta la URL canónica, las etiquetas para
+    compartir en redes y el sitemap, y se resuelve **en tiempo de build**. Un
+    valor mal formado no rompe el build, pero publica un sitio entero con URLs
+    absolutas incorrectas, que es peor que no declararlo, así que se valida al
+    entrar en vez de al publicar.
+
+    Normalización: se recorta, se pasa a minúsculas, y se aceptan tanto
+    ``turismo.potosi.gob.bo`` como ``https://turismo.potosi.gob.bo/``. Se guarda
+    siempre el dominio desnudo, sin esquema ni barra final, que es la forma que
+    espera ``Site_Config.deploy.domain``.
+
+    Args:
+        domain: dirección escrita por el usuario. Una cadena vacía es válida y
+            devuelve ``""``: el dominio es opcional mientras se prueba en local.
+
+    Returns:
+        El dominio normalizado, o ``""`` si no se indicó ninguno.
+
+    Raises:
+        DomainError: si el valor no tiene forma de dominio; el mensaje muestra
+            un ejemplo del formato esperado.
+    """
+    if domain is None:
+        return ""
+    if not isinstance(domain, str):
+        raise DomainError(
+            "La dirección web debe ser texto, por ejemplo "
+            "'turismo.miprovincia.gob.bo'."
+        )
+
+    limpio = domain.strip().lower()
+    if not limpio:
+        return ""
+
+    # Se tolera que el usuario pegue la URL completa desde su navegador.
+    limpio = re.sub(r"^https?://", "", limpio)
+    limpio = limpio.rstrip("/")
+    # Una ruta o un puerto no pertenecen al dominio del sitio.
+    limpio = limpio.split("/")[0]
+
+    if not _DOMAIN_RE.match(limpio):
+        raise DomainError(
+            f"La dirección web {domain!r} no tiene un formato válido. "
+            "Escribe solo el dominio, por ejemplo 'turismo.miprovincia.gob.bo'."
+        )
+    return limpio

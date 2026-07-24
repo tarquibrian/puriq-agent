@@ -219,7 +219,19 @@
   }
 
   // --- Render de mensajes por paso -----------------------------------------
+  // Los avisos del paso se REEMPLAZAN, no se apilan: al fallar un guardado
+  // quedaba el "guardado con exito" del intento anterior justo encima del error
+  // nuevo, y el usuario no sabia cual de los dos describia el estado real.
+  function clearMessages(container) {
+    var panel = container || document.getElementById("step-panel");
+    if (!panel) return;
+    panel.querySelectorAll(".step-error, .step-ok").forEach(function (n) {
+      n.remove();
+    });
+  }
+
   function renderError(container, normalized) {
+    clearMessages(container);
     var box = el("div", { class: "step-error", role: "alert" }, [
       el("p", { class: "cause", text: normalized.cause })
     ]);
@@ -229,6 +241,7 @@
   }
 
   function renderOk(container, message) {
+    clearMessages(container);
     container.insertBefore(el("div", { class: "step-ok", text: message }), container.firstChild);
   }
 
@@ -374,6 +387,11 @@
       d.lat = c.lat != null ? c.lat : "";
       d.lng = c.lng != null ? c.lng : "";
       d.zoom = c.zoom != null ? c.zoom : "";
+      // Estos tres viven en `site.config.json`, no en `tourism-data`.
+      var cfg = state.server["site-config"] || {};
+      d.domain = (cfg.deploy || {}).domain || "";
+      d.email = (cfg.contact || {}).email || "";
+      d.phone = (cfg.contact || {}).phone || "";
       d._init = true;
     }
 
@@ -389,6 +407,20 @@
     ]));
     container.appendChild(textField("Zoom del centro (opcional)", d, "zoom"));
 
+    // --- Direccion web y contacto (viven en site.config.json) ---
+    // La direccion web NO es solo del paso de publicacion: el BUILD la usa para
+    // la URL canonica, las etiquetas para compartir en redes y el sitemap. Si se
+    // pidiera recien al publicar, el sitio ya se habria generado con URLs de
+    // marcador y habria que reconstruirlo.
+    container.appendChild(el("h3", { class: "brand-legend", text: "Dirección y contacto" }));
+    container.appendChild(textField("Dirección web del sitio (opcional)", d, "domain"));
+    container.appendChild(el("p", { class: "hint", text: "Por ejemplo: turismo.miprovincia.gob.bo. Se usa para el buscador y para que el sitio se vea bien al compartirlo. Podés dejarlo vacío mientras probás en tu computadora." }));
+    container.appendChild(el("div", { class: "row" }, [
+      textField("Email de contacto (opcional)", d, "email"),
+      textField("Teléfono de contacto (opcional)", d, "phone")
+    ]));
+    container.appendChild(el("p", { class: "hint", text: "Aparecen en el pie del sitio para que un visitante pueda escribirte o llamarte." }));
+
     container.appendChild(el("button", {
       class: "btn", text: "Guardar sitio",
       onclick: function () { saveSite(container); }
@@ -403,9 +435,24 @@
       name: d.name, region: d.region,
       defaultLocale: d.defaultLocale || "es", center: center
     };
+    // El paso escribe en DOS documentos del contrato: nombre/region/centro van a
+    // `tourism-data`, mientras que la direccion web y el contacto viven en
+    // `site.config`. Se encadenan para que un fallo del segundo (p. ej. un
+    // dominio mal escrito) se muestre sin haber perdido lo del primero.
     apiRequest("PUT", "/api/tourism-data/site", { json: payload })
       .then(function (doc) {
         state.server["tourism-data"] = doc;
+        // `PUT /api/site-config` exige la seleccion de modulos, asi que se
+        // reenvia la actual para no perderla al guardar estos campos.
+        var cfgPayload = {
+          modules: currentModulesPayload(),
+          domain: d.domain || "",
+          contact: { email: d.email || "", phone: d.phone || "" }
+        };
+        return apiRequest("PUT", "/api/site-config", { json: cfgPayload });
+      })
+      .then(function (cfg) {
+        state.server["site-config"] = cfg;
         markDone("site");
         renderOk(document.getElementById("step-panel"), "Sitio guardado.");
       })

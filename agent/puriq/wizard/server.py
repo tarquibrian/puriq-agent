@@ -49,8 +49,10 @@ from puriq.wizard.landing import LandingCatalogError, build_landing
 from puriq.wizard.modules import ModuleCatalogError, build_modules
 from puriq.wizard.validation import (
     DeployTargetError,
+    DomainError,
     QAValidationError,
     validate_deploy_target,
+    validate_domain,
     validate_qa_entry,
 )
 
@@ -434,6 +436,7 @@ def add_event(body: EventBody):
 _CONFIG_ERRORS = (
     ModuleCatalogError,
     DeployTargetError,
+    DomainError,
     LandingCatalogError,
     ValueError,
     jsonschema.ValidationError,
@@ -488,6 +491,13 @@ class _LandingSelection(BaseModel):
     content: dict | None = None
 
 
+class _Contact(BaseModel):
+    """Datos de contacto publicables del organismo (`Site_Config.contact`)."""
+
+    email: str | None = None
+    phone: str | None = None
+
+
 class SiteConfigBody(BaseModel):
     """Cuerpo de `PUT /api/site-config` (Req 2.1-2.5, 10.5, 14.3, 14.4, 14.6).
 
@@ -502,6 +512,13 @@ class SiteConfigBody(BaseModel):
     modules: list[_ModuleSelection]
     deployTarget: str | None = None
     landing: list[_LandingSelection] | None = None
+    # Direccion web publica (`Site_Config.deploy.domain`). No es solo del paso de
+    # publicacion: la resuelve el BUILD para la URL canonica, las etiquetas de
+    # redes y el sitemap. Sin ella el sitio se genera con URLs de marcador.
+    domain: str | None = None
+    # Datos de contacto del organismo (`Site_Config.contact`), que el pie del
+    # sitio publica como enlaces mailto/tel.
+    contact: _Contact | None = None
 
 
 class _Colors(BaseModel):
@@ -557,8 +574,23 @@ def put_site_config(body: SiteConfigBody):
     try:
         selection = [descriptor.model_dump(exclude_none=True) for descriptor in body.modules]
         patch: dict = {"modules": build_modules(selection)}
+        # `deploy` reune destino y dominio; se arma un solo sub-documento para no
+        # pisar uno con el otro cuando llegan en peticiones distintas (el destino
+        # se elige al publicar y el dominio en los datos del sitio).
+        deploy: dict = {}
         if body.deployTarget is not None:
-            patch["deploy"] = {"target": validate_deploy_target(body.deployTarget)}
+            deploy["target"] = validate_deploy_target(body.deployTarget)
+        if body.domain is not None:
+            dominio = validate_domain(body.domain)
+            # Un dominio vacio se guarda como cadena vacia a proposito: permite
+            # BORRAR una direccion cargada por error, en vez de dejarla fija.
+            deploy["domain"] = dominio
+        if deploy:
+            patch["deploy"] = deploy
+        if body.contact is not None:
+            contacto = body.contact.model_dump(exclude_none=True)
+            if contacto:
+                patch["contact"] = contacto
         if body.landing is not None:
             landing_selection = [
                 descriptor.model_dump(exclude_none=True) for descriptor in body.landing
