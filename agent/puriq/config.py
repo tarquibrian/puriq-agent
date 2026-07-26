@@ -137,3 +137,24 @@ def redact(text: str) -> str:
     for value in sorted(set(_secret_values()), key=len, reverse=True):
         text = text.replace(value, _MASK)
     return text
+
+
+def redact_value(value: object) -> object:
+    """Aplica `redact` de forma recursiva a los strings de una estructura (Req 12.2).
+
+    Variante recursiva de `redact` y unica fuente de verdad para redactar
+    estructuras compuestas (respuestas del wizard, del MCP, etc.). Recorre dicts,
+    listas y tuplas enmascarando cada string con `redact`, de modo que ningun
+    valor de secreto configurado aparezca en la salida. Los valores no-string
+    (numeros, booleanos, None) se devuelven sin cambios. Las tuplas se devuelven
+    como listas (forma serializable a JSON).
+    """
+    if isinstance(value, str):
+        return redact(value)
+    if isinstance(value, dict):
+        return {key: redact_value(val) for key, val in value.items()}
+    if isinstance(value, list):
+        return [redact_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [redact_value(item) for item in value]
+    return value

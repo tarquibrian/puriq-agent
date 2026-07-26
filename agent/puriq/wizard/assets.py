@@ -24,6 +24,14 @@ IMAGE_EXTS: frozenset[str] = frozenset(
     {".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"}
 )
 
+# Límite de tamaño de un Asset (Req 4.5). 10 MiB es suficiente para fotos y
+# logos de un sitio turístico; cargas mayores se rechazan con un mensaje que
+# indica el máximo permitido. Se compara ANTES de escribir en disco. Vive en el
+# módulo puro (junto a IMAGE_EXTS) para que tanto la capa web (wizard/server.py)
+# como las intake tools reutilicen exactamente el mismo límite sin acoplarse al
+# servidor web (DD-3).
+MAX_ASSET_BYTES = 10 * 1024 * 1024
+
 # Stem de reserva cuando el nombre original no aporta ningún carácter ASCII
 # alfanumérico (p. ej. "___.png"), para que el resultado siempre cumpla el
 # patrón Slug ``^[a-z0-9-]+$``.
