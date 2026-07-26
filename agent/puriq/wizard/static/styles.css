@@ -387,6 +387,187 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
   font-size: 0.8rem;
 }
 
+/* ==========================================================================
+ * Chat_Panel: chat conversacional dentro de la columna del preview (Req 7)
+ *
+ * Se monta JUNTO al Live_Preview: el marco del esqueleto y el chat se reparten
+ * la altura de la columna derecha. Con cada respuesta, el `estado` del turno
+ * repinta el esqueleto de arriba (misma funcion updateSkeleton).
+ * ========================================================================== */
+/* El marco del preview cede parte de su altura al chat (antes tomaba todo el
+ * alto con `flex: 1`). Basis explicito para un reparto estable ~58/42. */
+.preview-frame { flex: 1 1 58%; }
+
+.chat-panel {
+  flex: 1 1 42%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.chat-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.chat-status { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+
+/* Historial desplazable: burbujas del usuario a la derecha, de Puriq a la
+ * izquierda. */
+.chat-history {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.chat-msg { display: flex; flex-direction: column; gap: 0.15rem; max-width: 85%; }
+.chat-msg.chat-user { align-self: flex-end; align-items: flex-end; }
+.chat-msg.chat-assistant { align-self: flex-start; align-items: flex-start; }
+.chat-role {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.chat-bubble {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-user .chat-bubble { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.chat-assistant .chat-bubble { background: var(--hover); color: var(--text); border-bottom-left-radius: 4px; }
+
+/* Error accionable del chat (Req 7.5): mismo lenguaje visual que .step-error. */
+.chat-error {
+  margin: 0 0.85rem 0.5rem;
+  border: 1px solid var(--err-border);
+  background: var(--err-bg);
+  color: var(--err);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+}
+.chat-error .cause { font-weight: 700; margin: 0 0 0.2rem; }
+.chat-error .fix, .chat-error .doc { margin: 0.15rem 0 0; color: #7a1f19; font-size: 0.82rem; }
+
+/* Barra de composicion: textarea + boton Enviar. */
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  padding: 0.7rem 0.85rem;
+  border-top: 1px solid var(--border);
+  flex: none;
+}
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--field);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.chat-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
+}
+.chat-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.chat-form .btn { flex: none; }
+
+/* Boton de adjuntar (clip): compacto, alineado con el textarea y el envio. */
+.chat-attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  width: 2.3rem;
+  height: 2.3rem;
+}
+.chat-attach svg { width: 1.15rem; height: 1.15rem; }
+
+/* Chips de los binarios adjuntos al turno (imagenes y PDFs). */
+.chat-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0 0.85rem 0.5rem;
+}
+.chat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.2rem 0.3rem 0.2rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--hover);
+  font-size: 0.78rem;
+  color: var(--text);
+}
+.chat-chip-name {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.chat-chip-remove:hover { background: var(--border); color: var(--text); }
+
+/* Nombres de adjuntos mostrados junto al mensaje del usuario en el historial. */
+.chat-msg-files {
+  font-size: 0.72rem;
+  color: var(--faint);
+  overflow-wrap: anywhere;
+}
+
+/* Resalte del panel cuando se arrastra un archivo encima (drag & drop). */
+.chat-panel.is-drop {
+  outline: 2px dashed var(--primary);
+  outline-offset: -4px;
+}
+
 /* Area de trabajo: fondo tenue, contenido acotado a un ancho comodo. */
 .content {
   padding: 2.5rem;

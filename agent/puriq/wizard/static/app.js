@@ -2069,10 +2069,276 @@
     window.addEventListener("mouseup", onUp);
   }
 
+  // ========================================================================
+  // Chat_Panel: chat conversacional con preview en vivo (Pieza 6, Req 7)
+  // ========================================================================
+  // Panel de chat vanilla montado junto al Live_Preview. Reutiliza las mismas
+  // piezas que el resto del wizard: `apiRequest` para el fetch y su
+  // normalizacion de errores, `state.server` como fuente del preview y
+  // `updateSkeleton` para repintarlo. No duplica el renderizado del esqueleto.
+  //
+  // Estado propio del panel: `pending` evita envios concurrentes mientras un
+  // turno esta en curso (Req 7.4). Se nombra `chatState` para no confundir con
+  // la variable local `chat` del paso Modulos (que es de otro alcance).
+  // `attachments` guarda los File binarios adjuntos al turno en curso (imagenes
+  // y PDFs, Req 6.1); se vacia tras enviar.
+  var chatState = { pending: false, attachments: [] };
+
+  // Referencias de assets a adjuntar al turno como CONTEXTO TEXTUAL (Req 8.1).
+  // El chat es text-only: el panel NO sube binarios por /api/chat; solo puede
+  // referenciar rutas relativas bajo `assets/` que ya subio el flujo de assets
+  // existente (drag & drop -> POST /api/assets, cacheado en `state.assets`).
+  //
+  // Hook preparado: en esta fase se envia [] por defecto para priorizar que el
+  // chat de texto funcione end-to-end. Para poblar las referencias desde el
+  // inventario de assets ya subidos, descomentar el bloque de abajo (usa el
+  // mismo `state.assets` que llena el paso Recursos via GET /api/assets):
+  //
+  //   if (state.assets && state.assets.length) {
+  //     return state.assets.map(function (a) {
+  //       return a.path || (a.name ? "assets/" + a.name : null);
+  //     }).filter(Boolean);
+  //   }
+  function chatAttachedFiles() {
+    return [];
+  }
+
+  // Agrega un mensaje al historial visible de la conversacion (Req 7.2).
+  // `attachNames` (opcional) lista los binarios adjuntos al turno para que el
+  // usuario vea que envio junto al texto.
+  function appendChatMessage(role, text, attachNames) {
+    var history = document.getElementById("chat-history");
+    if (!history) return;
+    var children = [
+      el("span", { class: "chat-role", text: role === "user" ? "Vos" : "Puriq" })
+    ];
+    if (text) children.push(el("p", { class: "chat-bubble", text: text }));
+    if (attachNames && attachNames.length) {
+      children.push(el("span", {
+        class: "chat-msg-files",
+        text: "Adjuntos: " + attachNames.join(", ")
+      }));
+    }
+    history.appendChild(el("div", { class: "chat-msg chat-" + role }, children));
+    history.scrollTop = history.scrollHeight;
+  }
+
+  // Indicador "en curso" + deshabilitar el envio mientras el fetch esta
+  // pendiente (Req 7.4).
+  function setChatPending(pending) {
+    chatState.pending = pending;
+    var send = document.getElementById("chat-send");
+    var input = document.getElementById("chat-input");
+    var attach = document.getElementById("chat-attach");
+    var status = document.getElementById("chat-status");
+    if (send) send.disabled = pending;
+    if (input) input.disabled = pending;
+    if (attach) attach.disabled = pending;
+    if (status) {
+      status.textContent = pending ? "Puriq esta escribiendo\u2026" : "";
+      status.hidden = !pending;
+    }
+  }
+
+  // --- Adjuntos binarios del turno (Req 6.1) -------------------------------
+  // El adjuntador reutiliza el patron de carga del paso Recursos: un <input
+  // type=file> disparado por un boton y una zona de arrastre. A diferencia de
+  // /api/assets (que SUBE cada archivo al soltarlo), aca los File se ACUMULAN en
+  // `chatState.attachments` y viajan con el turno como `binarios` del
+  // multipart; se vacian tras enviar.
+  function addChatAttachments(files) {
+    var lista = Array.prototype.slice.call(files || []);
+    if (!lista.length) return;
+    lista.forEach(function (f) { chatState.attachments.push(f); });
+    renderChatAttachments();
+  }
+
+  function removeChatAttachment(index) {
+    chatState.attachments.splice(index, 1);
+    renderChatAttachments();
+  }
+
+  function clearChatAttachments() {
+    chatState.attachments = [];
+    renderChatAttachments();
+  }
+
+  // Redibuja los chips de adjuntos desde `chatState.attachments`. Cada chip
+  // muestra el nombre del archivo y un boton para quitarlo antes de enviar.
+  function renderChatAttachments() {
+    var box = document.getElementById("chat-attachments");
+    if (!box) return;
+    clear(box);
+    if (!chatState.attachments.length) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    chatState.attachments.forEach(function (file, idx) {
+      box.appendChild(el("span", { class: "chat-chip", title: file.name }, [
+        el("span", { class: "chat-chip-name", text: file.name }),
+        el("button", {
+          type: "button", class: "chat-chip-remove",
+          "aria-label": "Quitar " + file.name,
+          onclick: function () { removeChatAttachment(idx); }
+        }, ["\u00d7"])
+      ]));
+    });
+  }
+
+  function clearChatError() {
+    var box = document.getElementById("chat-error");
+    if (box) { clear(box); box.hidden = true; }
+  }
+
+  // Muestra el error accionable normalizado sin bloquear envios posteriores
+  // (Req 7.5). Reutiliza la misma normalizacion {cause, fix, doc} que el resto
+  // del wizard (apiRequest ya adjunta `normalized` a los errores del servidor).
+  function renderChatError(err) {
+    var box = document.getElementById("chat-error");
+    if (!box) return;
+    var normalized = err && err.__wizardError ? err.normalized : {
+      cause: "No se pudo contactar al servidor.",
+      fix: "Verifica que el asistente siga corriendo y reintenta.",
+      doc: ""
+    };
+    clear(box);
+    box.appendChild(el("p", { class: "cause", text: normalized.cause }));
+    if (normalized.fix) box.appendChild(el("p", { class: "fix", text: normalized.fix }));
+    if (normalized.doc) box.appendChild(el("p", { class: "doc", text: normalized.doc }));
+    box.hidden = false;
+  }
+
+  // Vuelca el `estado` de la Chat_Response (los tres documentos del contrato) en
+  // `state.server` y repinta el preview con la MISMA funcion updateSkeleton
+  // (Req 7.3). `estado` es la salida de get_state: claves de contrato
+  // (`tourism-data`/`site-config`/`theme-tokens`) mas `missing`.
+  function applyChatEstado(estado) {
+    if (!estado || typeof estado !== "object") return;
+    ["tourism-data", "site-config", "theme-tokens"].forEach(function (key) {
+      if (estado[key] && typeof estado[key] === "object") {
+        state.server[key] = estado[key];
+      }
+    });
+    updateSkeleton();
+  }
+
+  // Envia el mensaje al Chat_Endpoint con el patron de fetch existente y
+  // renderiza el turno (Req 7.2, 7.3).
+  // Arma el multipart del turno cuando hay binarios adjuntos (Req 6.1):
+  // `mensaje` (texto), `archivos` (referencias, campos repetidos) y `binarios`
+  // (los File adjuntos, campos repetidos). No fija Content-Type: el navegador lo
+  // pone con el boundary correcto (igual que el drag & drop de /api/assets).
+  function chatFormData(mensaje, attachments) {
+    var fd = new FormData();
+    fd.append("mensaje", mensaje);
+    chatAttachedFiles().forEach(function (ref) { fd.append("archivos", ref); });
+    attachments.forEach(function (file) { fd.append("binarios", file, file.name); });
+    return fd;
+  }
+
+  function sendChatMessage() {
+    if (chatState.pending) return;
+    var input = document.getElementById("chat-input");
+    if (!input) return;
+    var mensaje = (input.value || "").trim();
+    // Un turno necesita texto o al menos un binario adjunto para tener sentido.
+    var attachments = chatState.attachments.slice();
+    if (!mensaje && !attachments.length) return;
+
+    var attachNames = attachments.map(function (f) { return f.name; });
+    appendChatMessage("user", mensaje, attachNames);
+    input.value = "";
+    // Los adjuntos ya viajan en este turno: se limpian de inmediato (como el
+    // texto del input) para no reenviarlos por accidente en el siguiente.
+    clearChatAttachments();
+    clearChatError();
+    setChatPending(true);
+
+    // Con binarios se envia multipart/form-data reutilizando la rama `form` de
+    // apiRequest (misma normalizacion de errores {causa,accion}/{documento,...});
+    // sin binarios se mantiene el POST JSON del Hito 2, intacto (Req 6.3).
+    var opts = attachments.length
+      ? { form: chatFormData(mensaje, attachments) }
+      : { json: { mensaje: mensaje, archivos: chatAttachedFiles() } };
+
+    apiRequest("POST", "/api/chat", opts)
+      .then(function (res) {
+        appendChatMessage("assistant", (res && res.respuesta) || "(sin respuesta)");
+        applyChatEstado(res && res.estado);
+      })
+      .catch(function (err) {
+        renderChatError(err);
+      })
+      // Se ejecuta pase lo que pase (exito o error): rehabilita el envio para no
+      // bloquear los turnos siguientes (Req 7.5).
+      .then(function () {
+        setChatPending(false);
+        input.focus();
+      });
+  }
+
+  function setupChat() {
+    var form = document.getElementById("chat-form");
+    var input = document.getElementById("chat-input");
+    if (!form) return;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      sendChatMessage();
+    });
+    // Enter envia; Shift+Enter agrega un salto de linea (comodo para textarea).
+    if (input) {
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendChatMessage();
+        }
+      });
+    }
+
+    // --- Adjuntar binarios (Req 6.1): boton + input file + drag & drop ---
+    // Reutiliza el mismo patron que el paso Recursos (dropzone -> input file):
+    // el boton dispara el selector nativo y el arrastre sobre el panel acepta
+    // archivos soltados. Ambos caminos acumulan en chatState.attachments.
+    var attachBtn = document.getElementById("chat-attach");
+    var fileInput = document.getElementById("chat-file-input");
+    if (attachBtn && fileInput) {
+      attachBtn.addEventListener("click", function () {
+        if (!chatState.pending) fileInput.click();
+      });
+      fileInput.addEventListener("change", function (e) {
+        addChatAttachments(e.target.files);
+        e.target.value = ""; // permite re-elegir el mismo archivo
+      });
+    }
+
+    var panel = document.getElementById("chat-panel");
+    if (panel) {
+      panel.addEventListener("dragover", function (e) {
+        if (chatState.pending) return;
+        e.preventDefault();
+        panel.classList.add("is-drop");
+      });
+      panel.addEventListener("dragleave", function (e) {
+        // Solo se apaga al salir del panel, no al pasar entre sus hijos.
+        if (e.target === panel) panel.classList.remove("is-drop");
+      });
+      panel.addEventListener("drop", function (e) {
+        e.preventDefault();
+        panel.classList.remove("is-drop");
+        if (chatState.pending) return;
+        if (e.dataTransfer && e.dataTransfer.files) {
+          addChatAttachments(e.dataTransfer.files);
+        }
+      });
+    }
+  }
+
   function init() {
     document.getElementById("btn-prev").addEventListener("click", function () { goTo(state.current - 1); });
     document.getElementById("btn-next").addEventListener("click", function () { goTo(state.current + 1); });
     setupPreviewResize();
+    setupChat();
 
     // Catalogo tipografico: se pide una sola vez y se inyectan los `@font-face`
     // para que la vista previa del paso Marca muestre la tipografia REAL. Si

@@ -66,6 +66,39 @@
         </div>
         <div id="skeleton" class="skeleton"></div>
       </div>
+
+      <!-- Panel de chat conversacional (Pieza 6, Req 7): se monta JUNTO al
+           Live_Preview/#skeleton. Conversas con Puriq y, con cada respuesta, el
+           esqueleto de arriba se repinta con la MISMA funcion updateSkeleton a
+           partir del `estado` que devuelve /api/chat (Req 7.3). -->
+      <section id="chat-panel" class="chat-panel" aria-label="Chat con Puriq">
+        <div class="chat-head">
+          <span class="chat-title">Chat con Puriq</span>
+          <span id="chat-status" class="chat-status" role="status" hidden></span>
+        </div>
+        <div id="chat-history" class="chat-history" aria-live="polite"></div>
+        <div id="chat-error" class="chat-error" role="alert" hidden></div>
+        <!-- Miniaturas/chips de los binarios adjuntos al turno (imagenes y PDFs).
+             app.js lo rellena desde chatState.attachments y lo limpia tras enviar. -->
+        <div id="chat-attachments" class="chat-attachments" hidden></div>
+        <form id="chat-form" class="chat-form">
+          <!-- Selector de archivos oculto: lo dispara el boton de adjuntar y el
+               drag & drop sobre el panel (mismo patron que el paso Recursos). -->
+          <input id="chat-file-input" class="visually-hidden" type="file"
+                 accept="image/*,application/pdf,.pdf" multiple
+                 aria-hidden="true" tabindex="-1" />
+          <button type="button" id="chat-attach" class="btn btn-ghost chat-attach"
+                  title="Adjuntar imagenes o PDFs" aria-label="Adjuntar archivos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8-8a3.3 3.3 0 0 1 4.7 4.7l-8 8a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3"/>
+            </svg>
+          </button>
+          <textarea id="chat-input" class="chat-input" rows="2"
+                    placeholder="Escribi tu mensaje…" aria-label="Mensaje para Puriq"></textarea>
+          <button type="submit" id="chat-send" class="btn">Enviar</button>
+        </form>
+      </section>
     </aside>
   </div>
 

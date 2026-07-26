@@ -26,14 +26,19 @@ from fastapi import FastAPI, File, Form, Request, UploadFile, WebSocket, WebSock
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from puriq import config
+from puriq.config import redact_value
 from puriq.core import Puriq
 from puriq.errors import wizard_error_response
+from puriq.intake.agent import ChatAgent, ChatRequest
+from puriq.intake.ingest import IncomingFile
 from puriq.wizard import contracts
+from puriq.wizard.asset_store import append_image, next_available_asset
 from puriq.wizard.assets import (
     IMAGE_EXTS,
+    MAX_ASSET_BYTES,
     normalize_asset_name,
     resolve_within_assets,
 )
@@ -43,6 +48,7 @@ from puriq.wizard.intake import (
     build_place,
     make_coords,
 )
+from puriq.wizard.qa_store import append_qa_entry, register_knowledge_source
 from puriq.tools import build_site
 from puriq.tools.deploy import DeployError
 from puriq.wizard.landing import LandingCatalogError, build_landing
@@ -78,10 +84,10 @@ _SITE_CONFIG_FILE = "site.config.json"
 _THEME_DOC = "theme-tokens"
 _THEME_FILE = "theme.tokens.json"
 
-# Limite de tamano de un Asset (Req 4.5). 10 MiB es suficiente para fotos y
-# logos de un sitio turistico; cargas mayores se rechazan con un mensaje que
-# indica el maximo permitido. Se compara ANTES de escribir en disco.
-MAX_ASSET_BYTES = 10 * 1024 * 1024
+# Limite de tamano de un Asset (Req 4.5). `MAX_ASSET_BYTES` vive ahora en el
+# modulo puro `wizard/assets.py` (junto a `IMAGE_EXTS`) y se importa arriba, de
+# modo que la capa web y las intake tools reutilicen el mismo limite (DD-3). Se
+# compara ANTES de escribir en disco.
 _MAX_ASSET_MB = MAX_ASSET_BYTES // (1024 * 1024)
 
 # Almacenamiento de la base de conocimiento Q&A (Req 5.1, 5.2, 5.3).
@@ -123,23 +129,8 @@ def project_root() -> Path:
     return base.resolve()
 
 
-def _redact_value(value: object) -> object:
-    """Aplica `config.redact` de forma recursiva a los strings de una estructura.
-
-    Recorre dicts, listas y tuplas enmascarando cada string con `config.redact`
-    (Req 12.2), de modo que ningun valor de secreto configurado aparezca en la
-    respuesta del wizard. Los valores no-string (numeros, booleanos, None) se
-    devuelven sin cambios.
-    """
-    if isinstance(value, str):
-        return config.redact(value)
-    if isinstance(value, dict):
-        return {key: _redact_value(val) for key, val in value.items()}
-    if isinstance(value, list):
-        return [_redact_value(item) for item in value]
-    if isinstance(value, tuple):
-        return [_redact_value(item) for item in value]
-    return value
+# `_redact_value` se movio a `config.redact_value` (unica fuente de verdad para
+# redactar estructuras compuestas, DD-4) y se importa arriba como `redact_value`.
 
 
 # --- Manejadores de errores transversales (Req 12.2, 7.5, DD-4) --------------
@@ -149,7 +140,7 @@ def _redact_value(value: object) -> object:
 # seguridad: ninguna respuesta HTTP puede filtrar una traza cruda ni un valor de
 # secreto. Ambos pasan por `wizard_error_response` (traduccion accionable DD-4)
 # que **siempre** aplica `config.redact` antes de serializar, y ademas se re-
-# redacta el cuerpo completo con `_redact_value` por defensa en profundidad.
+# redacta el cuerpo completo con `redact_value` por defensa en profundidad.
 #
 #   - `RequestValidationError` (pydantic/FastAPI): se lanza ANTES de entrar al
 #     endpoint cuando el cuerpo/params no cumplen el modelo. El cuerpo por
@@ -208,7 +199,7 @@ async def _handle_request_validation_error(
             "Revisa los campos indicados y volve a enviar la peticion."
         ),
     }
-    return JSONResponse(status_code=422, content=_redact_value(cuerpo))
+    return JSONResponse(status_code=422, content=redact_value(cuerpo))
 
 
 @app.exception_handler(Exception)
@@ -222,7 +213,7 @@ async def _handle_unexpected_error(request: Request, exc: Exception) -> JSONResp
     """
     return JSONResponse(
         status_code=500,
-        content=_redact_value(wizard_error_response(exc)),
+        content=redact_value(wizard_error_response(exc)),
     )
 
 
@@ -265,7 +256,7 @@ def get_state() -> dict:
     """
     project = project_root()
     state = {doc: contracts._load_contract(project, doc) for doc in _STATE_DOCS}
-    return _redact_value(state)
+    return redact_value(state)
 
 
 # --- Intake de contenido turistico: sitio, Places y Events (Req 3) -----------
@@ -362,7 +353,7 @@ def put_site(body: SiteBody):
             status_code=422,
             content=wizard_error_response(exc, documento=_TOURISM_FILE),
         )
-    return _redact_value(merged)
+    return redact_value(merged)
 
 
 @app.post("/api/tourism-data/places")
@@ -390,7 +381,7 @@ def add_place(body: PlaceBody):
             status_code=422,
             content=wizard_error_response(exc, documento=_TOURISM_FILE),
         )
-    return _redact_value(merged)
+    return redact_value(merged)
 
 
 @app.post("/api/tourism-data/events")
@@ -417,7 +408,7 @@ def add_event(body: EventBody):
             status_code=422,
             content=wizard_error_response(exc, documento=_TOURISM_FILE),
         )
-    return _redact_value(merged)
+    return redact_value(merged)
 
 
 # --- Estructura (modulos + deploy.target) y marca (theme tokens) -------------
@@ -602,7 +593,7 @@ def put_site_config(body: SiteConfigBody):
             status_code=422,
             content=wizard_error_response(exc, documento=_SITE_CONFIG_FILE),
         )
-    return _redact_value(merged)
+    return redact_value(merged)
 
 
 @app.put("/api/theme-tokens")
@@ -637,7 +628,7 @@ def put_theme_tokens(body: ThemeBody):
             status_code=422,
             content=wizard_error_response(exc, documento=_THEME_FILE),
         )
-    return _redact_value(merged)
+    return redact_value(merged)
 
 
 # --- Carga de Assets a /assets (Req 4) ---------------------------------------
@@ -656,53 +647,9 @@ def put_theme_tokens(body: ThemeBody):
 _ASSET_ERRORS = (ValueError, jsonschema.ValidationError)
 
 
-def _next_available_asset(project: Path, name: str) -> tuple[str, Path]:
-    """Devuelve un nombre libre dentro de `/assets` y su ruta resuelta (Req 4.6, 11.4).
-
-    Verifica la contencion con `resolve_within_assets` (Req 12.4). Si `name` ya
-    existe, desambigua anexando un sufijo numerico al *stem* (``slug-1.ext``,
-    ``slug-2.ext``, ...) hasta hallar uno libre, de modo que los Assets previos
-    nunca se sobreescriben (Req 11.4).
-    """
-    target = resolve_within_assets(project, name)
-    if not target.exists():
-        return name, target
-
-    stem, _, ext = name.rpartition(".")
-    ext = f".{ext}"
-    counter = 1
-    while True:
-        candidate = f"{stem}-{counter}{ext}"
-        candidate_path = resolve_within_assets(project, candidate)
-        if not candidate_path.exists():
-            return candidate, candidate_path
-        counter += 1
-
-
-def _append_image(project: Path, entity_key: str, entity_id: str, rel_path: str) -> dict:
-    """Anexa `rel_path` a `images` de un Place/Event por `id` via load-merge-save (Req 4.2).
-
-    Carga `tourism-data`, ubica la entidad (`places`/`events`) por `id`, calcula
-    la nueva lista de `images` (sin duplicar la ruta) y persiste el parche con
-    `merge_document`+`save_contract`. Si la entidad no existe, lanza `ValueError`
-    accionable (el llamador lo mapea a `422`) en vez de crear una entidad
-    incompleta que no cumpliria el esquema.
-    """
-    base = contracts._load_contract(project, _TOURISM_DOC)
-    entidades = base.get(entity_key) or []
-    actual = next((e for e in entidades if e.get("id") == entity_id), None)
-    if actual is None:
-        raise ValueError(
-            f"No existe un {entity_key[:-1]} con id '{entity_id}' para asociar la "
-            f"imagen. Crea la entrada antes de subir su imagen."
-        )
-    images = list(actual.get("images") or [])
-    if rel_path not in images:
-        images.append(rel_path)
-    patch = {entity_key: [{"id": entity_id, "images": images}]}
-    merged = contracts.merge_document(base, patch)
-    contracts.save_contract(project, _TOURISM_DOC, merged)
-    return merged
+# `_next_available_asset` y `_append_image` se movieron a `wizard/asset_store.py`
+# (modulo de E/S sin FastAPI, DD-3) y se importan arriba como
+# `next_available_asset` y `append_image`.
 
 
 @app.post("/api/assets")
@@ -738,7 +685,7 @@ async def upload_asset(
         nombre = normalize_asset_name(file.filename or "", IMAGE_EXTS)
 
         # Desambiguacion de colision + verificacion de contencion (Req 4.6, 12.4).
-        nombre_final, destino = _next_available_asset(project, nombre)
+        nombre_final, destino = next_available_asset(project, nombre)
         destino.parent.mkdir(parents=True, exist_ok=True)
         destino.write_bytes(contenido)
 
@@ -755,7 +702,7 @@ async def upload_asset(
                     f"de la entrada."
                 )
             entity_key = "places" if target == "place" else "events"
-            contrato = _append_image(project, entity_key, id, rel_path)
+            contrato = append_image(project, entity_key, id, rel_path)
     except _ASSET_ERRORS as exc:
         return JSONResponse(
             status_code=422,
@@ -765,7 +712,7 @@ async def upload_asset(
     respuesta: dict = {"path": rel_path}
     if contrato is not None:
         respuesta["document"] = contrato
-    return _redact_value(respuesta)
+    return redact_value(respuesta)
 
 
 # --- Captura de la base de conocimiento Q&A (Req 5) --------------------------
@@ -789,62 +736,9 @@ class QABody(BaseModel):
     answer: str
 
 
-def _append_qa_entry(project: Path, entry: dict) -> str:
-    """Anexa `entry` a `content/qa.json` sin indexarlo (Req 5.1, 5.3).
-
-    Crea `<project>/content` si no existe y mantiene una lista JSON de entradas.
-    Si el archivo previo esta corrupto o no es una lista, se reinicia con una
-    lista nueva para no perder la entrada actual. Devuelve la ruta relativa
-    `content/qa.json` que se registra como knowledgeSource (Req 5.2).
-    """
-    content_dir = project / _CONTENT_DIRNAME
-    content_dir.mkdir(parents=True, exist_ok=True)
-    qa_path = content_dir / _QA_FILENAME
-
-    entries: list = []
-    if qa_path.exists():
-        try:
-            cargado = json.loads(qa_path.read_text(encoding="utf-8"))
-            if isinstance(cargado, list):
-                entries = cargado
-        except (ValueError, OSError):
-            entries = []
-
-    entries.append(entry)
-    qa_path.write_text(
-        json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    return _QA_RELPATH
-
-
-def _register_knowledge_source(project: Path, rel_path: str) -> dict:
-    """Registra `rel_path` en `Site_Config.modules.chatweb.knowledgeSource` (Req 5.2).
-
-    Carga `site-config` y arma un parche para `modules.chatweb`. Si `chatweb` ya
-    existe con `enabled`/`order`, solo actualiza `knowledgeSource`; si no, crea
-    el modulo con `enabled=True` y un `order` entero >= 1 (siguiente al maximo de
-    los modulos presentes) para cumplir el esquema. Persiste via load-merge-save.
-    """
-    base = contracts._load_contract(project, _SITE_CONFIG_DOC)
-    modules = base.get("modules") or {}
-    chatweb = modules.get("chatweb")
-
-    if isinstance(chatweb, dict) and "enabled" in chatweb and "order" in chatweb:
-        chat_patch = {"knowledgeSource": rel_path}
-    else:
-        orders = [
-            m.get("order", 0)
-            for m in modules.values()
-            if isinstance(m, dict) and isinstance(m.get("order"), int)
-        ]
-        siguiente = (max(orders) + 1) if orders else 1
-        chat_patch = {
-            "enabled": True,
-            "order": siguiente,
-            "knowledgeSource": rel_path,
-        }
-
-    return _save_patch(project, _SITE_CONFIG_DOC, {"modules": {"chatweb": chat_patch}})
+# `_append_qa_entry` y `_register_knowledge_source` se movieron a
+# `wizard/qa_store.py` (modulo de E/S sin FastAPI, DD-4) y se importan arriba
+# como `append_qa_entry` y `register_knowledge_source`.
 
 
 @app.post("/api/qa")
@@ -861,15 +755,15 @@ def add_qa(body: QABody):
     project = project_root()
     try:
         entry = validate_qa_entry(body.model_dump())
-        _append_qa_entry(project, entry)
-        site_config = _register_knowledge_source(project, _QA_RELPATH)
+        append_qa_entry(project, entry)
+        site_config = register_knowledge_source(project, _QA_RELPATH)
     except _QA_ERRORS as exc:
         return JSONResponse(
             status_code=422,
             content=wizard_error_response(exc, documento=_QA_FILENAME),
         )
 
-    return _redact_value(
+    return redact_value(
         {
             "entry": entry,
             "knowledgeSource": _QA_RELPATH,
@@ -908,7 +802,7 @@ def list_qa() -> dict:
         for i, e in enumerate(entries)
         if isinstance(e, dict)
     ]
-    return _redact_value({"entries": salida})
+    return redact_value({"entries": salida})
 
 
 @app.delete("/api/qa/{index}")
@@ -948,7 +842,7 @@ def delete_qa(index: int):
     qa_path.write_text(
         json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    return _redact_value({"deleted": index, "remaining": len(entries)})
+    return redact_value({"deleted": index, "remaining": len(entries)})
 
 
 # --- Lectura y baja de Places / Events del contrato --------------------------
@@ -1026,7 +920,7 @@ def edit_entity(entity: str, item_id: str, body: EntityPatch):
             content=wizard_error_response(exc, documento=_TOURISM_FILE),
         )
 
-    return _redact_value(
+    return redact_value(
         {"id": item_id, "document": contracts._load_contract(project, _TOURISM_DOC)}
     )
 
@@ -1063,7 +957,7 @@ def delete_entity(entity: str, item_id: str):
             content=wizard_error_response(exc, documento=_TOURISM_FILE),
         )
 
-    return _redact_value(
+    return redact_value(
         {
             "id": resultado["id"],
             "affectedEvents": resultado["affectedEvents"],
@@ -1136,7 +1030,7 @@ def list_assets() -> dict:
                 "usedBy": uso.get(rel, []),
             }
         )
-    return _redact_value({"assets": salida})
+    return redact_value({"assets": salida})
 
 
 @app.get("/api/assets/raw/{name}")
@@ -1217,7 +1111,7 @@ def delete_asset(name: str):
         theme.pop("logo", None)
         contracts.save_contract(project, _THEME_DOC, theme)
 
-    return _redact_value({"deleted": rel, "unlinked": cambiado})
+    return redact_value({"deleted": rel, "unlinked": cambiado})
 
 
 # --- Generacion con progreso en vivo (Req 8, DD-2) ---------------------------
@@ -1450,7 +1344,7 @@ def start_preview(body: PreviewBody | None = None) -> dict:
 
     dist = project / "dist"
     if not dist.is_dir():
-        return _redact_value(
+        return redact_value(
             {
                 "message": (
                     "Aun no hay un sitio construido para previsualizar. "
@@ -1482,7 +1376,7 @@ def start_preview(body: PreviewBody | None = None) -> dict:
         )
         hilo.start()
 
-    return _redact_value({"url": url})
+    return redact_value({"url": url})
 
 
 # --- Publicacion del sitio en un destino soportado (Req 10) ------------------
@@ -1531,7 +1425,7 @@ def start_deploy(body: DeployBody):
     # (2) Exigir un build previo (Req 10.3); sin dist/ no se publica ni persiste.
     dist = project / "dist"
     if not dist.is_dir():
-        return _redact_value(
+        return redact_value(
             {
                 "message": (
                     "Aun no hay un sitio construido para publicar. "
@@ -1561,7 +1455,138 @@ def start_deploy(body: DeployBody):
             content=wizard_error_response(exc),
         )
 
-    return _redact_value({"url": url, "target": target, "document": site_config})
+    return redact_value({"url": url, "target": target, "document": site_config})
+
+
+# --- Chat web conversacional con preview en vivo (Req 6, Pieza 6) ------------
+#
+# `POST /api/chat` es la **superficie B** (web) del intake: recibe un turno del
+# usuario y corre un turno del `Chat_Agent` sobre el Project_Root, devolviendo
+# `{respuesta, estado}` redactado (DD-5). El endpoint es una capa fina: NO
+# reimplementa el nucleo de intake (las tool-calls se despachan por
+# `run_intake_tool` dentro del `Chat_Agent`, Req 5.1) ni valida el contrato.
+#
+# Acepta DOS formas segun el `Content-Type` (DD-M8, compatible hacia atras):
+#   - `application/json` -> `{mensaje, archivos[]}` (Hito 2): `archivos[]` son
+#     **referencias** a assets ya subidos por `POST /api/assets`, no binarios
+#     (chat text-only); `binarios=[]`. Comportamiento INTACTO (Req 6.3).
+#   - `multipart/form-data` -> campos `mensaje` (str), `archivos` (referencias) y
+#     `binarios` (los `UploadFile` reales). Cada `UploadFile` se lee a bytes y se
+#     envuelve en `IncomingFile(filename, content)` para el Ingest_Router
+#     (Req 6.1, 6.2). El endpoint NO escribe a `assets/`: esa escritura la hace
+#     `attach_asset` dentro del Chat_Agent (Req 1.5).
+#
+# La atomicidad ante fallo (Req 6.5) es HEREDADA de `save_contract` (validate-
+# before-write + os.replace): una tool-call que falla no deja escritura parcial y
+# las previas confirmadas quedan integras. Se sirve solo en `127.0.0.1` por
+# `serve()` (Req 11.1).
+
+# Errores de validacion/entrada que se traducen a `422` en el chat (misma familia
+# que el resto del wizard). El resto de las excepciones (fallo de proveedor de
+# LLM, red, etc.) cae en el catch-all que responde `500` redactado (Req 6.4, 11.4).
+_CHAT_ERRORS = (ValueError, jsonschema.ValidationError)
+
+
+class ChatBody(BaseModel):
+    """Cuerpo JSON de `POST /api/chat` (Req 6.2, 6.3, 8.1): un turno del chat web.
+
+    `mensaje` es el texto del usuario para el turno; `archivos` es una lista
+    opcional de **referencias** a assets ya subidos (rutas relativas bajo
+    `assets/`), nunca binarios (chat text-only, Req 8.1). Este modelo valida
+    exclusivamente el camino `application/json` (Hito 2); el camino
+    `multipart/form-data` lee los campos del formulario directamente (DD-M8).
+    """
+
+    mensaje: str
+    archivos: list[str] = []
+
+
+@app.post("/api/chat")
+async def chat(request: Request):
+    """Corre un turno del Chat_Agent sobre el Project_Root (Req 6, 11, DD-M8).
+
+    Acepta dos formas segun el `Content-Type`, compatible hacia atras (DD-M8):
+
+    - `application/json` -> cuerpo `{mensaje, archivos[]}` (Hito 2): se parsea con
+      `await request.json()` y se valida con el modelo `ChatBody` (mensaje
+      requerido, archivos default `[]`); `binarios=[]`. Un cuerpo no-JSON o que no
+      cumple el modelo responde `422` (Req 6.3).
+    - `multipart/form-data` -> campos `mensaje` (str), `archivos` (referencias) y
+      `binarios` (los `UploadFile` reales). Las `archivos` se toman como **lista
+      repetida de campos de formulario** (`form.getlist("archivos")`, criterio
+      simple elegido para las referencias); cada `UploadFile` de `binarios` se lee
+      a bytes y se envuelve en `IncomingFile(filename, content)` para el
+      Ingest_Router (Req 6.1, 6.2). El endpoint NO escribe a `assets/`: la
+      escritura la hace `attach_asset` dentro del Chat_Agent (Req 1.5).
+
+    Ambos caminos construyen `ChatRequest(mensaje, archivos, binarios)`, corren
+    `ChatAgent(project).run_turn(...)` y responden `redact_value({respuesta,
+    estado})` (Req 6.4, 11.2). Ante error se traduce con `wizard_error_response`
+    (redactado, sin trazas): los errores de validacion/entrada responden `422` y
+    el resto `500` (Req 6.4, 11.4). La atomicidad ante fallo (Req 6.5) la hereda
+    `save_contract` dentro del nucleo; el endpoint no persiste nada por su cuenta.
+    """
+    project = project_root()
+
+    # 1) Parseo/validacion de la entrada segun el Content-Type (DD-M8). Cualquier
+    #    fallo aqui es de entrada -> 422 redactado (Req 6.3, 11.4).
+    content_type = request.headers.get("content-type", "")
+    try:
+        if content_type.startswith("multipart/form-data"):
+            form = await request.form()
+            mensaje = form.get("mensaje")
+            if not isinstance(mensaje, str):
+                raise ValueError(
+                    "El campo 'mensaje' es obligatorio en el turno del chat."
+                )
+            # Referencias a assets ya subidos: lista repetida de campos de
+            # formulario (criterio simple, DD-M8). Se descartan valores no-texto.
+            archivos = [ref for ref in form.getlist("archivos") if isinstance(ref, str)]
+            # Binarios reales: se lee cada UploadFile a bytes y se envuelve en
+            # IncomingFile para el Ingest_Router (Req 6.1, 6.2). No se escribe a
+            # disco aqui: attach_asset lo hace dentro del Chat_Agent (Req 1.5).
+            binarios = [
+                IncomingFile(filename=up.filename or "", content=await up.read())
+                for up in form.getlist("binarios")
+                if hasattr(up, "read")
+            ]
+        else:
+            # application/json (Hito 2): {mensaje, archivos[]}; binarios=[].
+            try:
+                data = await request.json()
+            except Exception as exc:  # noqa: BLE001 - cuerpo no-JSON -> 422
+                raise ValueError(
+                    "El cuerpo de la peticion no es un JSON valido."
+                ) from exc
+            body = ChatBody.model_validate(data)
+            mensaje = body.mensaje
+            archivos = body.archivos
+            binarios = []
+    except (ValidationError, *_CHAT_ERRORS) as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc),
+        )
+
+    # 2) Turno del Chat_Agent (Req 6.1, 6.2). Errores de validacion/entrada -> 422;
+    #    el resto (proveedor de LLM, red, etc.) -> 500 redactado (Req 6.4, 11.4).
+    try:
+        agent = ChatAgent(project)
+        resp = agent.run_turn(
+            ChatRequest(mensaje=mensaje, archivos=archivos, binarios=binarios)
+        )
+    except _CHAT_ERRORS as exc:
+        return JSONResponse(
+            status_code=422,
+            content=wizard_error_response(exc),
+        )
+    except Exception as exc:  # noqa: BLE001 - se traduce y redacta (Req 6.4, 11.4)
+        return JSONResponse(
+            status_code=500,
+            content=wizard_error_response(exc),
+        )
+
+    return redact_value({"respuesta": resp.respuesta, "estado": resp.estado})
 
 
 def serve(port: int = 4321) -> None:
