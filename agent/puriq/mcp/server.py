@@ -56,11 +56,22 @@ from typing import Any, Callable
 from puriq import schemas
 from puriq.config import redact
 from puriq.core import Puriq
+from puriq.intake.tools import (
+    INTAKE_GUION,
+    INTAKE_TOOL_NAMES,
+    INTAKE_TOOL_SPECS,
+    run_intake_tool,
+)
 from puriq.tools import deploy as deploy_tool
 from puriq.tools import generate_content, import_open_data, scan_resources
 
 #: Nombre del servidor MCP anunciado al cliente.
 SERVER_NAME = "tourism-builder"
+
+#: URI del recurso MCP que expone el guion del intake como contexto (Req 13.5).
+#: El cliente MCP puede leerlo con `read_resource("intake://guion")` para cargar
+#: el Guion_Intake (fases 1-9) sin depender de las descripciones de las tools.
+INTAKE_RESOURCE_URI = "intake://guion"
 
 
 # --- Delegaciones a la implementación compartida (Req 8.2) -------------------
@@ -188,11 +199,12 @@ def _delegate_analyze_seo(arguments: dict[str, Any]) -> Any:
     return puriq.analyze_seo()
 
 
-#: Especificaciones de las tools como datos puros (sin dependencia del SDK `mcp`).
+#: Especificaciones de las tools de **pipeline y edición** (las 11 tools que ya
+#: existían antes del intake) como datos puros (sin dependencia del SDK `mcp`).
 #: Cada entrada declara el `name`, la `description` y el `inputSchema` (JSON Schema)
 #: acorde a la firma de la implementación delegada (Req 8.3), más la función
 #: `handler` que realiza la delegación (Req 8.2).
-TOOL_SPECS: list[dict[str, Any]] = [
+_EXISTING_SPECS: list[dict[str, Any]] = [
     {
         "name": "scan_resources",
         "description": (
@@ -593,6 +605,14 @@ TOOL_SPECS: list[dict[str, Any]] = [
     },
 ]
 
+#: Especificaciones completas anunciadas por el servidor MCP, compuestas de forma
+#: **aditiva** (DD-1, Req 13.1, 13.6): primero las 11 tools de pipeline y edición
+#: ya existentes (`_EXISTING_SPECS`), luego las 12 intake tools
+#: (`INTAKE_TOOL_SPECS`). Las intake specs comparten la MISMA forma
+#: (name/description/inputSchema/handler), por lo que `_HANDLERS`, `list_tools` y
+#: `_serialize` las cubren por construcción sin tocar el motor.
+TOOL_SPECS: list[dict[str, Any]] = [*_EXISTING_SPECS, *INTAKE_TOOL_SPECS]
+
 #: Índice nombre -> handler de delegación, derivado de `TOOL_SPECS`.
 _HANDLERS: dict[str, Callable[[dict[str, Any]], Any]] = {
     spec["name"]: spec["handler"] for spec in TOOL_SPECS
@@ -623,7 +643,8 @@ def build_server():
     módulo.
     """
     from mcp.server.lowlevel import Server
-    from mcp.types import CallToolResult, TextContent, Tool
+    from mcp.server.lowlevel.helper_types import ReadResourceContents
+    from mcp.types import CallToolResult, Resource, TextContent, Tool
 
     server = Server(SERVER_NAME)
 
@@ -641,7 +662,20 @@ def build_server():
 
     @server.call_tool()
     async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] | CallToolResult:
-        """Ejecuta una tool delegando en el core; enmascara errores (Req 8.2, 8.4)."""
+        """Ejecuta una tool delegando en el core; enmascara errores (Req 8.2, 8.4).
+
+        Las intake tools (Req 13.3) se enrutan por `run_intake_tool`, que ya
+        despacha al handler correspondiente y traduce **internamente** cualquier
+        excepción a un resultado accionable y redactado (DD-5): nunca lanza, así
+        que su resultado se serializa directamente (sin envolver en `isError`).
+        Las tools de pipeline/edición conservan su camino actual (handler +
+        try/except con `redact` como red de seguridad).
+        """
+        # Ruteo de las intake tools (Req 13.3): run_intake_tool no lanza (traduce
+        # internamente), por lo que su resultado se serializa tal cual.
+        if name in INTAKE_TOOL_NAMES:
+            return [TextContent(type="text", text=_serialize(run_intake_tool(name, arguments or {})))]
+
         handler = _HANDLERS.get(name)
         if handler is None:
             # Tool desconocida: error descriptivo (sin secretos que enmascarar).
@@ -659,6 +693,42 @@ def build_server():
                 isError=True,
             )
         return [TextContent(type="text", text=_serialize(result))]
+
+    # --- Recurso MCP del guion del intake (Req 13.4, 13.5) -------------------
+    # Además de embeber el Guion_Intake en las descripciones de las intake tools
+    # (Req 13.4, hecho en 10.1), se expone como un único recurso MCP legible
+    # (`intake://guion`, text/markdown) para que el cliente lo cargue como
+    # contexto de la conversación (Req 13.5). Es aditivo e independiente de
+    # list_tools/call_tool.
+
+    @server.list_resources()
+    async def _list_resources() -> list[Resource]:
+        """Anuncia el único recurso del intake: el guion en Markdown (Req 13.5)."""
+        return [
+            Resource(
+                uri=INTAKE_RESOURCE_URI,
+                name="Guion del intake",
+                description=(
+                    "Guion conversacional del registro (fases 1-9 y la regla de "
+                    "pedir archivos activamente) para conducir el intake por MCP."
+                ),
+                mimeType="text/markdown",
+            )
+        ]
+
+    @server.read_resource()
+    async def _read_resource(uri) -> list[ReadResourceContents]:
+        """Devuelve el contenido del guion para `intake://guion` (Req 13.5).
+
+        `uri` llega como un `AnyUrl` del SDK; se compara de forma tolerante
+        (normalizando una posible barra final). Una URI desconocida se rechaza
+        con un error claro, alineado con las convenciones del SDK (el servidor lo
+        traduce a un resultado de error para el cliente).
+        """
+        solicitada = str(uri).rstrip("/")
+        if solicitada != INTAKE_RESOURCE_URI:
+            raise ValueError(f"Recurso desconocido: '{uri}'.")
+        return [ReadResourceContents(content=INTAKE_GUION, mime_type="text/markdown")]
 
     return server
 

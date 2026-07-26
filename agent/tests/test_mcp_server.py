@@ -70,11 +70,25 @@ def _install_mcp_stub(monkeypatch: pytest.MonkeyPatch):
             self.content = content
             self.isError = isError
 
+    class _Resource:
+        def __init__(self, uri, name, description=None, mimeType=None):  # noqa: N803
+            self.uri = uri
+            self.name = name
+            self.description = description
+            self.mimeType = mimeType
+
+    class _ReadResourceContents:
+        def __init__(self, content, mime_type=None):
+            self.content = content
+            self.mime_type = mime_type
+
     class _Server:
         def __init__(self, name):
             self.name = name
             self.list_tools_handler = None
             self.call_tool_handler = None
+            self.list_resources_handler = None
+            self.read_resource_handler = None
 
         def list_tools(self):
             def _deco(fn):
@@ -90,19 +104,39 @@ def _install_mcp_stub(monkeypatch: pytest.MonkeyPatch):
 
             return _deco
 
+        def list_resources(self):
+            def _deco(fn):
+                self.list_resources_handler = fn
+                return fn
+
+            return _deco
+
+        def read_resource(self):
+            def _deco(fn):
+                self.read_resource_handler = fn
+                return fn
+
+            return _deco
+
     mcp_mod = types.ModuleType("mcp")
     server_mod = types.ModuleType("mcp.server")
     lowlevel_mod = types.ModuleType("mcp.server.lowlevel")
+    helper_types_mod = types.ModuleType("mcp.server.lowlevel.helper_types")
     types_mod = types.ModuleType("mcp.types")
 
     lowlevel_mod.Server = _Server
+    helper_types_mod.ReadResourceContents = _ReadResourceContents
     types_mod.Tool = _Tool
     types_mod.TextContent = _TextContent
     types_mod.CallToolResult = _CallToolResult
+    types_mod.Resource = _Resource
 
     monkeypatch.setitem(sys.modules, "mcp", mcp_mod)
     monkeypatch.setitem(sys.modules, "mcp.server", server_mod)
     monkeypatch.setitem(sys.modules, "mcp.server.lowlevel", lowlevel_mod)
+    monkeypatch.setitem(
+        sys.modules, "mcp.server.lowlevel.helper_types", helper_types_mod
+    )
     monkeypatch.setitem(sys.modules, "mcp.types", types_mod)
 
     return _Server
