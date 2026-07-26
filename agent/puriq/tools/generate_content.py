@@ -41,9 +41,11 @@ en el docstring de `enrich`).
 """
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
+from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from puriq.config import get_env
@@ -62,6 +64,177 @@ BEDROCK_MODEL = os.getenv("PURIQ_BEDROCK_MODEL", _DEFAULT_BEDROCK_MODEL)
 _MAX_TOKENS = 1024
 
 
+# --- Modelo de mensajes neutral para tool-use (Pieza 4, DD-3) -----------------
+# Modelo de datos común e independiente del proveedor que usa `complete_chat`.
+# Cada proveedor TRADUCE este modelo a su formato nativo (Bedrock Claude tool-use
+# / function calling compatible con OpenAI) y de vuelta, de modo que el bucle del
+# agente (Chat_Agent) razone siempre sobre la misma forma neutral. Es text-only
+# (Req 3.6): `content` solo transporta texto, nunca bytes de imágenes.
+
+
+@dataclass
+class ToolCall:
+    """Solicitud del modelo de invocar una herramienta (intake tool).
+
+    Attributes:
+        id: id opaco del proveedor, usado para casar el `ToolResult` posterior.
+        name: nombre de la intake tool solicitada.
+        arguments: argumentos ya deserializados a `dict` (sin `project`, que el
+            Chat_Agent inyecta al despachar, DD-2).
+    """
+
+    id: str
+    name: str
+    arguments: dict
+
+
+@dataclass
+class ToolResult:
+    """Resultado de ejecutar una `ToolCall`, devuelto al modelo para continuar.
+
+    Attributes:
+        tool_call_id: id de la `ToolCall` a la que responde.
+        content: resultado serializado a texto (JSON) para el modelo.
+    """
+
+    tool_call_id: str
+    content: str
+
+
+@dataclass
+class ImageContent:
+    """Imagen asociada a un mensaje, independiente del proveedor (DD-M2).
+
+    Transporta una imagen dentro del modelo de mensajes neutral para que la
+    firma de `complete_chat(messages, tools=None)` NO cambie (las imágenes
+    viajan dentro del `Message` de usuario). Cada proveedor la traduce a su
+    formato multimodal nativo.
+
+    Attributes:
+        media_type: tipo de medio raster, p. ej. "image/jpeg" | "image/png" |
+            "image/webp" | "image/gif".
+        data: bytes de la imagen codificados en base64.
+    """
+
+    media_type: str
+    data: str
+
+
+@dataclass
+class Message:
+    """Un mensaje de la conversación, independiente del proveedor.
+
+    Attributes:
+        role: "system" | "user" | "assistant" | "tool".
+        content: texto del mensaje (o None cuando el turno es solo tool-calls).
+        tool_calls: solo en mensajes "assistant"; tool-calls solicitadas.
+        tool_result: solo en mensajes "tool"; el resultado de una tool-call.
+        images: solo en mensajes "user"; imágenes multimodales del turno
+            (DD-M2). None o vacío ⇒ comportamiento text-only idéntico al Hito 2
+            (DD-M3).
+    """
+
+    role: str
+    content: str | None = None
+    tool_calls: list[ToolCall] | None = None
+    tool_result: ToolResult | None = None
+    images: list[ImageContent] | None = None
+
+
+@dataclass
+class ChatResult:
+    """Respuesta de `complete_chat`: texto del asistente o tool-calls solicitadas.
+
+    Attributes:
+        text: texto del asistente cuando NO pide herramientas; None si pide tools.
+        tool_calls: tool-calls solicitadas (lista vacía cuando hay texto final).
+        assistant_message: el turno del asistente, para anexarlo al historial.
+    """
+
+    text: str | None
+    tool_calls: list[ToolCall]
+    assistant_message: Message
+
+
+# --- Traducción de tool specs a formato nativo (helpers compartidos, DD-2) ----
+def _strip_project_from_schema(input_schema: dict | None) -> dict:
+    """Devuelve una copia del `inputSchema` sin la propiedad `project` (DD-2).
+
+    Elimina `project` de `properties` y de `required`, de modo que el LLM no vea
+    la ruta local del proyecto: el Chat_Agent la inyecta al despachar. No muta el
+    esquema original (copia profunda).
+    """
+    schema = copy.deepcopy(input_schema or {})
+    properties = schema.get("properties")
+    if isinstance(properties, dict):
+        properties.pop("project", None)
+    required = schema.get("required")
+    if isinstance(required, list):
+        schema["required"] = [name for name in required if name != "project"]
+    return schema
+
+
+def _tools_to_bedrock(specs: list[dict]) -> list[dict]:
+    """Traduce specs de intake al formato de tools de Bedrock/Claude (DD-2, DD-3).
+
+    Parte de la forma `{name, description, inputSchema, handler}` de
+    `INTAKE_TOOL_SPECS`, descarta `handler` y quita `project` del esquema. Cada
+    tool queda como `{"name", "description", "input_schema": <schema sin project>}`.
+    """
+    return [
+        {
+            "name": spec["name"],
+            "description": spec.get("description", ""),
+            "input_schema": _strip_project_from_schema(spec.get("inputSchema")),
+        }
+        for spec in specs
+    ]
+
+
+def _tools_to_openai(specs: list[dict]) -> list[dict]:
+    """Traduce specs de intake al function calling compatible con OpenAI (DD-2, DD-3).
+
+    Descarta `handler` y quita `project` del esquema. Cada tool queda como
+    `{"type": "function", "function": {"name", "description", "parameters": <schema>}}`.
+    """
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": spec["name"],
+                "description": spec.get("description", ""),
+                "parameters": _strip_project_from_schema(spec.get("inputSchema")),
+            },
+        }
+        for spec in specs
+    ]
+
+
+# --- Guard multimodal compartido (Req 5.4, DD-M7) -----------------------------
+def _messages_have_images(messages: list[Message]) -> bool:
+    """True si algún `Message` transporta al menos una imagen (DD-M2)."""
+    return any(getattr(msg, "images", None) for msg in messages)
+
+
+def _guard_vision_support(messages: list[Message], supports_vision: bool) -> None:
+    """Rechaza imágenes cuando el proveedor no soporta visión (Req 5.4, DD-M7).
+
+    Guard compartido que se invoca al inicio de `complete_chat` en cada
+    proveedor: si algún mensaje trae imágenes y el proveedor no las soporta,
+    lanza un `RuntimeError` accionable que NOMBRA la variable `PURIQ_LLM_MODE` y
+    los modos con visión disponibles (`bedrock`, `openai`), como defensa en
+    profundidad ante llamadas directas.
+    """
+    if supports_vision:
+        return
+    if _messages_have_images(messages):
+        raise RuntimeError(
+            "El proveedor de LLM seleccionado no soporta visión (imágenes) en "
+            "complete_chat. Ajusta la variable de configuración PURIQ_LLM_MODE a "
+            "un modo con visión: 'bedrock' o 'openai'."
+        )
+
+
 @runtime_checkable
 class LLMProvider(Protocol):
     """Interfaz de un proveedor de modelo de lenguaje.
@@ -69,10 +242,33 @@ class LLMProvider(Protocol):
     Un proveedor recibe un prompt de texto y devuelve la respuesta del modelo
     como texto plano. Aisla la E/S del servicio (boto3/ollama) para permitir
     mocks en pruebas y el fallback entre proveedores.
+
+    Además de `complete` (enriquecimiento de contenido text-only), expone
+    `complete_chat` (Pieza 4) para conversación con tool-use, sin alterar la
+    firma ni el comportamiento de `complete`.
+
+    Attributes:
+        supports_vision: True si el backend acepta imágenes multimodales en
+            `complete_chat` (Req 5.4, DD-M7). Bedrock y compatible con OpenAI:
+            True; Ollama: False.
     """
+
+    supports_vision: bool
 
     def complete(self, prompt: str) -> str:
         """Devuelve la respuesta del modelo para `prompt` como texto plano."""
+        ...
+
+    def complete_chat(
+        self, messages: list[Message], tools: list[dict] | None = None
+    ) -> ChatResult:
+        """Conversa con el modelo (opcionalmente con tool-use) y devuelve un `ChatResult`.
+
+        Recibe una secuencia de `Message` neutrales y, opcionalmente, una lista de
+        specs de herramientas (forma `INTAKE_TOOL_SPECS`). Devuelve la respuesta
+        del modelo indicando texto del asistente o `ToolCall` solicitadas. Es
+        text-only: no recibe ni transmite bytes de imágenes (Req 3.6).
+        """
         ...
 
 
@@ -87,6 +283,9 @@ class BedrockProvider:
     Las credenciales y la region las resuelve boto3 desde el entorno; este
     proveedor no lee ni expone secretos.
     """
+
+    #: Bedrock Claude soporta visión multimodal nativa (Req 5.2, DD-M7).
+    supports_vision: bool = True
 
     def __init__(self, model_id: str | None = None, *, max_tokens: int = _MAX_TOKENS):
         """Configura el proveedor.
@@ -147,6 +346,146 @@ class BedrockProvider:
         ]
         return "".join(parts).strip()
 
+    @staticmethod
+    def _messages_to_claude(messages: list[Message]) -> tuple[str, list[dict]]:
+        """Traduce los `Message` neutrales al cuerpo Messages de Claude (DD-3).
+
+        Los mensajes `system` se concatenan en el campo `system` (aparte); los
+        `user`/`assistant` se mapean a bloques (`text`, `tool_use`); los mensajes
+        `tool` se representan como un mensaje `user` con un bloque `tool_result`
+        (convención de Claude). Devuelve `(system, messages)`.
+        """
+        system_parts: list[str] = []
+        claude_messages: list[dict] = []
+        for msg in messages:
+            if msg.role == "system":
+                if msg.content:
+                    system_parts.append(msg.content)
+            elif msg.role == "user":
+                user_blocks: list[dict] = [
+                    {"type": "text", "text": msg.content or ""}
+                ]
+                # Bloques de imagen SOLO cuando el mensaje trae imágenes; sin
+                # imágenes la salida es idéntica a la text-only del Hito 2
+                # (DD-M3). Cada imagen coexiste con el bloque de texto (Req 4.5).
+                for image in msg.images or []:
+                    user_blocks.append(
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": image.media_type,
+                                "data": image.data,
+                            },
+                        }
+                    )
+                claude_messages.append(
+                    {
+                        "role": "user",
+                        "content": user_blocks,
+                    }
+                )
+            elif msg.role == "assistant":
+                blocks: list[dict] = []
+                if msg.content:
+                    blocks.append({"type": "text", "text": msg.content})
+                for call in msg.tool_calls or []:
+                    blocks.append(
+                        {
+                            "type": "tool_use",
+                            "id": call.id,
+                            "name": call.name,
+                            "input": call.arguments,
+                        }
+                    )
+                claude_messages.append({"role": "assistant", "content": blocks})
+            elif msg.role == "tool":
+                result = msg.tool_result
+                claude_messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": result.tool_call_id if result else "",
+                                "content": result.content if result else "",
+                            }
+                        ],
+                    }
+                )
+        return "\n".join(system_parts), claude_messages
+
+    def complete_chat(
+        self, messages: list[Message], tools: list[dict] | None = None
+    ) -> ChatResult:
+        """Conversa con Claude en Bedrock con tool-use nativo (Req 3.1, 3.3–3.5, 4.2).
+
+        Traduce `messages` al cuerpo Messages de Claude, mapea `tools` con
+        `_tools_to_bedrock` e invoca `invoke_model` con `tools` +
+        `tool_choice: {"type": "auto"}`. Si `stop_reason == "tool_use"`, extrae los
+        bloques `tool_use` como `ToolCall`; si no, concatena los bloques `text`.
+
+        Guard multimodal: si llegan imágenes y este proveedor no soporta visión,
+        se rechaza nombrando `PURIQ_LLM_MODE` (Req 5.4, DD-M7).
+        """
+        _guard_vision_support(messages, self.supports_vision)
+        client = self._get_client()
+        system, claude_messages = self._messages_to_claude(messages)
+        body: dict = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": self._max_tokens,
+            "messages": claude_messages,
+        }
+        if system:
+            body["system"] = system
+        if tools:
+            body["tools"] = _tools_to_bedrock(tools)
+            body["tool_choice"] = {"type": "auto"}
+        response = client.invoke_model(
+            modelId=self._model_id,
+            body=json.dumps(body),
+            contentType="application/json",
+            accept="application/json",
+        )
+        payload = json.loads(response["body"].read())
+        return self._parse_chat_payload(payload)
+
+    @staticmethod
+    def _parse_chat_payload(payload: dict) -> ChatResult:
+        """Parsea la respuesta de Claude a `ChatResult` (texto o tool-calls)."""
+        content = payload.get("content", []) or []
+        tool_calls: list[ToolCall] = []
+        text_parts: list[str] = []
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            block_type = block.get("type")
+            if block_type == "tool_use":
+                tool_calls.append(
+                    ToolCall(
+                        id=block.get("id", ""),
+                        name=block.get("name", ""),
+                        arguments=block.get("input") or {},
+                    )
+                )
+            elif block_type == "text":
+                text_parts.append(block.get("text", ""))
+        text = "".join(text_parts).strip() or None
+        assistant_message = Message(
+            role="assistant",
+            content=text,
+            tool_calls=tool_calls or None,
+        )
+        if payload.get("stop_reason") == "tool_use":
+            return ChatResult(
+                text=None,
+                tool_calls=tool_calls,
+                assistant_message=assistant_message,
+            )
+        return ChatResult(
+            text=text, tool_calls=[], assistant_message=assistant_message
+        )
+
 
 class OllamaProvider:
     """Proveedor de LLM local via Ollama (fallback sin nube).
@@ -154,6 +493,9 @@ class OllamaProvider:
     Requiere la libreria `ollama` (extra `local`: `pip install puriq[local]`).
     El modelo se toma de la env `PURIQ_OLLAMA_MODEL` (default `llama3.1`).
     """
+
+    #: El backend local no soporta visión en esta fase (Req 5.4, DD-M7).
+    supports_vision: bool = False
 
     def __init__(self, model: str | None = None):
         """Configura el proveedor.
@@ -176,6 +518,23 @@ class OllamaProvider:
         response = ollama.generate(model=self._model, prompt=prompt)
         # `ollama.generate` devuelve un dict/mapping con la clave `response`.
         return (response.get("response") or "").strip()
+
+    def complete_chat(
+        self, messages: list[Message], tools: list[dict] | None = None
+    ) -> ChatResult:
+        """Rechaza el tool-use y las imágenes con un mensaje accionable (Req 4.4, 5.4).
+
+        El backend local (Ollama) no soporta tool-use ni visión en esta fase y no
+        se emula: se lanza un error que nombra la variable `PURIQ_LLM_MODE` y los
+        modos disponibles, para que el usuario ajuste la configuración. El guard
+        multimodal compartido cubre el caso de imágenes (DD-M7).
+        """
+        _guard_vision_support(messages, self.supports_vision)
+        raise RuntimeError(
+            "El modo LLM local (Ollama) no soporta tool-use en complete_chat. "
+            "Ajusta la variable de configuración PURIQ_LLM_MODE a un modo con "
+            "tool-use: 'bedrock' o 'openai'."
+        )
 
 
 # Valores por defecto del proveedor compatible con OpenAI.
@@ -206,6 +565,9 @@ class OpenAICompatibleProvider:
     enmascara su valor en cualquier salida o mensaje de error; este proveedor
     nunca la registra ni la imprime. La E/S usa `httpx` (dependencia existente).
     """
+
+    #: El endpoint compatible con OpenAI soporta visión multimodal (Req 5.3, DD-M7).
+    supports_vision: bool = True
 
     def __init__(
         self,
@@ -310,6 +672,179 @@ class OpenAICompatibleProvider:
             return ""
         message = choices[0].get("message") or {}
         return (message.get("content") or "").strip()
+
+    @staticmethod
+    def _messages_to_openai(messages: list[Message]) -> list[dict]:
+        """Traduce los `Message` neutrales a la forma de mensajes de OpenAI (DD-3).
+
+        `system`/`user` se mapean directo; los `assistant` con `tool_calls` llevan
+        `tool_calls[].function.{name, arguments}` (argumentos serializados a JSON);
+        los mensajes `tool` usan `role:"tool"` con `tool_call_id`.
+        """
+        result: list[dict] = []
+        for msg in messages:
+            if msg.role == "system":
+                result.append({"role": "system", "content": msg.content or ""})
+            elif msg.role == "user":
+                if msg.images:
+                    # Con imágenes, `content` pasa a ser una lista de partes:
+                    # el texto y, por cada imagen, una parte `image_url` con un
+                    # data URL base64 (Req 4.5). Sin imágenes se conserva el
+                    # string de siempre (DD-M3).
+                    parts: list[dict] = [
+                        {"type": "text", "text": msg.content or ""}
+                    ]
+                    for image in msg.images:
+                        parts.append(
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": (
+                                        f"data:{image.media_type};base64,"
+                                        f"{image.data}"
+                                    )
+                                },
+                            }
+                        )
+                    result.append({"role": "user", "content": parts})
+                else:
+                    result.append(
+                        {"role": "user", "content": msg.content or ""}
+                    )
+            elif msg.role == "assistant":
+                entry: dict = {"role": "assistant", "content": msg.content}
+                if msg.tool_calls:
+                    entry["tool_calls"] = [
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {
+                                "name": call.name,
+                                "arguments": json.dumps(call.arguments),
+                            },
+                        }
+                        for call in msg.tool_calls
+                    ]
+                result.append(entry)
+            elif msg.role == "tool":
+                tool_result = msg.tool_result
+                result.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": (
+                            tool_result.tool_call_id if tool_result else ""
+                        ),
+                        "content": tool_result.content if tool_result else "",
+                    }
+                )
+        return result
+
+    def _build_chat_request(
+        self, messages: list[Message], tools: list[dict] | None
+    ) -> tuple[str, dict, dict]:
+        """Construye ``(url, headers, body)`` de chat.completions (Azure vs estándar).
+
+        Reutiliza el mismo endpoint/credenciales que `complete` y agrega los
+        mensajes de conversación y, si se proveen, las `tools` traducidas al
+        function calling de OpenAI.
+        """
+        base = self._base_url.rstrip("/")
+        body: dict = {
+            "messages": self._messages_to_openai(messages),
+            "max_tokens": self._max_tokens,
+            "temperature": 0.7,
+        }
+        if tools:
+            body["tools"] = _tools_to_openai(tools)
+        if self.is_azure:
+            prefix = base if base.endswith("/openai") else f"{base}/openai"
+            url = (
+                f"{prefix}/deployments/{self._model}/chat/completions"
+                f"?api-version={self._api_version}"
+            )
+            headers = {
+                "api-key": self._api_key,
+                "Content-Type": "application/json",
+            }
+        else:
+            url = f"{base}/chat/completions"
+            body["model"] = self._model
+            headers = {
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+            }
+        return url, headers, body
+
+    def complete_chat(
+        self, messages: list[Message], tools: list[dict] | None = None
+    ) -> ChatResult:
+        """Conversa vía chat.completions con function calling (Req 3.1, 3.3–3.5, 4.3).
+
+        Traduce `messages` a la forma OpenAI, mapea `tools` con `_tools_to_openai`
+        y hace `POST .../chat/completions`. Si la respuesta trae `message.tool_calls`,
+        parsea cada una a `ToolCall(id, name, json.loads(arguments))`; si no, usa
+        `message.content` como texto. Reusa el `base_url` (admite endpoint local
+        para prototipar sin AWS).
+
+        Guard multimodal: si llegan imágenes y este proveedor no soporta visión,
+        se rechaza nombrando `PURIQ_LLM_MODE` (Req 5.4, DD-M7).
+        """
+        _guard_vision_support(messages, self.supports_vision)
+        import httpx  # import diferido: solo si se usa el modo openai
+
+        url, headers, body = self._build_chat_request(messages, tools)
+        response = httpx.post(
+            url, headers=headers, json=body, timeout=_OPENAI_TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        return self._parse_chat_payload(response.json())
+
+    @staticmethod
+    def _parse_chat_payload(payload: dict) -> ChatResult:
+        """Parsea la respuesta chat.completions a `ChatResult` (texto o tool-calls)."""
+        choices = payload.get("choices") or []
+        if not choices:
+            empty = Message(role="assistant", content=None)
+            return ChatResult(text=None, tool_calls=[], assistant_message=empty)
+        message = choices[0].get("message") or {}
+        tool_calls: list[ToolCall] = []
+        for raw in message.get("tool_calls") or []:
+            if not isinstance(raw, dict):
+                continue
+            function = raw.get("function") or {}
+            raw_args = function.get("arguments")
+            if isinstance(raw_args, str):
+                try:
+                    arguments = json.loads(raw_args)
+                except (ValueError, TypeError):
+                    arguments = {}
+            elif isinstance(raw_args, dict):
+                arguments = raw_args
+            else:
+                arguments = {}
+            tool_calls.append(
+                ToolCall(
+                    id=raw.get("id", ""),
+                    name=function.get("name", ""),
+                    arguments=arguments,
+                )
+            )
+        content = message.get("content")
+        text = content.strip() if isinstance(content, str) and content.strip() else None
+        assistant_message = Message(
+            role="assistant",
+            content=text,
+            tool_calls=tool_calls or None,
+        )
+        if tool_calls:
+            return ChatResult(
+                text=None,
+                tool_calls=tool_calls,
+                assistant_message=assistant_message,
+            )
+        return ChatResult(
+            text=text, tool_calls=[], assistant_message=assistant_message
+        )
 
 
 def get_provider() -> LLMProvider:
