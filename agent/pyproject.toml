@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 local = ["ollama>=0.3"]     # modo LLM local opcional
 mcp = ["mcp>=1.0"]          # servidor MCP
+pdf = ["pypdf==6.0.0"]      # extraccion de texto de PDF (version fijada)
 test = [
     "pytest>=8",            # test runner
     "hypothesis>=6",        # property-based testing
