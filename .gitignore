@@ -35,6 +35,11 @@ agent/assets/
 agent/content/
 agent/dist/
 
+# Historial del intake conversacional: estado transitorio por proyecto que el
+# Chat_Agent reescribe en cada turno para dar continuidad a la charla. El
+# contrato (los tres JSON) es la fuente de verdad; esto no se versiona.
+.intake-session.json
+
 # Env / secrets
 .env
 .env.*
