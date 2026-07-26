@@ -1,0 +1,448 @@
+{
+  "pbtResults": {
+    "10.3 Escribir prueba de propiedad para \"una escritura exitosa devuelve el estado persistido\"": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939404023
+    },
+    "3.5 Escribir prueba de propiedad para la aditividad de las colecciones": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939405439
+    },
+    "3.6 Escribir prueba de propiedad para el lugar-borrador con solo dirección": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939406671
+    },
+    "7.2 Escribir prueba de propiedad para el solo-lectura de `get_state`": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939407711
+    },
+    "7.3 Escribir prueba de propiedad para el cómputo de `missing`": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939409146
+    },
+    "10.5 Escribir prueba de propiedad para la protección de secretos en la salida": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939410585
+    },
+    "3.4 Escribir prueba de propiedad para el patrón slug de ids y nombres de archivo": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939412027
+    },
+    "10.4 Escribir prueba de propiedad para \"una operación rechazada no cambia el contrato\"": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939413468
+    },
+    "3.3 Escribir prueba de propiedad para el `order` de módulos y secciones": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939414336
+    },
+    "5.3 Escribir prueba de propiedad para la edición parcial": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939415768
+    },
+    "5.4 Escribir prueba de propiedad para la integridad referencial al eliminar": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939417180
+    },
+    "6.2 Escribir prueba de propiedad para la asociación de imágenes": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939418019
+    },
+    "6.3 Escribir prueba de propiedad para operar sobre un id inexistente": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939419420
+    },
+    "10.6 Escribir prueba de propiedad para la traducción de errores": {
+      "status": "passed",
+      "lastRunTimestamp": 1784939420974
+    }
+  },
+  "executionHistory": {
+    "1.1 Mover `MAX_ASSET_BYTES` a `wizard/assets.py` y `redact_value` a `config.py`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919760975
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919781922
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920324366
+      }
+    ],
+    "1.2 Crear `wizard/asset_store.py` (E/S sin FastAPI) con los helpers de asset": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761065
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919783163
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920325714
+      }
+    ],
+    "1.3 Crear `wizard/qa_store.py` (E/S sin FastAPI) con los helpers de QA": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761092
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919784090
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920326580
+      }
+    ],
+    "1.4 Actualizar `wizard/server.py` para importar los helpers reubicados": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761112
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920332598
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920680833
+      }
+    ],
+    "2.1 Crear `intake/__init__.py` e `intake/tools.py` con constantes y helpers base": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761135
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920333286
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920681865
+      }
+    ],
+    "3.1 Implementar `set_site`, `configure_modules` y `configure_landing`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761158
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920690199
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921573456
+      }
+    ],
+    "3.2 Implementar `add_place` y `add_event`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761177
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921598474
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921740841
+      }
+    ],
+    "4. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761197
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921747326
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921846735
+      }
+    ],
+    "5.1 Implementar `edit_item` y `remove_item`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761234
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921850995
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921978360
+      }
+    ],
+    "5.2 Implementar `set_brand` y `add_qa`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761255
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921982466
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784922123748
+      }
+    ],
+    "6.1 Implementar `attach_asset` (DD-6)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761273
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784922128627
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784922327656
+      }
+    ],
+    "7.1 Implementar `get_state` (DD-7)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761289
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784922331914
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923083838
+      }
+    ],
+    "8.1 Implementar `build`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761310
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923089476
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923185056
+      }
+    ],
+    "9. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761328
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923189920
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923254508
+      }
+    ],
+    "10.1 Definir `INTAKE_TOOL_SPECS`, `INTAKE_TOOL_NAMES` e `INTAKE_GUION`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761349
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923259269
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923541198
+      }
+    ],
+    "10.2 Implementar `run_intake_tool(name, arguments)` (DD-5)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761367
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923547252
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784935492187
+      }
+    ],
+    "11.1 Registrar las intake specs y el ruteo en `mcp/server.py`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761385
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784935496477
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784935646674
+      }
+    ],
+    "11.2 Registrar el recurso MCP `intake://guion`": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761404
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784935650879
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784937676873
+      }
+    ],
+    "13. Checkpoint final - Asegurar que todas las pruebas pasan": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784919761457
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784937680991
+      },
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784937765978
+      }
+    ],
+    "1. Relocalizar helpers y constantes a módulos neutrales (DD-3, DD-4)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920680896
+      }
+    ],
+    "2. Andamiaje del paquete `intake` y helpers internos compartidos": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784920681906
+      }
+    ],
+    "3. Implementar intake tools de identidad, estructura y contenido": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784921740895
+      }
+    ],
+    "5. Implementar edición, marca y Q&A": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784922123819
+      }
+    ],
+    "6. Implementar el adjunto de imágenes (`attach_asset`)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784922327707
+      }
+    ],
+    "7. Implementar el estado del contrato (`get_state`)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923083882
+      }
+    ],
+    "8. Implementar la construcción del sitio (`build`)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784923185124
+      }
+    ],
+    "10. Declarar specs, guion y despacho compartido": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784935492231
+      }
+    ],
+    "11. Exponer las intake tools por MCP (Pieza 2, integración aditiva)": [
+      {
+        "executionId": "af10bff1-855e-44d2-bfb5-10f80e946ef3",
+        "chatSessionId": "sess_a4d52ba5-088f-4a97-a7c6-a41fe731f470",
+        "timestamp": 1784937676941
+      }
+    ]
+  }
+}

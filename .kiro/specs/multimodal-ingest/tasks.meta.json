@@ -1,0 +1,65 @@
+{
+  "pbtResults": {
+    "4.2 Escribir prueba de propiedad para la convivencia text-only": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948819146
+    },
+    "10.2 Escribir prueba de propiedad para la traducción y redacción de errores": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948819765
+    },
+    "4.3 Escribir prueba de propiedad para el rechazo sin visión": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948820373
+    },
+    "4.6 Escribir prueba de propiedad para la traducción multimodal con tools": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948821679
+    },
+    "7.2 Escribir prueba de propiedad para el texto de PDF en el contexto del turno": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948918011
+    },
+    "7.3 Escribir prueba de propiedad para el envío de la imagen con visión": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948918521
+    },
+    "7.4 Escribir prueba de propiedad para la inyección de bytes por nombre de archivo": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948919306
+    },
+    "2.2 Escribir prueba de propiedad para la clasificación por extensión": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948937116
+    },
+    "2.3 Escribir prueba de propiedad para el rechazo sin efectos de no soportados": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948938135
+    },
+    "2.4 Escribir prueba de propiedad para la validación de imagen": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948939571
+    },
+    "2.5 Escribir prueba de propiedad para la validación de tamaño previa a efectos": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948941085
+    },
+    "2.6 Escribir prueba de propiedad para la no persistencia del PDF": {
+      "status": "passed",
+      "lastRunTimestamp": 1784948942182
+    },
+    "6.2 Escribir prueba de propiedad para la fuente única de la Extract_PDF_Tool": {
+      "status": "passed",
+      "lastRunTimestamp": 1784949026986
+    },
+    "6.3 Escribir prueba de propiedad para la redacción del texto y contenido derivado": {
+      "status": "passed",
+      "lastRunTimestamp": 1784949027837
+    },
+    "6.4 Escribir prueba de propiedad para la aditividad del registro de tools": {
+      "status": "passed",
+      "lastRunTimestamp": 1784949029009
+    }
+  },
+  "executionHistory": {}
+}
