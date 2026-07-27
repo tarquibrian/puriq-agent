@@ -86,9 +86,31 @@ def describir_error(exc: BaseException) -> tuple[str, str | None]:
     if isinstance(exc, ValueError):
         return (f"Entrada invalida: {mensaje}", None)
 
+    nombre = type(exc).__name__
+
+    # LLM sin configurar: boto3 falla por region o credenciales ausentes. Es un
+    # problema de CONFIGURACION, no de red, y se detecta antes que la rama de red
+    # porque estas clases heredan de BotoCoreError pero su nombre no lo contiene
+    # (NoRegionError, NoCredentialsError...), asi que ahi caerian en el fallback
+    # generico y el usuario recibia la excepcion cruda de boto3 sin ninguna
+    # accion. Es el primer choque de quien clona el repo y prueba el chat sin
+    # haber creado agent/.env, asi que el mensaje nombra el archivo y la variable.
+    if any(
+        clave in nombre
+        for clave in ("NoRegion", "NoCredentials", "PartialCredentials",
+                      "CredentialRetrieval", "ProfileNotFound", "TokenRetrieval",
+                      "UnauthorizedSSOToken", "SSOTokenLoad")
+    ):
+        return (
+            f"El LLM no esta configurado: {mensaje}",
+            "Copia agent/.env.example a agent/.env y completa el motor y sus "
+            "credenciales: PURIQ_LLM_MODE=bedrock necesita AWS_REGION y las "
+            "claves de AWS; PURIQ_LLM_MODE=openai necesita PURIQ_OPENAI_API_KEY. "
+            "Para generar el sitio sin ningun LLM, usa `puriq build --no-use-llm`.",
+        )
+
     # Errores de red / servicio (AWS, HTTP): detectados por nombre de clase para
     # no acoplar el modulo a boto3/httpx.
-    nombre = type(exc).__name__
     if any(
         clave in nombre
         for clave in ("ClientError", "BotoCoreError", "HTTPError", "ConnectError",

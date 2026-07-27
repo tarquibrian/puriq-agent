@@ -26,8 +26,23 @@ El agente **no escribe el código de los módulos**: compone y configura bloques
 Toda la lógica vive en `puriq.core`; hay tres formas de usarla, sin duplicar comportamiento:
 
 - **CLI (`puriq`)** — flujo headless/técnico, ideal para automatización y para admins.
-- **Wizard web local (`puriq init`)** — asistente de formularios por pasos para el encargado de turismo **no técnico**: nada de JSON ni de terminal.
-- **Servidor MCP `tourism-builder`** — expone las tools a **cualquier cliente MCP** (Claude Desktop, Kiro, Cline...), de forma agnóstica al agente.
+- **Wizard web local (`puriq init`)** — para el encargado de turismo **no técnico**: nada de JSON ni de terminal. Ofrece dos modos sobre el mismo contrato: **formularios** por pasos, y un **chat conversacional** que rellena todo hablando, con vista previa en vivo del sitio armándose.
+- **Servidor MCP `tourism-builder`** — expone las tools a **cualquier cliente MCP** (Claude Desktop, Kiro, Cline...), de forma agnóstica al agente. Ahí el registro conversacional corre **con el modelo del cliente**: Puriq no pone LLM, pone las herramientas y el guion. Ver [docs/mcp-clientes.md](docs/mcp-clientes.md).
+
+### Registro conversacional
+
+En vez de completar formularios, el usuario **conversa** y el agente registra:
+
+> — Quiero el sitio turístico de Sucre, con mapa, lugares y eventos.
+> — Listo. ¿Cuál es el primer lugar? *(ya llamó a `set_site` y `configure_modules`)*
+> — La Casa de la Libertad, histórico. Te mando una foto.
+> — La guardé y la asocié. Por lo que veo, propongo esta descripción: «…». ¿La uso?
+
+El agente conduce por fases, pide fotos y PDFs de forma proactiva, describe las
+imágenes por visión para proponer textos, y sabe qué falta en cada momento. Se
+lo puede guiar en lenguaje natural (*«una paleta cálida con tonos rojos»*) o
+dejar que proponga. Diseño completo en
+[docs/registro-conversacional.md](docs/registro-conversacional.md).
 
 ## Instalación
 
@@ -51,13 +66,27 @@ El punto de entrada es el comando `puriq`.
 Genera un sitio completo a partir del ejemplo de Potosí, sin credenciales. Requiere Node/npm para el build.
 
 ```bash
-cd agent && pip install -e .
+git clone https://github.com/tarquibrian/puriq-agent.git
+cd puriq-agent/agent
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+
 puriq collect --project ../examples/potosi-bo --resources raw
 puriq build   --project ../examples/potosi-bo --no-use-llm
 puriq preview --project ../examples/potosi-bo
 ```
 
-`--no-use-llm` ensambla el sitio con el contenido tal cual está en `tourism-data.json`, sin llamar a ningún modelo.
+`--no-use-llm` ensambla el sitio con el contenido tal cual está en `tourism-data.json`, sin llamar a ningún modelo. Toma menos de un minuto desde cero, incluida la instalación de dependencias de la plantilla, que el propio `build` resuelve.
+
+### 1b) El wizard web
+
+```bash
+PURIQ_PROJECT=../examples/potosi-bo puriq init    # abre http://127.0.0.1:4321
+```
+
+El wizard opera sobre **un** proyecto: lo toma de `PURIQ_PROJECT`, y si no está definida, del directorio actual (`puriq init` a secas trabaja sobre el cwd). `init` sólo acepta `--port`.
+
+Los formularios y la vista previa funcionan sin credenciales. El **chat** sí necesita un LLM configurado (paso 2).
 
 ### 2) Con IA (ejemplo con Azure OpenAI)
 
@@ -172,7 +201,7 @@ Las ediciones del usuario viven en las capas de arriba; el core puede actualizar
 - **Amazon S3** — almacenamiento de assets del sitio publicado.
 - **Amazon Location Service** — geocoding opcional (con fallback a Nominatim/OSM).
 - **Amazon Bedrock Knowledge Bases** — backend RAG gestionado del chatweb: **trabajo futuro** (hoy la recuperación es client-side).
-- **Kiro** — IDE spec-driven usado para construir el propio agente. Las specs viven en `.kiro/specs/` (`agent-tools`, `content-management`, `web-wizard`).
+- **Kiro** — IDE spec-driven usado para construir el propio agente. Las siete specs viven en `.kiro/specs/`: `agent-tools`, `content-management`, `web-wizard`, `landing-and-design-system`, y las tres del registro conversacional (`conversational-intake-mcp`, `conversational-web-chat`, `multimodal-ingest`).
 
 ## Estructura del repo
 
@@ -189,6 +218,8 @@ PROYECTO-puriq.md   Documento técnico completo (diseño y roadmap)
 ## Estado
 
 Core + las **tres interfaces** (CLI, wizard web y MCP) **implementados**. Pipeline validado de punta a punta: `build` con IA real → sitio estático con mapa, lugares, eventos, blog y chatweb.
+
+**Registro conversacional completo** en las dos superficies: 24 tools por MCP (12 de intake + `extract_pdf` + las 11 de pipeline/edición) más el recurso `intake://guion`, y el chat del wizard con ingesta de imágenes y PDFs. Validado en vivo contra un LLM real: conversación → contrato → `build` → sitio publicable.
 
 Pendientes honestos:
 
