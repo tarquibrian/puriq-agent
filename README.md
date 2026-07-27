@@ -52,7 +52,7 @@ Genera un sitio completo a partir del ejemplo de Potosí, sin credenciales. Requ
 
 ```bash
 cd agent && pip install -e .
-puriq collect --project ../examples/potosi-bo --resources ../examples/potosi-bo/raw
+puriq collect --project ../examples/potosi-bo --resources raw
 puriq build   --project ../examples/potosi-bo --no-use-llm
 puriq preview --project ../examples/potosi-bo
 ```
