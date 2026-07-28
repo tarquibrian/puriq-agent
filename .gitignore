@@ -53,3 +53,6 @@ agent/dist/
 # FUSE temp files (mount)
 .fuse_hidden*
 
+
+# Ruedas construidas por el job de empaquetado.
+dist-wheel/

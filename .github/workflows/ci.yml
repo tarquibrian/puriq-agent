@@ -66,3 +66,92 @@ jobs:
       - name: Construir el sitio de ejemplo
         working-directory: template
         run: npm run build
+
+  paquete:
+    name: Paquete instalable
+    runs-on: ubuntu-latest
+    # Los otros dos jobs prueban el repositorio; este prueba lo que recibe quien
+    # instala. Es una diferencia que ya costo cara: `mcp>=1.0` resolvia a 2.0,
+    # cuya API rompe el servidor MCP, y aca todo seguia en verde porque el
+    # entorno de desarrollo tenia una version vieja instalada de antes.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Construir la rueda
+        working-directory: agent
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel --outdir ../dist-wheel .
+
+      # En un entorno limpio y FUERA del repositorio: si algo resolviera rutas
+      # relativas al clon, aca falla.
+      - name: Instalar la rueda en un entorno limpio
+        run: |
+          python -m venv /tmp/venv
+          /tmp/venv/bin/pip install --upgrade pip
+          /tmp/venv/bin/pip install "$(ls dist-wheel/*.whl)[mcp]"
+
+      - name: La plantilla, los esquemas y el ejemplo viajan en el paquete
+        working-directory: /tmp
+        run: |
+          /tmp/venv/bin/python - <<'PY'
+          from puriq import paths
+          faltan = [n for n, f in (
+              ("template", paths.template_dir),
+              ("schemas", paths.schema_dir),
+              ("examples", paths.examples_dir),
+          ) if not f().is_dir()]
+          assert not faltan, f"no viajaron en la rueda: {faltan}"
+          assert (paths.examples_dir() / "potosi-bo" / "tourism-data.json").is_file()
+          print("recursos empaquetados OK")
+          PY
+
+      # Lo que rompio la ultima vez: el SDK instalado de verdad, no el doble de
+      # las pruebas. Si una version nueva cambia la API, se ve aca.
+      - name: El servidor MCP arranca y anuncia sus tools
+        working-directory: /tmp
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            | /tmp/venv/bin/python -m puriq.mcp.server > salida.jsonl
+          /tmp/venv/bin/python - <<'PY'
+          import json, pathlib
+          for linea in pathlib.Path("salida.jsonl").read_text().splitlines():
+              if not linea.strip():
+                  continue
+              m = json.loads(linea)
+              if m.get("id") == 2:
+                  n = len(m["result"]["tools"])
+                  assert n >= 25, f"solo {n} tools anunciadas"
+                  print(f"servidor MCP OK: {n} tools")
+                  break
+          else:
+              raise SystemExit("el servidor no respondio tools/list")
+          PY
+
+      # La prueba de punta a punta: genera un sitio real desde el paquete.
+      - name: "`puriq demo` construye el sitio de ejemplo"
+        working-directory: /tmp
+        run: |
+          timeout 600 /tmp/venv/bin/puriq demo --port 4399 &
+          for i in $(seq 1 120); do
+            if curl -fsS -o /dev/null http://127.0.0.1:4399/; then
+              echo "sitio servido desde el paquete instalado"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "el sitio no llego a servirse" >&2
+          exit 1
