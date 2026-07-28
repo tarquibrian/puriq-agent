@@ -269,7 +269,7 @@ class AmplifyAdapter:
 
 
 class _CliStubAdapter:
-    """Base para adaptadores no-AWS fuera del foco del hackathon.
+    """Base para adaptadores todavia no implementados.
 
     Decision de diseño: `vercel` y `netlify` quedan como stubs documentados. No
     son destinos AWS-native (invariante 7 del diseño prioriza AWS), y su

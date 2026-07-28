@@ -10,7 +10,7 @@ on:
     branches: [main]
 
 # Cancela una corrida en curso si llega un push nuevo a la misma rama: en un
-# repo de hackathon los push son frecuentes y no vale la pena gastar minutos en
+# desarrollo activo los push son frecuentes y no vale la pena gastar minutos en
 # validar un commit ya superado.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

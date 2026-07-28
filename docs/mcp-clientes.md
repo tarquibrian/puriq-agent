@@ -52,7 +52,7 @@ lo que tenga; no lo reemplaces entero):
 {
   "mcpServers": {
     "puriq": {
-      "command": "/Users/tarquibrian/Code/Devanzire/Hackathon/agent/.venv/bin/python",
+      "command": "/ruta/a/puriq-agent/agent/.venv/bin/python",
       "args": ["-m", "puriq.mcp.server"]
     }
   }
@@ -70,7 +70,7 @@ Config por workspace en `.kiro/settings/mcp.json` (o global en
 {
   "mcpServers": {
     "puriq": {
-      "command": "/Users/tarquibrian/Code/Devanzire/Hackathon/agent/.venv/bin/python",
+      "command": "/ruta/a/puriq-agent/agent/.venv/bin/python",
       "args": ["-m", "puriq.mcp.server"],
       "disabled": false,
       "autoApprove": ["get_state"]
@@ -89,7 +89,7 @@ El transporte es **stdio**. Lo único que necesita cualquier cliente es el
 comando:
 
 ```bash
-/Users/tarquibrian/Code/Devanzire/Hackathon/agent/.venv/bin/python -m puriq.mcp.server
+/ruta/a/puriq-agent/agent/.venv/bin/python -m puriq.mcp.server
 ```
 
 Dos detalles que evitan problemas:
@@ -112,7 +112,7 @@ El agente confirma sobre qué carpeta está trabajando —`get_state` la devuelv
 Para trabajar sobre **otro** proyecto, nombralo y el agente pasa `project`
 explícitamente:
 
-> Trabajemos sobre `~/Code/Devanzire/Hackathon/examples/potosi-bo`.
+> Trabajemos sobre `~/puriq-agent/examples/potosi-bo`.
 
 Desde ahí el modelo conduce: consulta `get_state`, ve qué falta en `missing` y
 pregunta por fases. Podés guiarlo en lenguaje natural ("quiero una paleta cálida

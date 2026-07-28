@@ -2,8 +2,7 @@
 
 **Agente especializado que convierte recursos turísticos dispersos en un sitio web profesional y mantenible.**
 
-> Hackathon IA Masivo Código Facilito × AWS (Kiro + AWS) · Reto 3: Agentes especializados
-> CLI: `puriq` · Servidor MCP: `tourism-builder`
+> CLI: `puriq` · Servidor MCP: `tourism-builder` · Licencia MIT
 
 ## El problema
 
@@ -27,6 +26,8 @@ Puriq se instala y ejecuta localmente. A partir de los recursos que el usuario y
 5. **Previsualiza y publica** el sitio (AWS Amplify / S3+CloudFront / export estático).
 
 El agente **no escribe el código de los módulos**: compone y configura bloques probados. El LLM trabaja sobre contenido y configuración, nunca sobre infraestructura. Eso lo hace sólido, escalable y mantenible.
+
+Cómo está construido y por qué: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
 ## Tres interfaces sobre un mismo core
 
@@ -249,9 +250,9 @@ agent/          Core del agente (Python): CLI, wizard, MCP, tools (puriq/)
 schemas/        Contrato: JSON Schema de los documentos (tourism-data, site-config, theme-tokens, article)
 examples/       Datasets de ejemplo multi-región: potosi-bo, oaxaca-mx, jujuy-ar (+ raw/ y content/faq)
 template/       Plantilla Astro que consume el contrato y compone los módulos
-docs/           Documentación adicional (SETUP, arranque)
-.kiro/specs/    Specs spec-driven usadas para construir el agente
-PROYECTO-puriq.md   Documento técnico completo (diseño y roadmap)
+docs/           ARQUITECTURA.md, SETUP.md, mcp-clientes.md, registro-conversacional.md
+.kiro/specs/    Specs (spec-driven) usadas para construir el agente
+scripts/        Utilidades: conectar-mcp.py
 ```
 
 ## Estado

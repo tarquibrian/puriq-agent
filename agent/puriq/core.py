@@ -1,6 +1,6 @@
 """Orquestacion del agente Puriq.
 
-Pipeline de build (ver docs/PROYECTO-puriq.md, seccion 6.2):
+Pipeline de build (ver docs/ARQUITECTURA.md):
 
     recursos + datos abiertos
         -> scan_resources / import_open_data   (produce tourism-data.json)
