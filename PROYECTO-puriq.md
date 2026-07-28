@@ -1,4 +1,4 @@
-# Puriq — Agente especializado para construir sitios turísticos de gobiernos locales
+# Puriq — Agente especializado para construir sitios turísticos
 
 > Documento técnico de proyecto · Hackathon IA Masivo Código Facilito × AWS (Kiro + AWS) · Reto 3: Agentes especializados · Entrega: 27 de julio de 2026 (00:00 del 20 al 23:59 del 27, UTC-6)
 > *"Puriq" es un nombre de trabajo (significa la tierra natal / lo local). Se puede cambiar. CLI de ejemplo: `puriq` / paquete `tourism-builder`.*
@@ -7,11 +7,11 @@
 
 ## 1. Resumen ejecutivo (entregables del hackathon)
 
-**Título:** Puriq — Agente que convierte los recursos turísticos dispersos de un gobierno local en un sitio web profesional y mantenible.
+**Título:** Puriq — Agente que convierte recursos turísticos dispersos en un sitio web profesional y mantenible.
 
 **Descripción breve:** Puriq es un agente especializado que instala/ejecuta un asistente local. A partir de los recursos que un encargado de turismo ya tiene (fotos, lista de lugares, festivales, logo), y opcionalmente enriqueciendo con datos abiertos (OpenStreetMap, Wikidata, Wikimedia Commons), el agente redacta contenido con un LLM, ensambla módulos pre-construidos y probados (mapa, eventos, blog, chatbot), aplica la identidad visual de la provincia y genera un sitio turístico impecable, listo para previsualizar y publicar.
 
-**Reto que resuelve:** Provincias rurales y gobiernos locales con bajo presupuesto tienen un patrimonio turístico valioso pero **ninguna presencia web profesional**, porque no pueden pagar una agencia ni mantener un CMS. Puriq elimina esa barrera: un encargado no programador genera y mantiene un sitio de calidad en minutos.
+**Reto que resuelve:** En los pueblos y provincias rurales hay patrimonio turístico valioso y **ninguna presencia web propia**, porque no se puede pagar una agencia ni mantener un CMS. Le pasa a dos usuarios: al **gobierno local** que quiere mostrar el destino completo, y a **quien vive ahí y emprende en turismo** (una hospedería, un operador de tours, un guía, un emprendimiento gastronómico) y necesita promocionarse sin depender de que alguien se lo haga. Puriq elimina esa barrera para los dos: una persona no programadora genera y mantiene un sitio de calidad en minutos.
 
 ---
 
@@ -19,7 +19,7 @@
 
 El tip del reto es explícito: *"Sé muy puntual con el problema… enfócate en un problema real."* Por eso el problema NO es "hacer webs turísticas" (genérico). Es:
 
-> **Los gobiernos locales y provincias rurales tienen recursos turísticos valiosos y dispersos (fotos, lugares, festivales, historias) pero cero o pobre presencia web, porque contratar una agencia es caro y mantener un CMS requiere un perfil técnico que no tienen. Resultado: pierden visibilidad y turismo frente a destinos mejor posicionados digitalmente.**
+> **Quienes tienen el turismo en sus manos —un gobierno local o alguien que emprende en su propio pueblo— tienen recursos valiosos y dispersos (fotos, lugares, festivales, historias, oficios) y cero o pobre presencia web, porque contratar una agencia es caro y mantener un CMS requiere un perfil técnico que no tienen. Resultado: quedan invisibles frente a destinos mejor posicionados digitalmente.**
 
 La especialización del agente está en el **dominio (turismo gubernamental)** y en un **trabajo único y claro**: transformar recursos dispersos en un sitio profesional y mantenible. Aunque el resultado tenga varios módulos, la misión del agente es puntual.
 

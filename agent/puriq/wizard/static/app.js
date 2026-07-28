@@ -451,6 +451,7 @@
       d.domain = (cfg.deploy || {}).domain || "";
       d.email = (cfg.contact || {}).email || "";
       d.phone = (cfg.contact || {}).phone || "";
+      d.whatsapp = (cfg.contact || {}).whatsapp || "";
       d._init = true;
     }
 
@@ -478,7 +479,8 @@
       textField("Email de contacto (opcional)", d, "email"),
       textField("Teléfono de contacto (opcional)", d, "phone")
     ]));
-    container.appendChild(el("p", { class: "hint", text: "Aparecen en el pie del sitio para que un visitante pueda escribirte o llamarte." }));
+    container.appendChild(textField("WhatsApp (opcional)", d, "whatsapp"));
+    container.appendChild(el("p", { class: "hint", text: "Aparecen en el pie del sitio para que un visitante pueda escribirte o llamarte. El WhatsApp va con código de país (por ejemplo +591 71234567) y se convierte en un botón que abre el chat." }));
 
     container.appendChild(el("button", {
       class: "btn", text: "Guardar sitio",
@@ -506,7 +508,11 @@
         var cfgPayload = {
           modules: currentModulesPayload(),
           domain: d.domain || "",
-          contact: { email: d.email || "", phone: d.phone || "" }
+          contact: {
+            email: d.email || "",
+            phone: d.phone || "",
+            whatsapp: d.whatsapp || ""
+          }
         };
         return apiRequest("PUT", "/api/site-config", { json: cfgPayload });
       })
@@ -2230,7 +2236,7 @@
   // Marca como completados los pasos que YA tienen contenido en el contrato,
   // venga de donde venga. Antes `doneSteps` solo se poblaba con los guardados
   // del propio wizard, asi que un proyecto cargado entero por conversacion se
-  // veia con los once pasos pendientes.
+  // veia con todos los pasos pendientes.
   function syncDoneFromServer() {
     var t = state.server["tourism-data"] || {};
     var c = state.server["site-config"] || {};

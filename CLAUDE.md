@@ -55,4 +55,5 @@ PY
 - IDs en kebab-case (`^[a-z0-9-]+$`). Locales ISO 639-1 (2 letras).
 - Nunca commitear secretos: usar `agent/.env` (gitignored); ver `agent/.env.example`.
 - La plantilla usa datos en `template/src/data/` durante el desarrollo (hoy = Potosí). En producción el agente inyecta los JSON antes de `astro build`.
-- Estado actual: scaffolding + plantilla que compila y renderiza Potosí. Siguiente: implementar las tools del agente (Día 3+).
+- Estado actual: las tres interfaces implementadas y validadas de punta a punta (CLI, wizard web, MCP). El registro conversacional funciona en las dos superficies: 25 tools por MCP más el recurso `intake://guion`, y el chat del wizard con ingesta de imágenes y PDFs. Pendiente: render i18n en la plantilla, RAG gestionado del chatweb, adaptadores de deploy Vercel/Netlify.
+- El wizard y un cliente MCP pueden escribir el MISMO proyecto a la vez. El wizard sondea `GET /api/version` y se refresca solo; si tocás algo que el agente también escribe, mantené esa sincronización andando.
