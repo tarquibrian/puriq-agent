@@ -6,6 +6,7 @@
 #                              (la segunda vez retoma el ultimo, sin preguntar)
 #   ./start.sh ruta/proyecto   trabaja sobre esa carpeta
 #   ./start.sh --demo          construye y sirve el ejemplo de Potosi, sin asistente
+#   ./start.sh --mcp           conecta Puriq a Claude Desktop / Kiro / Kiro CLI
 #
 # Prepara el entorno de Python, instala el agente y levanta el wizard. Es
 # idempotente: correrlo de nuevo reutiliza lo que ya esta y arranca en segundos.
@@ -61,6 +62,11 @@ if [ ! -f "$MARCA" ] || [ "$AGENT/pyproject.toml" -nt "$MARCA" ]; then
 fi
 
 # --- Modo demo -------------------------------------------------------------
+
+if [ "${1:-}" = "--mcp" ]; then
+  shift
+  exec "$PY" "$REPO/scripts/conectar-mcp.py" --python "$PY" "$@"
+fi
 
 if [ "${1:-}" = "--demo" ]; then
   verde "Generando el sitio de ejemplo (Potosi), sin credenciales..."

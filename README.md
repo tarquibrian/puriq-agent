@@ -1,6 +1,6 @@
 # Puriq
 
-**Agente especializado que convierte los recursos turísticos dispersos de un gobierno local en un sitio web profesional y mantenible.**
+**Agente especializado que convierte recursos turísticos dispersos en un sitio web profesional y mantenible.**
 
 > Hackathon IA Masivo Código Facilito × AWS (Kiro + AWS) · Reto 3: Agentes especializados
 > CLI: `puriq` · Servidor MCP: `tourism-builder`
@@ -83,7 +83,20 @@ Los proyectos viven **fuera del repositorio** a propósito: tu contenido no es p
 ```bash
 ./start.sh ~/mi-pueblo     # trabaja sobre esa carpeta
 ./start.sh --demo          # construye y sirve el ejemplo de Potosí, sin credenciales
+./start.sh --mcp           # conecta Puriq a Claude Desktop / Kiro / Kiro CLI
 ```
+
+### 0b) Conversar desde tu propio cliente (sin credenciales)
+
+```bash
+./start.sh --mcp
+```
+
+Detecta los clientes MCP instalados y registra Puriq en los que elijas (pregunta uno por uno; fusiona con tu configuración y deja respaldo). Reiniciá el cliente y empezá:
+
+> Trabajemos sobre `~/Puriq/mi-sitio`. Llamá a `get_guion` y ayudame a armar el sitio.
+
+**No hace falta ninguna API key**: el modelo lo pone tu cliente. Puriq aporta las 25 tools y el guion. Detalle en [docs/mcp-clientes.md](docs/mcp-clientes.md).
 
 Los comandos sueltos de abajo hacen lo mismo paso a paso, por si preferís controlar cada parte.
 
