@@ -1115,8 +1115,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
   font-weight: 700;
   font-size: 1.05rem;
 }
+/* El CTA del encabezado usa el PRIMARIO, igual que el sitio real: las acciones
+ * llevan un solo color y el acento queda para el enfasis que no se toca (ver la
+ * regla de color en template/src/layouts/Base.astro). Antes iba en acento aca y
+ * en el sitio, y el resultado era una pantalla con dos colores compitiendo por
+ * significar "cliqueame". */
 .bp-cta {
-  background: var(--bp-accent, #2563eb);
+  background: var(--bp-primary, #1f2933);
   color: var(--bp-bg, #fff);
   padding: 0.3rem 0.8rem;
   border-radius: 999px;

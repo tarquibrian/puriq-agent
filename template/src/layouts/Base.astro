@@ -181,6 +181,19 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
        * cual; en oscuro se derivan de los mismos `--brand-*` (ver frontmatter).
        * Todo el sistema usa `--color-*`, asi que el sitio entero cambia de tema
        * sin tocar un solo componente.
+       *
+       * REGLA DE USO DEL COLOR (para no volver a mezclarlos):
+       *
+       *   --color-primary  Todo lo ACCIONABLE. Botones, el CTA del header, el
+       *                    boton flotante del asistente. Es un solo color de
+       *                    accion: si dos superficies distintas invitan a hacer
+       *                    clic con colores distintos, compiten entre si.
+       *   --color-accent   Enfasis que NO se toca: etiquetas (eyebrow), indices
+       *                    numerados, comillas, la tarjeta destacada, el anillo
+       *                    de foco, el hover de un enlace. Es el 10% de la regla
+       *                    60-30-10: si se usara en cada boton dejaria de ser un
+       *                    acento y pasaria a ser el color dominante.
+       *   --color-secondary  Apoyo; deriva del primario y casi nunca se usa solo.
        * ------------------------------------------------------------------ */
       :root {
         color-scheme: light dark;
@@ -405,13 +418,18 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
         gap: var(--space-md);
       }
 
-      /* CTA compacto del header: superficie de acento, radio pill. */
+      /* CTA compacto del header: MISMA superficie que un boton primario.
+       *
+       * Antes iba en `--color-accent` y competia con los botones de la pagina:
+       * en una misma pantalla convivian dos colores distintos diciendo los dos
+       * "esto es lo accionable", y el visitante no sabia cual mirar. La regla es
+       * la de arriba: las acciones son primarias, el acento no es accionable. */
       .header-cta {
         display: none;
         align-items: center;
         padding: var(--space-xs) var(--space-md);
         border-radius: var(--radius-pill);
-        background: var(--color-accent);
+        background: var(--color-primary);
         color: var(--color-background);
         font-size: var(--fs-small);
         font-weight: 600;

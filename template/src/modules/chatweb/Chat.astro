@@ -292,7 +292,10 @@ const conversationProps = { persona, hasKnowledge, apiEndpoint, sugerencias };
     height: 3.5rem;
     margin-left: auto;
     border-radius: var(--radius-pill);
-    background: var(--color-accent);
+    /* Accionable -> primario, igual que cualquier boton (ver la regla de color
+     * en Base.astro). Iba en acento y quedaba de otro color que el resto de las
+     * acciones de la pagina. */
+    background: var(--color-primary);
     color: var(--color-background);
     box-shadow: var(--shadow-lg);
     cursor: pointer;

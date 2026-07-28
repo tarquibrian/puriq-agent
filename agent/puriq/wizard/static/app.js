@@ -1066,8 +1066,8 @@
     container.appendChild(el("h3", { class: "brand-legend", text: "Colores" }));
     var grid = el("div", { class: "color-grid" });
     [
-      ["primary", "Primario", "Color principal de la marca."],
-      ["accent", "Acento", "Botones, enlaces y detalles."],
+      ["primary", "Primario", "El color de tu marca. Pinta todo lo que se puede tocar: botones y el asistente."],
+      ["accent", "Acento", "El toque de color. Etiquetas, numeros y destacados; no se usa en botones."],
       ["background", "Fondo", "Fondo general de las paginas."],
       ["text", "Texto", "Color del texto sobre el fondo."],
       ["secondary", "Secundario", "Color de apoyo (opcional)."]
