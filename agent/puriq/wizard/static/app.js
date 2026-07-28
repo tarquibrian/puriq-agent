@@ -1106,10 +1106,17 @@
     container.appendChild(el("h3", { class: "brand-legend", text: "Vista previa" }));
     container.appendChild(brandPreview(d));
 
+    // Diagnostico de la combinacion elegida, justo antes de guardar.
+    container.appendChild(el("div", { class: "brand-warnings", id: "brand-warnings", hidden: true }));
+
     container.appendChild(el("button", {
       class: "btn", text: "Guardar marca",
       onclick: function () { saveBrand(container); }
     }));
+
+    // Se evalua al entrar al paso, no solo al tocar un color: una marca cargada
+    // por el agente o heredada de otra sesion tambien puede venir mal.
+    renderBrandWarnings(d);
   }
 
   // --- Piezas del paso Marca ------------------------------------------------
@@ -1199,6 +1206,118 @@
     // El esqueleto lateral tambien se recolorea en vivo con el color en edicion,
     // sin esperar a "Guardar marca" (lee el borrador de marca).
     updateSkeleton();
+    renderBrandWarnings(d);
+  }
+
+  // --- Diagnostico de la paleta -------------------------------------------
+  //
+  // Una combinacion se puede guardar sin que nada falle y aun asi dar un sitio
+  // ilegible o apagado: el selector nativo de color cae a #000000 cuando el valor
+  // no es un hex valido, asi que basta rozarlo para dejar el acento en negro y
+  // que el sitio pierda todo su color sin ningun aviso. Estas comprobaciones
+  // miden el contraste real de los pares que importan y lo dicen ANTES de
+  // guardar, en lugar de que el problema aparezca recien en el sitio construido.
+
+  function hexToRgb(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
+    if (!m) return null;
+    var n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  // Contraste WCAG 2.1 entre dos colores: (L1 + 0.05) / (L2 + 0.05).
+  function contrastRatio(hexA, hexB) {
+    var a = hexToRgb(hexA), b = hexToRgb(hexB);
+    if (!a || !b) return null;
+    function lum(c) {
+      var s = c.map(function (v) {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2];
+    }
+    var l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+
+  // Distancia cruda entre dos colores; sirve para detectar dos roles que quedaron
+  // practicamente del mismo color (el acento deja de distinguirse del primario).
+  function colorDistance(hexA, hexB) {
+    var a = hexToRgb(hexA), b = hexToRgb(hexB);
+    if (!a || !b) return null;
+    return Math.sqrt(
+      Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2)
+    );
+  }
+
+  function brandWarnings(d) {
+    var avisos = [];
+    var r;
+
+    // 1) Texto sobre fondo: es lo unico que vuelve un sitio ilegible. AA pide 4.5.
+    r = contrastRatio(d.text, d.background);
+    if (r !== null && r < 4.5) {
+      avisos.push({
+        nivel: "error",
+        texto: "El texto casi no se distingue del fondo (contraste " + r.toFixed(1) +
+               ":1, hace falta 4.5:1). El sitio va a costar de leer."
+      });
+    }
+
+    // 2) Primario sobre fondo: pinta los botones, con texto del color de fondo.
+    r = contrastRatio(d.primary, d.background);
+    if (r !== null && r < 4.5) {
+      avisos.push({
+        nivel: "error",
+        texto: "Los botones no se van a leer: el color primario contrasta " +
+               r.toFixed(1) + ":1 con el fondo y hace falta 4.5:1."
+      });
+    }
+
+    // 3) Acento sobre fondo: si no se ve, el sitio pierde su unico toque de color.
+    r = contrastRatio(d.accent, d.background);
+    if (r !== null && r < 3) {
+      avisos.push({
+        nivel: "aviso",
+        texto: "El acento casi no se ve sobre el fondo (contraste " + r.toFixed(1) +
+               ":1). Las etiquetas y los destacados van a pasar desapercibidos."
+      });
+    }
+
+    // 4) Acento identico (o casi) al primario: deja de cumplir su funcion.
+    var dist = colorDistance(d.accent, d.primary);
+    if (dist !== null && dist < 60) {
+      avisos.push({
+        nivel: "aviso",
+        texto: "El acento es casi el mismo color que el primario, asi que no va a " +
+               "resaltar nada. Elegi uno que contraste con el."
+      });
+    }
+
+    // 5) Acento en blanco o negro puro: es lo que deja el selector cuando el
+    //    campo estaba vacio, y el sitio queda sin color propio.
+    var acentoNorm = String(d.accent || "").trim().toUpperCase();
+    if (acentoNorm === "#000000" || acentoNorm === "#FFFFFF") {
+      avisos.push({
+        nivel: "aviso",
+        texto: "El acento quedo en " + (acentoNorm === "#000000" ? "negro" : "blanco") +
+               " puro. Es el valor que toma el selector cuando el campo estaba " +
+               "vacio; con el, el sitio pierde su toque de color."
+      });
+    }
+
+    return avisos;
+  }
+
+  function renderBrandWarnings(d) {
+    var caja = document.getElementById("brand-warnings");
+    if (!caja) return;
+    clear(caja);
+    var avisos = brandWarnings(d);
+    caja.hidden = avisos.length === 0;
+    avisos.forEach(function (a) {
+      caja.appendChild(el("p", { class: "brand-warning is-" + a.nivel, text: a.texto }));
+    });
   }
 
   function saveBrand(container) {

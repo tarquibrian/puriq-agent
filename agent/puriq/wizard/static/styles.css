@@ -1281,3 +1281,32 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
 .palette-name { display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; }
 .palette-check { color: var(--ok); font-weight: 800; }
 .palette.is-active { border-color: var(--primary); }
+
+/* Diagnostico de la paleta: aparece solo cuando hay algo que decir, entre la
+ * vista previa y el boton de guardar, que es donde el usuario decide. */
+.brand-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+}
+.brand-warning {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  border: 1px solid;
+}
+/* Ilegible: hay que corregirlo. */
+.brand-warning.is-error {
+  background: var(--err-bg);
+  border-color: var(--err-border);
+  color: var(--err);
+}
+/* Se puede guardar, pero el resultado no va a lucir. */
+.brand-warning.is-aviso {
+  background: color-mix(in srgb, var(--muted) 7%, transparent);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
