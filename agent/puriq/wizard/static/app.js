@@ -2191,10 +2191,57 @@
       state.server["tourism-data"] = data["tourism-data"] || {};
       state.server["site-config"] = data["site-config"] || {};
       state.server["theme-tokens"] = data["theme-tokens"] || {};
-      // Solo lectura: seguro de repintar sin consultar al usuario.
+      dropCachedDrafts();
+      syncDoneFromServer();
       updateSkeleton();
-      showExternalNotice();
+      renderNav();
+      updateProgress();
+      // Si el usuario no esta escribiendo, se repinta el paso solo: tener que
+      // apretar un boton para ver lo que acaba de hacer el agente convierte una
+      // conversacion fluida en un tramite. Solo se le pregunta cuando repintar
+      // podria borrarle algo a medio tipear.
+      if (isEditingStep()) showExternalNotice();
+      else { render(); toast("El proyecto se actualizo desde otra ventana."); }
     }).catch(function () { /* se reintentara en el proximo cambio */ });
+  }
+
+  // ¿El usuario tiene el foco puesto en un campo del paso actual? Si lo tiene,
+  // repintar le borraria lo escrito, asi que se le ofrece el aviso en su lugar.
+  function isEditingStep() {
+    var activo = document.activeElement;
+    if (!activo) return false;
+    var panel = document.getElementById("step-panel");
+    if (!panel || !panel.contains(activo)) return false;
+    return /^(INPUT|TEXTAREA|SELECT)$/.test(activo.tagName);
+  }
+
+  // Los borradores de pasos que se arman UNA sola vez desde el servidor
+  // (`modules`, `landing`) y los inventarios que se piden aparte (`assets`,
+  // `qa`) quedaban congelados en lo que hubiera al abrir el wizard: por eso los
+  // modulos que activaba el agente seguian apareciendo destildados y las fotos
+  // que descargaba no figuraban en ninguna parte. Vaciarlos obliga a releerlos.
+  function dropCachedDrafts() {
+    state.draft.modules = [];
+    state.draft.landing = [];
+    state.assets = null;
+    state.qa = null;
+  }
+
+  // Marca como completados los pasos que YA tienen contenido en el contrato,
+  // venga de donde venga. Antes `doneSteps` solo se poblaba con los guardados
+  // del propio wizard, asi que un proyecto cargado entero por conversacion se
+  // veia con los once pasos pendientes.
+  function syncDoneFromServer() {
+    var t = state.server["tourism-data"] || {};
+    var c = state.server["site-config"] || {};
+    var site = t.site || {};
+    if (site.name) doneSteps.site = true;
+    if (Object.keys(c.modules || {}).length) doneSteps.modules = true;
+    if ((t.places || []).length) doneSteps.places = true;
+    if ((t.events || []).length) doneSteps.events = true;
+    if ((c.landing || []).length) doneSteps.landing = true;
+    var colors = (state.server["theme-tokens"] || {}).colors || {};
+    if (colors.primary && colors.primary !== "#000000") doneSteps.brand = true;
   }
 
   function showExternalNotice() {
@@ -2205,7 +2252,7 @@
       el("button", {
         class: "btn btn-ghost",
         text: "Actualizar este paso",
-        onclick: function () { aviso.remove(); render(); }
+        onclick: function () { aviso.remove(); dropCachedDrafts(); render(); }
       })
     ]);
     document.body.appendChild(aviso);
@@ -2544,6 +2591,9 @@
         toast("No se pudo cargar el estado previo; se arranca en blanco.", "err");
       })
       .then(function () {
+        // Un proyecto ya cargado (por el CLI, por MCP o en una sesion anterior)
+        // debe verse completo desde el arranque, no en blanco.
+        syncDoneFromServer();
         render();
         watchExternalChanges();
       });

@@ -566,10 +566,13 @@ class _LandingSelection(BaseModel):
 
 
 class _Contact(BaseModel):
-    """Datos de contacto publicables del organismo (`Site_Config.contact`)."""
+    """Datos de contacto publicables del sitio (`Site_Config.contact`)."""
 
     email: str | None = None
     phone: str | None = None
+    #: Numero de WhatsApp con codigo de pais. Para un emprendimiento turistico es
+    #: el canal por el que llegan las consultas y las reservas.
+    whatsapp: str | None = None
 
 
 class SiteConfigBody(BaseModel):

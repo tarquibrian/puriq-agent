@@ -51,7 +51,11 @@
       "additionalProperties": false,
       "properties": {
         "email": { "type": "string" },
-        "phone": { "type": "string" }
+        "phone": { "type": "string" },
+        "whatsapp": {
+          "type": "string",
+          "description": "Numero de WhatsApp en formato internacional (solo digitos, con codigo de pais). El sitio arma el enlace wa.me."
+        }
       }
     },
     "deploy": {

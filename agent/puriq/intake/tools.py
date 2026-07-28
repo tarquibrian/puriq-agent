@@ -788,6 +788,10 @@ localidad, preguntáselo en vez de poner el país.
 Para un emprendimiento, el `center` del mapa es su propia ubicación; para un
 destino, el centro de la zona que abarca.
 
+Si es un **emprendimiento**, pedí el **WhatsApp** en esta fase: es por donde le
+van a llegar las consultas y las reservas, más que por mail. Va en
+`contact.whatsapp`, con código de país y sólo dígitos (ej. `59171234567`).
+
 **Fase 2 — Módulos.** Traducí lo que el usuario quiere mostrar a una selección
 ordenada de módulos (mapa, lugares, eventos, blog, asistente). Ej.: "quiero
 lugares y eventos" → activá `places` y `events`. Registralo con
@@ -1117,7 +1121,19 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                 },
                 "contact": {
                     "type": "object",
-                    "description": "Datos de contacto del sitio (p. ej. email, teléfono).",
+                    "description": (
+                        "Datos de contacto del sitio. Campos admitidos: 'email', "
+                        "'phone' y 'whatsapp' (número con código de país, sólo "
+                        "dígitos; el sitio arma el enlace wa.me). En un "
+                        "emprendimiento turístico WhatsApp suele ser el canal "
+                        "principal: pedilo."
+                    ),
+                    "properties": {
+                        "email": {"type": "string"},
+                        "phone": {"type": "string"},
+                        "whatsapp": {"type": "string"},
+                    },
+                    "additionalProperties": False,
                 },
             },
             "required": ["project", "name", "region", "center"],
