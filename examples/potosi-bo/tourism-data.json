@@ -1,92 +1,146 @@
 {
-  "$schema": "../../schemas/tourism-data.schema.json",
   "site": {
     "name": "Turismo Potosí",
     "region": "Departamento de Potosí, Bolivia",
     "description": "Del Salar de Uyuni al Cerro Rico: naturaleza extrema, plata y herencia viva.",
     "defaultLocale": "es",
-    "locales": ["es", "en"],
-    "center": { "lat": -20.6, "lng": -66.8, "zoom": 6 }
+    "locales": [
+      "es",
+      "en"
+    ],
+    "center": {
+      "lat": -20.6,
+      "lng": -66.8,
+      "zoom": 6
+    }
   },
   "categories": [
-    { "id": "naturaleza", "label": "Naturaleza", "icon": "mountain" },
-    { "id": "cultura", "label": "Cultura", "icon": "landmark" },
-    { "id": "historia", "label": "Historia", "icon": "clock" }
+    {
+      "id": "naturaleza",
+      "label": "Naturaleza",
+      "icon": "mountain"
+    },
+    {
+      "id": "cultura",
+      "label": "Cultura",
+      "icon": "landmark"
+    },
+    {
+      "id": "historia",
+      "label": "Historia",
+      "icon": "clock"
+    }
   ],
   "places": [
     {
       "id": "salar-de-uyuni",
       "name": "Salar de Uyuni",
       "category": "naturaleza",
-      "coords": { "lat": -20.2, "lng": -67.6 },
-      "address": "Uyuni, Potosí",
       "shortDescription": "El salar mas grande del mundo, un espejo infinito a 3660 msnm.",
       "description": "",
-      "images": [],
+      "images": [
+        "uyuni-01.jpg"
+      ],
+      "tags": [
+        "salar",
+        "fotografia",
+        "paisaje"
+      ],
+      "source": "user",
+      "address": "Uyuni, Potosí",
       "hours": "Todo el dia",
-      "tags": ["salar", "fotografia", "paisaje"],
-      "source": "user"
+      "coords": {
+        "lat": -20.2,
+        "lng": -67.6
+      }
     },
     {
-      "id": "cerro-rico-potosi",
+      "id": "cerro-rico-de-potosi",
       "name": "Cerro Rico de Potosí",
       "category": "historia",
-      "coords": { "lat": -19.617, "lng": -65.751 },
-      "address": "Potosí",
       "shortDescription": "La montaña de plata que financio imperios; Patrimonio de la Humanidad.",
       "description": "",
-      "images": [],
+      "images": [
+        "cerro-rico-01.jpg"
+      ],
+      "tags": [
+        "mineria",
+        "unesco",
+        "historia"
+      ],
+      "source": "user",
+      "address": "Potosí",
       "hours": "Visitas guiadas a minas",
-      "tags": ["mineria", "unesco", "historia"],
-      "source": "user"
+      "coords": {
+        "lat": -19.617,
+        "lng": -65.751
+      }
     },
     {
-      "id": "casa-nacional-moneda",
+      "id": "casa-nacional-de-la-moneda",
       "name": "Casa Nacional de la Moneda",
       "category": "cultura",
-      "coords": { "lat": -19.588, "lng": -65.754 },
-      "address": "Calle Ayacucho, Potosí",
       "shortDescription": "Uno de los museos mas importantes de Sudamerica, donde se acuñaba la plata.",
       "description": "",
-      "images": [],
+      "images": [
+        "moneda-01.jpg"
+      ],
+      "tags": [
+        "museo",
+        "colonial",
+        "cultura"
+      ],
+      "source": "user",
+      "address": "Calle Ayacucho, Potosí",
       "hours": "Mar-Dom 09:00 - 17:00",
-      "tags": ["museo", "colonial", "cultura"],
-      "source": "user"
+      "coords": {
+        "lat": -19.588,
+        "lng": -65.754
+      }
     },
     {
       "id": "laguna-colorada",
       "name": "Laguna Colorada",
       "category": "naturaleza",
-      "coords": { "lat": -22.19, "lng": -67.79 },
-      "address": "Reserva Eduardo Avaroa, Sud Lípez",
       "shortDescription": "Laguna roja con flamencos andinos en plena Puna.",
       "description": "",
-      "images": [],
+      "images": [
+        "laguna-colorada-01.jpg"
+      ],
+      "tags": [
+        "puna",
+        "flamencos",
+        "reserva"
+      ],
+      "source": "user",
+      "address": "Reserva Eduardo Avaroa, Sud Lípez",
       "hours": "Todo el dia",
-      "tags": ["puna", "flamencos", "reserva"],
-      "source": "user"
+      "coords": {
+        "lat": -22.19,
+        "lng": -67.79
+      }
     }
   ],
   "events": [
     {
-      "id": "chutillos-2026",
+      "id": "fiesta-de-ch-utillos",
       "name": "Fiesta de Ch'utillos",
       "startDate": "2026-08-21",
-      "endDate": "2026-08-23",
-      "placeId": "casa-nacional-moneda",
       "description": "",
       "images": [],
-      "recurring": "yearly"
+      "recurring": "yearly",
+      "endDate": "2026-08-23",
+      "placeId": "casa-nacional-de-la-moneda"
     },
     {
-      "id": "carnaval-minero-2027",
+      "id": "carnaval-minero-de-potosi",
       "name": "Carnaval Minero de Potosí",
       "startDate": "2027-02-13",
-      "endDate": "2027-02-16",
-      "placeId": "cerro-rico-potosi",
       "description": "",
       "images": [],
-      "recurring": "yearly"
+      "recurring": "yearly",
+      "endDate": "2027-02-16",
+      "placeId": "cerro-rico-de-potosi"
     }
   ]
 }

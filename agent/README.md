@@ -16,7 +16,7 @@ pip install -e ".[local,mcp]"   # extras: local (Ollama), mcp (servidor MCP)
 
 ```bash
 puriq init                                   # wizard web local (http://localhost:4321)
-puriq collect --project ../examples/potosi-bo --resources ../examples/potosi-bo/raw
+puriq collect --project ../examples/potosi-bo --resources raw
 puriq build   --project ../examples/potosi-bo --no-use-llm   # o --use-llm
 puriq preview --project ../examples/potosi-bo
 puriq deploy  --project ../examples/potosi-bo --target aws-amplify
