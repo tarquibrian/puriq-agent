@@ -241,11 +241,12 @@ def test_every_intake_spec_declares_object_schema_with_project():
         schema = spec["inputSchema"]
         assert schema["type"] == "object", spec["name"]
         if spec["name"] not in _SIN_PROYECTO:
-            # `project` es una propiedad declarada...
+            # `project` se declara siempre...
             assert "project" in schema["properties"], spec["name"]
             assert schema["properties"]["project"]["type"] == "string", spec["name"]
-            # ...y es obligatoria en toda intake tool que toque un proyecto.
-            assert "project" in schema.get("required", []), spec["name"]
+            # ...pero NO es obligatoria: omitirla cae al ultimo proyecto abierto
+            # con `start.sh`, para no tener que repetir la ruta en cada mensaje.
+            assert "project" not in schema.get("required", []), spec["name"]
         # `required` es subconjunto de las properties declaradas.
         assert set(schema.get("required", [])) <= set(schema["properties"]), spec[
             "name"
@@ -259,26 +260,23 @@ def test_required_fields_match_known_signatures():
     by_name = {s["name"]: s for s in intake_tools.INTAKE_TOOL_SPECS}
     # set_site requiere identidad + centro del mapa.
     assert set(by_name["set_site"]["inputSchema"]["required"]) == {
-        "project",
         "name",
         "region",
         "center",
     }
     # add_place: nombre y categoría (coords opcionales -> borrador).
     assert set(by_name["add_place"]["inputSchema"]["required"]) == {
-        "project",
         "name",
         "category",
     }
     # add_event: nombre y fecha de inicio.
     assert set(by_name["add_event"]["inputSchema"]["required"]) == {
-        "project",
         "name",
         "start_date",
     }
     # get_state y build: solo el proyecto.
-    assert by_name["get_state"]["inputSchema"]["required"] == ["project"]
-    assert by_name["build"]["inputSchema"]["required"] == ["project"]
+    assert by_name["get_state"]["inputSchema"].get("required", []) == []
+    assert by_name["build"]["inputSchema"].get("required", []) == []
 
 
 # --- Req 13.4: las descripciones incluyen el guion por fases ------------------

@@ -101,14 +101,18 @@ Dos detalles que evitan problemas:
 
 ## Cómo se empieza la conversación
 
-**Cada tool de intake exige el argumento `project`** con la ruta del proyecto.
-A diferencia del wizard web, el servidor MCP no lee `PURIQ_PROJECT`: no hay
-"proyecto actual" implícito, porque un mismo cliente puede trabajar sobre varios.
+**No hace falta indicar la ruta del proyecto.** Las tools usan el último que
+hayas abierto con `./start.sh`, que lo deja anotado en `~/.puriq`. Alcanza con:
 
-Así que el primer mensaje tiene que decir dónde está el proyecto:
-
-> Trabajemos sobre el proyecto en `/Users/tarquibrian/Code/Devanzire/Hackathon/examples/potosi-bo`.
 > Llamá a `get_guion` y ayudame a completar el registro del sitio.
+
+El agente confirma sobre qué carpeta está trabajando —`get_state` la devuelve en
+`project`— antes de escribir nada.
+
+Para trabajar sobre **otro** proyecto, nombralo y el agente pasa `project`
+explícitamente:
+
+> Trabajemos sobre `~/Code/Devanzire/Hackathon/examples/potosi-bo`.
 
 Desde ahí el modelo conduce: consulta `get_state`, ve qué falta en `missing` y
 pregunta por fases. Podés guiarlo en lenguaje natural ("quiero una paleta cálida

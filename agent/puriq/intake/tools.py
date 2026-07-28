@@ -695,6 +695,11 @@ def get_state(project: Path) -> dict:
 
     return config.redact_value(
         {
+            # Se informa la carpeta resuelta porque `project` es opcional: cuando
+            # se omite, las tools caen al ultimo proyecto abierto con `start.sh`,
+            # y el usuario tiene que poder ver sobre cual esta trabajando el
+            # agente sin adivinarlo.
+            "project": str(project),
             _TOURISM: tourism,
             _CONFIG: site_config,
             _THEME: theme,
@@ -752,6 +757,17 @@ contestar. Proponer no persiste nada: mientras no llames a la tool, el contrato
 sigue igual. Nunca digas "ya lo guardé", "ya lo registré" ni "ya quedó
 configurado" si no invocaste la tool en ese turno; si no la invocaste, decí qué
 falta y hacelo.
+
+## Sobre qué proyecto trabajás
+
+No le pidas la ruta de una carpeta al usuario. Las tools ya saben cuál es: usan
+el último proyecto que abrió con `./start.sh`. Empezá llamando a `get_state`, que
+además de lo que falta te devuelve en `project` la carpeta en uso; mencionala una
+vez al saludar ("Estoy trabajando sobre …") para que confirme, y seguí.
+
+Sólo pasá `project` explícitamente si el usuario nombra otro proyecto. Si
+`get_state` responde que no hay ninguno abierto, ahí sí pedile la ruta o decile
+que ejecute `./start.sh`.
 
 ## Fases
 
@@ -911,9 +927,49 @@ campos de un lugar/evento por id) y `remove_item` (elimina por id).
 # reutilizable tanto por MCP como por el loop web.
 
 
+#: Donde `start.sh` deja la ruta del ultimo proyecto que abrio el usuario. Es el
+#: puente entre las dos superficies: quien corre `./start.sh`, elige un nombre y
+#: se pone a conversar en Claude Desktop o Kiro no tiene por que repetir la ruta
+#: en cada mensaje.
+_MEMORIA_PROYECTO = Path.home() / ".puriq" / "ultimo-proyecto"
+
+
+class NoProjectError(ValueError):
+    """No se indico proyecto y no hay ninguno recordado."""
+
+
+def _resolve_project(arguments: Mapping[str, Any]) -> Path:
+    """Devuelve el proyecto sobre el que operar.
+
+    Prioridad: el argumento `project` explicito (permite trabajar sobre varios
+    proyectos desde el mismo cliente) y, si no viene, el ultimo que el usuario
+    abrio con `./start.sh`.
+
+    Raises:
+        NoProjectError: si no hay ninguno de los dos, con la instruccion de que
+            hacer en vez de un error de clave faltante.
+    """
+    explicito = (arguments.get("project") or "").strip() if arguments else ""
+    if explicito:
+        return Path(explicito).expanduser()
+
+    try:
+        recordado = _MEMORIA_PROYECTO.read_text(encoding="utf-8").strip()
+    except OSError:
+        recordado = ""
+    if recordado and Path(recordado).is_dir():
+        return Path(recordado)
+
+    raise NoProjectError(
+        "No se indicó sobre qué proyecto trabajar y no hay ninguno abierto. "
+        "Pedile al usuario la ruta de la carpeta del sitio, o que ejecute "
+        "`./start.sh` para crear uno."
+    )
+
+
 def _h_set_site(arguments: dict) -> dict:
     """Adapta `arguments` a `set_site`, mapeando el objeto `center` a kwargs."""
-    project = Path(arguments["project"])
+    project = _resolve_project(arguments)
     center = arguments["center"]
     kwargs: dict[str, Any] = {
         "name": arguments["name"],
@@ -934,21 +990,21 @@ def _h_set_site(arguments: dict) -> dict:
 def _h_configure_modules(arguments: dict) -> dict:
     """Adapta `arguments` a `configure_modules`."""
     return configure_modules(
-        Path(arguments["project"]), selection=arguments["selection"]
+        _resolve_project(arguments), selection=arguments["selection"]
     )
 
 
 def _h_configure_landing(arguments: dict) -> dict:
     """Adapta `arguments` a `configure_landing`."""
     return configure_landing(
-        Path(arguments["project"]), selection=arguments["selection"]
+        _resolve_project(arguments), selection=arguments["selection"]
     )
 
 
 def _h_add_place(arguments: dict) -> dict:
     """Adapta `arguments` a `add_place`."""
     return add_place(
-        Path(arguments["project"]),
+        _resolve_project(arguments),
         name=arguments["name"],
         category=arguments["category"],
         lat=arguments.get("lat"),
@@ -962,7 +1018,7 @@ def _h_add_place(arguments: dict) -> dict:
 def _h_add_event(arguments: dict) -> dict:
     """Adapta `arguments` a `add_event` (mapea `start_date` al kwarg homónimo)."""
     return add_event(
-        Path(arguments["project"]),
+        _resolve_project(arguments),
         name=arguments["name"],
         start_date=arguments["start_date"],
         end_date=arguments.get("end_date"),
@@ -975,7 +1031,7 @@ def _h_add_event(arguments: dict) -> dict:
 def _h_edit_item(arguments: dict) -> dict:
     """Adapta `arguments` a `edit_item`."""
     return edit_item(
-        Path(arguments["project"]),
+        _resolve_project(arguments),
         id=arguments["id"],
         fields=arguments["fields"],
     )
@@ -983,7 +1039,7 @@ def _h_edit_item(arguments: dict) -> dict:
 
 def _h_remove_item(arguments: dict) -> dict:
     """Adapta `arguments` a `remove_item`."""
-    return remove_item(Path(arguments["project"]), id=arguments["id"])
+    return remove_item(_resolve_project(arguments), id=arguments["id"])
 
 
 def _h_set_brand(arguments: dict) -> dict:
@@ -995,13 +1051,13 @@ def _h_set_brand(arguments: dict) -> dict:
         kwargs["typography"] = arguments["typography"]
     if "voice" in arguments:
         kwargs["voice"] = arguments["voice"]
-    return set_brand(Path(arguments["project"]), **kwargs)
+    return set_brand(_resolve_project(arguments), **kwargs)
 
 
 def _h_add_qa(arguments: dict) -> dict:
     """Adapta `arguments` a `add_qa`."""
     return add_qa(
-        Path(arguments["project"]),
+        _resolve_project(arguments),
         question=arguments["question"],
         answer=arguments["answer"],
     )
@@ -1010,7 +1066,7 @@ def _h_add_qa(arguments: dict) -> dict:
 def _h_attach_asset(arguments: dict) -> dict:
     """Adapta `arguments` a `attach_asset`."""
     return attach_asset(
-        Path(arguments["project"]),
+        _resolve_project(arguments),
         filename=arguments["filename"],
         content_base64=arguments.get("content_base64"),
         source_path=arguments.get("source_path"),
@@ -1026,13 +1082,13 @@ def _h_get_guion(arguments: dict) -> dict:
 
 def _h_get_state(arguments: dict) -> dict:
     """Adapta `arguments` a `get_state`."""
-    return get_state(Path(arguments["project"]))
+    return get_state(_resolve_project(arguments))
 
 
 def _h_build(arguments: dict) -> dict:
     """Adapta `arguments` a `build`."""
     return build(
-        Path(arguments["project"]),
+        _resolve_project(arguments),
         use_llm=bool(arguments.get("use_llm", True)),
     )
 
@@ -1040,7 +1096,7 @@ def _h_build(arguments: dict) -> dict:
 def _h_extract_pdf(arguments: dict) -> dict:
     """Adapta `arguments` a `extract_pdf`."""
     return extract_pdf(
-        Path(arguments["project"]),
+        _resolve_project(arguments),
         content_base64=arguments.get("content_base64"),
         source_path=arguments.get("source_path"),
     )
@@ -1050,7 +1106,11 @@ def _h_extract_pdf(arguments: dict) -> dict:
 #: Propiedad `project` común a todas las intake tools (ruta del proyecto).
 _PROJECT_PROP: dict[str, Any] = {
     "type": "string",
-    "description": "Ruta del proyecto que contiene los tres documentos del contrato.",
+    "description": (
+        "Ruta del proyecto que contiene los tres documentos del contrato. "
+        "Opcional: si se omite se usa el último proyecto que el usuario abrió con "
+        "`./start.sh`. Indicalo sólo cuando el usuario nombre otro proyecto."
+    ),
 }
 
 
@@ -1136,7 +1196,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     "additionalProperties": False,
                 },
             },
-            "required": ["project", "name", "region", "center"],
+            "required": ["name", "region", "center"],
             "additionalProperties": False,
         },
         "handler": _h_set_site,
@@ -1198,7 +1258,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     },
                 },
             },
-            "required": ["project", "selection"],
+            "required": ["selection"],
             "additionalProperties": False,
         },
         "handler": _h_configure_modules,
@@ -1261,7 +1321,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     ),
                 },
             },
-            "required": ["project", "name", "category"],
+            "required": ["name", "category"],
             "additionalProperties": False,
         },
         "handler": _h_add_place,
@@ -1304,7 +1364,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     "description": "Recurrencia del evento (opcional).",
                 },
             },
-            "required": ["project", "name", "start_date"],
+            "required": ["name", "start_date"],
             "additionalProperties": False,
         },
         "handler": _h_add_event,
@@ -1334,7 +1394,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     ),
                 },
             },
-            "required": ["project", "id", "fields"],
+            "required": ["id", "fields"],
             "additionalProperties": False,
         },
         "handler": _h_edit_item,
@@ -1356,7 +1416,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     "description": "Id del lugar o evento a eliminar.",
                 },
             },
-            "required": ["project", "id"],
+            "required": ["id"],
             "additionalProperties": False,
         },
         "handler": _h_remove_item,
@@ -1390,8 +1450,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     "description": "Voz de la marca (p. ej. tone, formality).",
                 },
             },
-            "required": ["project"],
-            "additionalProperties": False,
+                        "additionalProperties": False,
         },
         "handler": _h_set_brand,
     },
@@ -1437,7 +1496,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     },
                 },
             },
-            "required": ["project", "selection"],
+            "required": ["selection"],
             "additionalProperties": False,
         },
         "handler": _h_configure_landing,
@@ -1464,7 +1523,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     "description": "Respuesta del QA.",
                 },
             },
-            "required": ["project", "question", "answer"],
+            "required": ["question", "answer"],
             "additionalProperties": False,
         },
         "handler": _h_add_qa,
@@ -1507,7 +1566,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     "description": "Id del lugar o evento al que se asocia la imagen.",
                 },
             },
-            "required": ["project", "filename", "target", "id"],
+            "required": ["filename", "target", "id"],
             "additionalProperties": False,
         },
         "handler": _h_attach_asset,
@@ -1544,8 +1603,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
             "properties": {
                 "project": _PROJECT_PROP,
             },
-            "required": ["project"],
-            "additionalProperties": False,
+                        "additionalProperties": False,
         },
         "handler": _h_get_state,
     },
@@ -1571,8 +1629,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     "default": True,
                 },
             },
-            "required": ["project"],
-            "additionalProperties": False,
+                        "additionalProperties": False,
         },
         "handler": _h_build,
     },
@@ -1602,8 +1659,7 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                     ),
                 },
             },
-            "required": ["project"],
-            "additionalProperties": False,
+                        "additionalProperties": False,
         },
         "handler": _h_extract_pdf,
     },

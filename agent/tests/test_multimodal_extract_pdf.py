@@ -280,13 +280,12 @@ def test_extract_pdf_in_mcp_tool_specs_with_input_schema():
 
     assert schema["type"] == "object"
     props = schema["properties"]
-    # `project` requerido; `content_base64`/`source_path` opcionales.
+    # Todas opcionales: `project` cae al ultimo proyecto abierto con `start.sh`,
+    # y el PDF llega por `content_base64` O por `source_path`.
     assert "project" in props
-    assert "project" in schema["required"]
     assert "content_base64" in props
     assert "source_path" in props
-    assert "content_base64" not in schema["required"]
-    assert "source_path" not in schema["required"]
+    assert schema.get("required", []) == []
     # Superficie cerrada.
     assert schema["additionalProperties"] is False
     # Tiene descripción y handler cableado.
