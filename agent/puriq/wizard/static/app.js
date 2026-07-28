@@ -214,6 +214,9 @@
     };
   }
 
+  // Momento de la ultima escritura hecha por este wizard (ver `apiRequest`).
+  var lastSelfWrite = 0;
+
   // Envuelve fetch: parsea JSON, y ante status >= 400 lanza un objeto de error
   // ya normalizado para que el paso lo muestre (Req 7.3).
   function apiRequest(method, url, opts) {
@@ -232,6 +235,10 @@
         if (!resp.ok) {
           throw { __wizardError: true, normalized: normalizeError(body, resp.status), status: resp.status };
         }
+        // Toda escritura propia deja marca de tiempo: el vigilante de cambios
+        // externos la usa para no anunciar como "alguien mas edito" lo que acaba
+        // de guardar el propio wizard (ver `watchExternalChanges`).
+        if (method !== "GET") lastSelfWrite = Date.now();
         return body;
       });
     });
@@ -2137,6 +2144,73 @@
     render();
   }
 
+  // ========================================================================
+  // Cambios externos al contrato
+  // ========================================================================
+  // El contrato lo puede escribir mas de una superficie: este wizard, un cliente
+  // MCP conversando desde Claude Desktop o Kiro, el CLI, o el usuario editando
+  // el JSON. Antes el wizard solo veia lo suyo y habia que recargar la pagina
+  // para enterarse del resto.
+  //
+  // Se consulta `GET /api/version` (un `stat` por documento) cada pocos segundos.
+  // Ante un cambio ajeno se hacen DOS cosas distintas a proposito:
+  //
+  //  - La vista previa se actualiza sola. Es solo lectura, asi que refrescarla no
+  //    puede perder nada y es lo que hace visible que el sitio se va armando.
+  //  - El formulario NO se repinta solo: repintarlo borraria lo que el usuario
+  //    este escribiendo en ese momento. En su lugar aparece un aviso con un boton
+  //    para recargar el paso cuando le convenga.
+  var VERSION_POLL_MS = 2500;
+  // Margen para atribuirse un cambio propio: entre que se responde el POST y que
+  // el `stat` refleja la escritura pasa un instante, y sin esta ventana el wizard
+  // anunciaria como ajeno cada guardado suyo.
+  var SELF_WRITE_WINDOW_MS = 3000;
+  var lastVersion = null;
+
+  function watchExternalChanges() {
+    setInterval(function () {
+      // Sin foco no hay nada que refrescar; se retoma al volver a la pestaña.
+      if (document.hidden) return;
+      apiRequest("GET", "/api/version")
+        .then(function (v) {
+          var firma = JSON.stringify(v && v.docs);
+          if (lastVersion === null) { lastVersion = firma; return; }
+          if (firma === lastVersion) return;
+          lastVersion = firma;
+          // Escritura propia: se absorbe la nueva firma sin avisar nada.
+          if (Date.now() - lastSelfWrite < SELF_WRITE_WINDOW_MS) return;
+          onExternalChange();
+        })
+        .catch(function () { /* el servidor puede estar reiniciando: se reintenta */ });
+    }, VERSION_POLL_MS);
+  }
+
+  function onExternalChange() {
+    apiRequest("GET", "/api/state").then(function (data) {
+      if (!data || typeof data !== "object") return;
+      state.server["tourism-data"] = data["tourism-data"] || {};
+      state.server["site-config"] = data["site-config"] || {};
+      state.server["theme-tokens"] = data["theme-tokens"] || {};
+      // Solo lectura: seguro de repintar sin consultar al usuario.
+      updateSkeleton();
+      showExternalNotice();
+    }).catch(function () { /* se reintentara en el proximo cambio */ });
+  }
+
+  function showExternalNotice() {
+    var previo = document.getElementById("external-notice");
+    if (previo) previo.remove();
+    var aviso = el("div", { class: "external-notice", id: "external-notice" }, [
+      el("span", { text: "El proyecto cambio por fuera del asistente." }),
+      el("button", {
+        class: "btn btn-ghost",
+        text: "Actualizar este paso",
+        onclick: function () { aviso.remove(); render(); }
+      })
+    ]);
+    document.body.appendChild(aviso);
+  }
+
   // Divisor arrastrable del previsualizador: ajusta el ancho de la columna
   // derecha y lo recuerda entre sesiones. El ancho se escribe en `--preview-w`,
   // que la cuadricula del `.app` consume; se acota a un rango razonable para que
@@ -2469,7 +2543,10 @@
       .catch(function () {
         toast("No se pudo cargar el estado previo; se arranca en blanco.", "err");
       })
-      .then(function () { render(); });
+      .then(function () {
+        render();
+        watchExternalChanges();
+      });
   }
 
   // Declara en el propio wizard las fuentes que sirve `/fonts`, para que la

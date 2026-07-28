@@ -244,6 +244,34 @@ def list_fonts() -> dict:
     return {"files": archivos}
 
 
+@app.get("/api/version")
+def get_version() -> dict:
+    """Huella barata del contrato en disco, para detectar cambios externos.
+
+    El contrato es la unica fuente de verdad y hay mas de una superficie que lo
+    escribe: el propio wizard, un cliente MCP conversando por Claude Desktop o
+    Kiro, el CLI, o el usuario editando el JSON a mano. Hasta ahora el wizard solo
+    veia lo que el mismo habia guardado, asi que un cambio hecho por fuera quedaba
+    invisible hasta recargar la pagina entera.
+
+    Se devuelve `(mtime_ns, size)` de cada documento en vez de leer y hashear su
+    contenido: alcanza para saber que algo cambio y cuesta un `stat` por archivo,
+    que es lo que permite consultarlo cada pocos segundos sin costo. Un documento
+    ausente cuenta como `null`, de modo que crearlo tambien es un cambio.
+    """
+    project = project_root()
+    docs: dict[str, object] = {}
+    for doc in _STATE_DOCS:
+        ruta = contracts._doc_path(project, doc)
+        try:
+            st = ruta.stat()
+        except OSError:
+            docs[doc] = None
+        else:
+            docs[doc] = {"mtime": st.st_mtime_ns, "size": st.st_size}
+    return {"docs": docs}
+
+
 @app.get("/api/project")
 def get_project() -> dict:
     """Describe el proyecto sobre el que opera el wizard, para la pantalla de inicio.
