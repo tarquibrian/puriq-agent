@@ -477,7 +477,7 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
       .footer-tagline {
         margin: 0;
         max-width: 42ch;
-        color: color-mix(in srgb, var(--color-background) 78%, transparent);
+        color: color-mix(in srgb, currentColor 78%, transparent);
         font-size: var(--fs-small);
         line-height: var(--lh-small);
       }
@@ -488,7 +488,7 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         margin: 0 0 var(--space-md);
-        color: color-mix(in srgb, var(--color-background) 70%, transparent);
+        color: color-mix(in srgb, currentColor 70%, transparent);
       }
       .footer-nav {
         display: flex;
@@ -496,11 +496,11 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
         gap: var(--space-sm);
       }
       .footer-nav a {
-        color: color-mix(in srgb, var(--color-background) 88%, transparent);
+        color: color-mix(in srgb, currentColor 88%, transparent);
         text-decoration: none;
         font-size: var(--fs-small);
       }
-      .footer-nav a:hover { color: var(--color-background); }
+      .footer-nav a:hover { color: inherit; }
       /* Lista de contacto: mismo tratamiento que la navegacion del pie. */
       .footer-contact {
         list-style: none;
@@ -511,14 +511,14 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
         gap: var(--space-sm);
         font-size: var(--fs-small);
         line-height: var(--lh-small);
-        color: color-mix(in srgb, var(--color-background) 78%, transparent);
+        color: color-mix(in srgb, currentColor 78%, transparent);
       }
       .footer-contact a {
-        color: color-mix(in srgb, var(--color-background) 88%, transparent);
+        color: color-mix(in srgb, currentColor 88%, transparent);
         text-decoration: none;
         overflow-wrap: anywhere;
       }
-      .footer-contact a:hover { color: var(--color-background); }
+      .footer-contact a:hover { color: inherit; }
 
       /* Region en la barra inferior, alineada al lado opuesto del copyright. */
       .footer-region { margin: 0; }
@@ -530,9 +530,9 @@ const shareImage = image ? new URL(image, Astro.site).href : undefined;
         justify-content: space-between;
         gap: var(--space-sm);
         padding: var(--space-md) clamp(var(--space-md), 5vw, var(--space-lg)) var(--space-xl);
-        border-top: 1px solid color-mix(in srgb, var(--color-background) 14%, transparent);
+        border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
         font-size: var(--fs-small);
-        color: color-mix(in srgb, var(--color-background) 62%, transparent);
+        color: color-mix(in srgb, currentColor 62%, transparent);
       }
 
       /* --------------------------------------------------------------------

@@ -74,7 +74,7 @@ const hasMetrics = metrics.length > 0;
     /* Hairline divisorio entre metricas: refuerza la lectura de "tabla de
      * cifras" sin agregar peso visual. */
     .ds-stats-row .ds-stat + .ds-stat {
-      border-left: 1px solid color-mix(in srgb, var(--color-background) 18%, transparent);
+      border-left: 1px solid color-mix(in srgb, currentColor 18%, transparent);
       padding-left: var(--space-lg);
     }
   }
@@ -92,16 +92,19 @@ const hasMetrics = metrics.length > 0;
    *  - `nowrap` + tamano fluido propio: con `--fs-h1` un valor como "10 582 km²"
    *    se partia en dos lineas y desalineaba la fila. Ahora escala con el
    *    viewport y nunca rompe.
-   *  - color claro derivado del fondo, NO `--color-accent`: sobre la banda
-   *    oscura el acento de marca puede quedar con muy poco contraste (con el
-   *    tema de Potosi, azul sobre bordo daba una cifra apagada).
+   *  - hereda el color de la banda (`currentColor`), NO `--color-accent`: sobre
+   *    la banda oscura el acento de marca puede quedar con muy poco contraste
+   *    (con el tema de Potosi, azul sobre bordo daba una cifra apagada).
+   *    Tampoco `--color-background`: la banda es oscura en modo claro Y oscuro,
+   *    pero `--color-background` se invierte, asi que en modo oscuro pintaba la
+   *    cifra casi negra sobre la banda (contraste medido: 1.19).
    *  - `tabular-nums` para que las cifras alineen verticalmente entre columnas.
    */
   .ds-stat-value {
     font-family: var(--font-heading);
     font-size: clamp(1.9rem, 3.4vw, 3.1rem);
     line-height: 1.05;
-    color: var(--color-background);
+    color: inherit;
     font-weight: 800;
     letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
@@ -112,7 +115,7 @@ const hasMetrics = metrics.length > 0;
   .ds-stat-label {
     font-size: var(--fs-small);
     line-height: var(--lh-small);
-    color: color-mix(in srgb, var(--color-background) 72%, transparent);
+    color: color-mix(in srgb, currentColor 72%, transparent);
     text-wrap: balance;
   }
 </style>
