@@ -627,6 +627,23 @@ def _inject_faq(work: Path, project: Path) -> int:
     data_dir = work / DATA_SUBDIR
     data_dir.mkdir(parents=True, exist_ok=True)
 
+    normalizados = load_knowledge(project)
+    # Siempre se escribe el archivo (aunque sea []) para que el import resuelva.
+    (data_dir / FAQ_FILENAME).write_text(schemas.dumps(normalizados))
+    return len(normalizados)
+
+
+def load_knowledge(project: Path) -> list[dict]:
+    """Lee la base de conocimiento Q&A del proyecto, sin escribir nada.
+
+    Reune `content/faq/*.md` (cada `##` es una pregunta) y `content/qa.json`,
+    descarta las entradas incompletas y deduplica por pregunta normalizada,
+    conservando la primera aparicion.
+
+    Se extrajo de `_inject_faq` porque el asistente del sitio necesita EXACTAMENTE
+    el mismo conocimiento en tiempo de consulta que el que se materializa en el
+    build: si cada uno lo armara por su cuenta, responderian cosas distintas.
+    """
     pares: list[dict] = []
     content_dir = Path(project) / CONTENT_DIRNAME
 
@@ -644,8 +661,6 @@ def _inject_faq(work: Path, project: Path) -> int:
         # 2) Q&A estructurados en content/qa.json (los escribe el wizard).
         pares.extend(_load_qa_json(content_dir / QA_JSON_FILENAME))
 
-    # Normalizacion final: descarta vacios y deduplica por pregunta normalizada
-    # (recortada + minusculas), conservando la primera aparicion.
     vistos: set[str] = set()
     normalizados: list[dict] = []
     for par in pares:
@@ -658,10 +673,7 @@ def _inject_faq(work: Path, project: Path) -> int:
             continue
         vistos.add(clave)
         normalizados.append({"question": q, "answer": a})
-
-    # Siempre se escribe el archivo (aunque sea []) para que el import resuelva.
-    (data_dir / FAQ_FILENAME).write_text(schemas.dumps(normalizados))
-    return len(normalizados)
+    return normalizados
 
 
 # Subdirectorio del proyecto con los recursos estaticos del usuario (imagenes

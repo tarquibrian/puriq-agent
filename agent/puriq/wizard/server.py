@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import queue
 import threading
@@ -25,13 +26,16 @@ import jsonschema
 from fastapi import FastAPI, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 from puriq import config
+from puriq import faq_chat as faq_chat_core
 from puriq.config import get_env, redact_value
 from puriq.core import Puriq
 from puriq.errors import wizard_error_response
+from puriq.tools import build_site
 from puriq.intake.agent import ChatAgent, ChatRequest
 from puriq.intake.ingest import IncomingFile
 from puriq.wizard import contracts
@@ -102,7 +106,23 @@ _CONTENT_DIRNAME = "content"
 _QA_FILENAME = "qa.json"
 _QA_RELPATH = f"{_CONTENT_DIRNAME}/{_QA_FILENAME}"
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Puriq Wizard")
+
+# CORS restringido a localhost. El asistente del sitio construido consulta
+# `POST /api/faq-chat` desde `puriq preview`, que sirve en OTRO puerto (4322) y
+# por lo tanto es otro origen: sin esto el navegador bloquea la llamada. Se
+# permite solo el bucle local —es una herramienta que corre en la maquina del
+# usuario, no un servicio publico— con una expresion regular en vez de una lista,
+# porque el puerto de la preview es configurable.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 # Catalogo tipografico de la Template, servido tal cual al Wizard_UI. El paso de
@@ -242,6 +262,64 @@ def list_fonts() -> dict:
         if f.is_file() and f.suffix == ".woff2"
     )
     return {"files": archivos}
+
+
+class _FaqQuestion(BaseModel):
+    """Cuerpo de `POST /api/faq-chat`: la pregunta de un visitante del sitio."""
+
+    question: str
+
+
+@app.post("/api/faq-chat")
+def faq_chat(body: _FaqQuestion):
+    """Responde una pregunta del visitante con la información oficial del sitio.
+
+    Es el servicio detrás de `modules.chatweb.apiEndpoint`: el asistente del sitio
+    construido hace `POST {question}` y espera `{answer}`. La lógica vive en
+    `puriq.faq_chat`, sin transporte, para que un handler en la nube pueda
+    reutilizarla sin cambios.
+
+    Corre en la máquina del usuario, así que sirve para probar y demostrar el
+    asistente con LLM sin desplegar nada. Un sitio publicado necesita el endpoint
+    publicado también: apuntar `apiEndpoint` a este `localhost` sólo funciona
+    mientras el wizard esté abierto.
+
+    Devuelve `{answer}` incluso ante un fallo del modelo: el visitante no tiene
+    por qué ver un error del servicio, y la respuesta de reserva es la misma que
+    da el asistente cuando no sabe.
+    """
+    project = project_root()
+    try:
+        conocimiento = build_site.load_knowledge(project)
+    except OSError:
+        conocimiento = []
+
+    chatweb = (
+        contracts._load_contract(project, _SITE_CONFIG_DOC).get("modules") or {}
+    ).get("chatweb") or {}
+
+    try:
+        respuesta = faq_chat_core.answer_question(
+            body.question,
+            conocimiento,
+            persona=chatweb.get("persona"),
+        )
+    except faq_chat_core.EmptyQuestionError as exc:
+        return JSONResponse(
+            status_code=422, content=wizard_error_response(exc)
+        )
+    except faq_chat_core.QuestionTooLongError as exc:
+        return JSONResponse(
+            status_code=422, content=wizard_error_response(exc)
+        )
+    except Exception:  # noqa: BLE001 - fallo del proveedor de LLM, red, etc.
+        # Se registra para diagnóstico, pero al visitante se le responde algo
+        # útil en vez de un error: el asistente es una comodidad del sitio, no
+        # debe romperse en la cara de quien pregunta.
+        logger.exception("faq-chat: fallo al responder")
+        return {"answer": faq_chat_core.FALLBACK}
+
+    return {"answer": respuesta}
 
 
 @app.get("/api/version")
