@@ -50,6 +50,7 @@ instalado. Los esquemas de entrada se declaran como dicts JSON Schema puros
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any, Callable
 
@@ -740,8 +741,22 @@ def main() -> None:
     el transporte estándar para que un cliente LLM (p. ej. Claude Desktop) lo lance
     como subproceso.
     """
+    # El SDK vive detras de un extra opcional. Sin el, esto reventaba con un
+    # ModuleNotFoundError crudo: el cliente MCP solo muestra "el servidor no
+    # arranco" y quien lo configuro no tiene forma de saber que le falta.
+    try:
+        from mcp.server.stdio import stdio_server
+    except ImportError:
+        print(
+            "Falta el SDK de MCP. Instalalo con:\n"
+            '  pip install "puriq[mcp]"\n'
+            "o, si trabajas sobre el repositorio:\n"
+            '  pip install -e "agent[mcp]"',
+            file=sys.stderr,
+        )
+        raise SystemExit(1) from None
+
     import anyio
-    from mcp.server.stdio import stdio_server
 
     async def _serve() -> None:
         server = build_server()

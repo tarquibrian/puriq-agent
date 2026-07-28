@@ -72,7 +72,7 @@ El punto de entrada es el comando `puriq`.
 ### 0) Instalarlo
 
 ```bash
-pipx install "git+https://github.com/tarquibrian/puriq-agent.git#subdirectory=agent"
+pipx install "puriq[mcp] @ git+https://github.com/tarquibrian/puriq-agent.git#subdirectory=agent"
 puriq
 ```
 

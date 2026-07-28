@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 local = ["ollama>=0.3"]     # modo LLM local opcional
-mcp = ["mcp>=1.0"]          # servidor MCP
+mcp = ["mcp>=1.0,<2"]   # servidor MCP (la API cambio en 2.0: ver puriq/mcp/server.py)
 pdf = ["pypdf==6.0.0"]      # extraccion de texto de PDF (version fijada)
 test = [
     "pytest>=8",            # test runner
