@@ -936,6 +936,11 @@ def _h_attach_asset(arguments: dict) -> dict:
     )
 
 
+def _h_get_guion(arguments: dict) -> dict:
+    """Devuelve el guion del intake; no toma argumentos ni toca el contrato."""
+    return {"guion": INTAKE_GUION}
+
+
 def _h_get_state(arguments: dict) -> dict:
     """Adapta `arguments` a `get_state`."""
     return get_state(Path(arguments["project"]))
@@ -1397,6 +1402,23 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
         "handler": _h_attach_asset,
+    },
+    {
+        "name": "get_guion",
+        "description": (
+            "Devuelve el guion conversacional del intake (las fases 1-9 y la regla "
+            "de pedir archivos activamente). Llamalo AL EMPEZAR, antes de la "
+            "primera pregunta, para saber qué preguntar y en qué orden. Es el "
+            "mismo texto que sirve el recurso MCP 'intake://guion': existe también "
+            "como tool porque no todos los clientes MCP leen recursos. No toma "
+            "argumentos y no modifica nada."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": False,
+        },
+        "handler": _h_get_guion,
     },
     {
         "name": "get_state",

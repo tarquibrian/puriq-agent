@@ -13,16 +13,21 @@ del wizard (`POST /api/chat`), que sí trae su propio modelo. Ver
 
 Al conectarse, el servidor anuncia:
 
-- **24 tools.** Doce de *intake* (`set_site`, `configure_modules`,
+- **25 tools.** Doce de *intake* (`set_site`, `configure_modules`,
   `configure_landing`, `add_place`, `add_event`, `edit_item`, `remove_item`,
-  `set_brand`, `add_qa`, `attach_asset`, `get_state`, `build`) más `extract_pdf`,
-  y las once de pipeline y edición que ya existían (`scan_resources`,
-  `import_open_data`, `generate_content`, `build_site`, `deploy`,
-  `manage_articles`, `query_content`, `edit_content`, `delete_content`,
-  `bulk_update`, `analyze_seo`).
+  `set_brand`, `add_qa`, `attach_asset`, `get_state`, `build`), más
+  `extract_pdf` y `get_guion`, y las once de pipeline y edición que ya existían
+  (`scan_resources`, `import_open_data`, `generate_content`, `build_site`,
+  `deploy`, `manage_articles`, `query_content`, `edit_content`,
+  `delete_content`, `bulk_update`, `analyze_seo`).
 - **Un recurso**, `intake://guion` (`text/markdown`): el guion conversacional por
   fases. El cliente puede cargarlo como contexto para conducir la charla en el
   orden correcto.
+
+El guion se sirve **por partida doble**, como recurso y como la tool
+`get_guion`, porque no todos los clientes leen recursos: Kiro, por ejemplo, sólo
+consume tools. Si tu cliente no ve `intake://guion`, pedile que llame a
+`get_guion` antes de la primera pregunta.
 
 ## Requisito previo
 
@@ -103,7 +108,7 @@ A diferencia del wizard web, el servidor MCP no lee `PURIQ_PROJECT`: no hay
 Así que el primer mensaje tiene que decir dónde está el proyecto:
 
 > Trabajemos sobre el proyecto en `/Users/tarquibrian/Code/Devanzire/Hackathon/examples/potosi-bo`.
-> Leé `intake://guion` y ayudame a completar el registro del sitio.
+> Llamá a `get_guion` y ayudame a completar el registro del sitio.
 
 Desde ahí el modelo conduce: consulta `get_state`, ve qué falta en `missing` y
 pregunta por fases. Podés guiarlo en lenguaje natural ("quiero una paleta cálida
@@ -138,4 +143,4 @@ printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocol
 ```
 
 Tiene que responder el `initialize` con `"name": "tourism-builder"` y después la
-lista de las 24 tools.
+lista de las 25 tools.

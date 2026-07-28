@@ -8,7 +8,7 @@ sobre `agent/puriq/mcp/server.py` y `agent/puriq/intake/tools.py`:
     `set_brand`, `configure_landing`, `add_qa`, `attach_asset`, `get_state`,
     `build`).
   - Req 13.6: conserva registradas las 11 tools de edición y de pipeline ya
-    existentes (total 23).
+    existentes (total 25 con las del intake).
   - Req 13.2: cada intake spec declara un `inputSchema` de tipo objeto con la
     propiedad `project` requerida, conforme a la firma de la tool subyacente.
   - Req 13.4: las descripciones de las intake tools incluyen el guion por fases.
@@ -58,6 +58,9 @@ EXPECTED_INTAKE_TOOLS = {
     "build",
     # Añadida en la Fase 3 (multimodal-ingest, tarea 6.1, DD-M6): expuesta por MCP.
     "extract_pdf",
+    # El guion tambien como tool: no todo cliente MCP lee recursos (Kiro, p. ej.),
+    # asi que `intake://guion` por si solo no alcanza para conducir la charla.
+    "get_guion",
 }
 
 #: Las 11 tools de pipeline y edición que ya existían antes del intake (Req 13.6).
@@ -75,9 +78,10 @@ EXPECTED_EXISTING_TOOLS = {
     "analyze_seo",
 }
 
-#: Total esperado de tools anunciadas por el servidor (11 + 13 = 24).
-#: La Fase 3 (multimodal-ingest) suma `extract_pdf` a la superficie del intake.
-EXPECTED_TOTAL_TOOLS = 24
+#: Total esperado de tools anunciadas por el servidor (11 + 14 = 25).
+#: La Fase 3 (multimodal-ingest) suma `extract_pdf`, y `get_guion` expone el guion
+#: como tool para los clientes MCP que no leen recursos.
+EXPECTED_TOTAL_TOOLS = 25
 
 
 # --- Stub del SDK `mcp` ------------------------------------------------------
@@ -184,11 +188,11 @@ def _install_mcp_stub(monkeypatch: pytest.MonkeyPatch):
 # --- Datos puros: INTAKE_TOOL_SPECS / TOOL_SPECS (Req 13.1, 13.6) ------------
 
 
-def test_intake_tool_names_are_the_expected_twelve():
-    """`INTAKE_TOOL_NAMES` enumera exactamente las 12 intake tools (Req 13.1)."""
+def test_intake_tool_names_are_the_expected_set():
+    """`INTAKE_TOOL_NAMES` enumera exactamente las intake tools (Req 13.1)."""
     assert set(intake_tools.INTAKE_TOOL_NAMES) == EXPECTED_INTAKE_TOOLS
-    # Sin nombres duplicados en la superficie del intake (12 originales + extract_pdf).
-    assert len(intake_tools.INTAKE_TOOL_NAMES) == 13
+    # Sin duplicados: 12 originales + extract_pdf + get_guion.
+    assert len(intake_tools.INTAKE_TOOL_NAMES) == len(EXPECTED_INTAKE_TOOLS) == 14
 
 
 def test_tool_specs_include_intake_and_preserve_existing():
@@ -200,7 +204,7 @@ def test_tool_specs_include_intake_and_preserve_existing():
     assert EXPECTED_INTAKE_TOOLS <= name_set
     # Las 11 tools de pipeline y edición siguen registradas (Req 13.6).
     assert EXPECTED_EXISTING_TOOLS <= name_set
-    # Total exacto 23 y sin duplicados.
+    # Total exacto y sin duplicados.
     assert len(names) == len(name_set) == EXPECTED_TOTAL_TOOLS
 
 
@@ -225,16 +229,23 @@ def test_intake_handlers_are_wired_and_callable():
 # --- Req 13.2: inputSchema de objeto con `project` requerido -----------------
 
 
+#: Tools que NO operan sobre un proyecto y por eso no declaran `project`.
+#: `get_guion` sirve el guion del intake, que es el mismo para cualquier proyecto
+#: (de hecho se llama antes de saber sobre cual se va a trabajar).
+_SIN_PROYECTO = {"get_guion"}
+
+
 def test_every_intake_spec_declares_object_schema_with_project():
     """Cada intake spec es un objeto JSON Schema con `project` requerido (Req 13.2)."""
     for spec in intake_tools.INTAKE_TOOL_SPECS:
         schema = spec["inputSchema"]
         assert schema["type"] == "object", spec["name"]
-        # `project` es una propiedad declarada...
-        assert "project" in schema["properties"], spec["name"]
-        assert schema["properties"]["project"]["type"] == "string", spec["name"]
-        # ...y es obligatoria en toda intake tool.
-        assert "project" in schema.get("required", []), spec["name"]
+        if spec["name"] not in _SIN_PROYECTO:
+            # `project` es una propiedad declarada...
+            assert "project" in schema["properties"], spec["name"]
+            assert schema["properties"]["project"]["type"] == "string", spec["name"]
+            # ...y es obligatoria en toda intake tool que toque un proyecto.
+            assert "project" in schema.get("required", []), spec["name"]
         # `required` es subconjunto de las properties declaradas.
         assert set(schema.get("required", [])) <= set(schema["properties"]), spec[
             "name"
@@ -329,7 +340,7 @@ def test_intake_guion_covers_phases_and_active_file_request():
 
 
 def test_build_server_list_tools_announces_all_tools(monkeypatch):
-    """`list_tools` anuncia las 23 tools con `inputSchema` de objeto (Req 13.1, 13.2, 13.6)."""
+    """`list_tools` anuncia todas las tools con `inputSchema` de objeto (Req 13.1, 13.2, 13.6)."""
     _install_mcp_stub(monkeypatch)
 
     srv = server.build_server()
@@ -343,13 +354,15 @@ def test_build_server_list_tools_announces_all_tools(monkeypatch):
     assert EXPECTED_INTAKE_TOOLS <= names
     assert EXPECTED_EXISTING_TOOLS <= names
 
-    # Cada intake tool anunciada expone un inputSchema de objeto con `project`.
+    # Cada intake tool anunciada expone un inputSchema de objeto; las que operan
+    # sobre un proyecto declaran ademas `project` (ver `_SIN_PROYECTO`).
     intake_by_name = {t.name: t for t in tools if t.name in EXPECTED_INTAKE_TOOLS}
     assert set(intake_by_name) == EXPECTED_INTAKE_TOOLS
     for name, tool in intake_by_name.items():
         assert isinstance(tool.inputSchema, dict), name
         assert tool.inputSchema.get("type") == "object", name
-        assert "project" in tool.inputSchema.get("properties", {}), name
+        if name not in _SIN_PROYECTO:
+            assert "project" in tool.inputSchema.get("properties", {}), name
         assert tool.description and tool.description.strip(), name
 
 

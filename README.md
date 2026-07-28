@@ -219,7 +219,7 @@ PROYECTO-puriq.md   Documento técnico completo (diseño y roadmap)
 
 Core + las **tres interfaces** (CLI, wizard web y MCP) **implementados**. Pipeline validado de punta a punta: `build` con IA real → sitio estático con mapa, lugares, eventos, blog y chatweb.
 
-**Registro conversacional completo** en las dos superficies: 24 tools por MCP (12 de intake + `extract_pdf` + las 11 de pipeline/edición) más el recurso `intake://guion`, y el chat del wizard con ingesta de imágenes y PDFs. Validado en vivo contra un LLM real: conversación → contrato → `build` → sitio publicable.
+**Registro conversacional completo** en las dos superficies: 25 tools por MCP (12 de intake + `extract_pdf` + `get_guion` + las 11 de pipeline/edición) más el recurso `intake://guion`, y el chat del wizard con ingesta de imágenes y PDFs. Validado en vivo contra un LLM real: conversación → contrato → `build` → sitio publicable.
 
 Pendientes honestos:
 
