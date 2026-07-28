@@ -31,6 +31,113 @@ from puriq.errors import describir_error
 
 app = typer.Typer(help="Puriq: de recursos turisticos dispersos a un sitio profesional.")
 
+def _interactivo() -> bool:
+    """True si hay una terminal del otro lado.
+
+    Aislado en una funcion para poder sustituirlo en las pruebas: `sys.stdin` lo
+    reemplaza el runner de Typer, asi que comprobarlo en linea volvia el menu
+    imposible de probar.
+    """
+    import sys
+
+    return sys.stdin.isatty()
+
+
+#: Donde se recuerda el proyecto abierto. Lo comparten el menu, `start.sh` y las
+#: intake tools, para que las tres superficies coincidan en "sobre que trabajo".
+_MEMORIA = Path.home() / ".puriq" / "ultimo-proyecto"
+
+
+def _proyecto_abierto() -> Path | None:
+    """Ultimo proyecto abierto, si todavia existe."""
+    try:
+        ruta = Path(_MEMORIA.read_text(encoding="utf-8").strip())
+    except OSError:
+        return None
+    return ruta if ruta.is_dir() else None
+
+
+def _estado() -> list[tuple[str, str, bool]]:
+    """Que hay configurado, para mostrarlo antes de ofrecer nada.
+
+    El menu abre diciendo el estado en vez de una lista de opciones a secas:
+    saber si hay un proyecto abierto y si hace falta una clave es justo lo que
+    determina cual de las opciones tiene sentido elegir.
+    """
+    from puriq.config import _dotenv_path
+
+    proyecto = _proyecto_abierto()
+    llm = _dotenv_path() is not None
+
+    clientes: list[str] = []
+    candidatos = {
+        "Claude Desktop": Path.home() / "Library/Application Support/Claude/claude_desktop_config.json",
+        "Kiro": Path.home() / ".kiro/settings/mcp.json",
+    }
+    for nombre, ruta in candidatos.items():
+        try:
+            import json
+
+            if "puriq" in (json.loads(ruta.read_text(encoding="utf-8")).get("mcpServers") or {}):
+                clientes.append(nombre)
+        except (OSError, ValueError):
+            continue
+
+    return [
+        ("Proyecto", str(proyecto) if proyecto else "ninguno abierto", proyecto is not None),
+        ("Clientes MCP", ", ".join(clientes) if clientes else "sin conectar", bool(clientes)),
+        ("Clave de LLM", "configurada" if llm else "sin configurar (opcional)", llm),
+    ]
+
+
+#: Opciones del menu: (etiqueta, descripcion, nombre del comando).
+_OPCIONES = [
+    ("Ver un sitio de ejemplo", "genera y sirve uno completo, sin credenciales", "demo"),
+    ("Abrir el asistente", "cargá tu sitio con formularios o conversando", "init"),
+    ("Conectar a Claude Desktop / Kiro", "para conversar con el modelo de tu cliente", "mcp-connect"),
+    ("Configurar una clave de LLM", "opcional: sólo para el chat integrado", "config-llm"),
+]
+
+
+@app.callback(invoke_without_command=True)
+def menu(ctx: typer.Context):
+    """Sin subcomando, abre un menú con lo que podés hacer."""
+    if ctx.invoked_subcommand is not None:
+        return
+
+    # Sin terminal (tuberia, CI, `puriq | cat`) un menu interactivo colgaria
+    # esperando una respuesta que nunca llega: ahi se muestra la ayuda de siempre.
+    if not _interactivo():
+        print(ctx.get_help())
+        raise typer.Exit()
+
+    print()
+    print("[bold]Puriq[/] — de tus recursos turísticos a un sitio web publicable.")
+    print()
+    for etiqueta, valor, ok in _estado():
+        marca = "[green]●[/]" if ok else "[dim]○[/]"
+        print(f"  {marca} {etiqueta}: [dim]{valor}[/]")
+    print()
+    for i, (etiqueta, descripcion, _) in enumerate(_OPCIONES, 1):
+        print(f"  [bold]{i}[/]. {etiqueta}")
+        print(f"     [dim]{descripcion}[/]")
+    print()
+    print("  [dim]q. Salir  ·  `puriq --help` para todos los comandos[/]")
+    print()
+
+    eleccion = typer.prompt("¿Qué querés hacer?", default="1").strip().lower()
+    if eleccion in {"q", "salir", ""}:
+        raise typer.Exit()
+    if not eleccion.isdigit() or not 1 <= int(eleccion) <= len(_OPCIONES):
+        print(f"[red]Opción inválida:[/] {eleccion}")
+        raise typer.Exit(code=1)
+
+    comando = _OPCIONES[int(eleccion) - 1][2]
+    print()
+    # Se invoca el mismo comando que expone el CLI, para que el menu no tenga una
+    # segunda implementacion que pueda divergir.
+    ctx.invoke({"demo": demo, "init": init, "mcp-connect": mcp_connect, "config-llm": config_llm}[comando])
+
 # Consola dedicada a stderr para los mensajes de error (no contamina stdout).
 _err_console = Console(stderr=True)
 
@@ -197,12 +304,49 @@ def config_llm():
 
 @app.command()
 @manejar_errores
-def init(port: int = 4321):
+def init(project: Path = typer.Option(None, help="Carpeta del sitio."), port: int = 4321):
     """Lanza el asistente web local (wizard) para configurar el proyecto."""
-    from puriq.wizard.server import serve
+    import os
 
+    from puriq.wizard.server import PROJECT_ENV_VAR, serve
+
+    # Resolucion del proyecto, de lo mas explicito a lo mas implicito. Sin esto,
+    # `puriq init` a secas trabajaba sobre el directorio actual: recien instalado
+    # y lanzado desde el escritorio, eso significaba cargar un sitio entero en la
+    # carpeta equivocada sin que nada lo dijera.
+    destino = project or os.environ.get(PROJECT_ENV_VAR) or _proyecto_abierto()
+
+    if destino is None:
+        if not _interactivo():
+            print("[red]No hay ningún proyecto abierto.[/] Indicá uno con --project.")
+            raise typer.Exit(code=1)
+        nombre = typer.prompt("¿Cómo se llama el sitio que vas a armar?", default="mi-sitio")
+        # Los proyectos viven fuera de donde este instalado Puriq: el contenido
+        # del usuario no debe desaparecer al actualizar la herramienta.
+        destino = Path.home() / "Puriq" / _slug(nombre)
+
+    destino = Path(destino).expanduser()
+    destino.mkdir(parents=True, exist_ok=True)
+    destino = destino.resolve()
+
+    _MEMORIA.parent.mkdir(parents=True, exist_ok=True)
+    _MEMORIA.write_text(f"{destino}\n", encoding="utf-8")
+
+    os.environ[PROJECT_ENV_VAR] = str(destino)
     print(f"[bold green]Puriq[/] wizard en http://localhost:{port}")
+    print(f"[dim]Proyecto: {destino}[/]")
     serve(port=port)
+
+
+def _slug(texto: str) -> str:
+    """Nombre de carpeta a partir de lo que escriba el usuario."""
+    import re
+    import unicodedata
+
+    limpio = unicodedata.normalize("NFD", texto.strip().lower())
+    limpio = "".join(c for c in limpio if unicodedata.category(c) != "Mn")
+    limpio = re.sub(r"[^a-z0-9]+", "-", limpio).strip("-")
+    return limpio or "mi-sitio"
 
 
 @app.command()

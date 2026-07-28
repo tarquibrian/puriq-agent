@@ -73,9 +73,28 @@ El punto de entrada es el comando `puriq`.
 
 ```bash
 pipx install "git+https://github.com/tarquibrian/puriq-agent.git#subdirectory=agent"
+puriq
+```
+
+`puriq` a secas abre un menú que muestra qué tenés configurado y qué podés hacer:
+
+```
+  ● Proyecto: ~/Puriq/turismo-tarija
+  ○ Clientes MCP: sin conectar
+  ○ Clave de LLM: sin configurar (opcional)
+
+  1. Ver un sitio de ejemplo
+  2. Abrir el asistente
+  3. Conectar a Claude Desktop / Kiro
+  4. Configurar una clave de LLM
+```
+
+Cada opción tiene su comando, si preferís ir directo:
+
+```bash
 puriq demo          # genera y sirve un sitio de ejemplo, sin credenciales
-puriq mcp-connect   # conecta Puriq a Claude Desktop / Kiro
 puriq init          # abre el asistente sobre tu proyecto
+puriq mcp-connect   # conecta Puriq a Claude Desktop / Kiro
 puriq config-llm    # opcional: tu clave para el chat integrado
 ```
 
