@@ -37,3 +37,19 @@ testpaths = ["tests"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# La plantilla Astro y los JSON Schema viven en la raiz del repositorio, fuera de
+# este paquete, pero son parte del producto: sin ellos `puriq build` no puede
+# generar nada. Se copian dentro de la rueda para que una instalacion con pipx
+# funcione sin el repositorio alrededor. `puriq.paths` los busca ahi primero y
+# cae a la raiz del repo cuando se trabaja sobre el clon.
+#
+# Pesan ~440 KB en total. Se excluye `node_modules` y `dist` de la plantilla: el
+# build instala las dependencias en su propia copia de trabajo.
+[tool.hatch.build.targets.wheel.force-include]
+"../schemas" = "puriq/_bundled/schemas"
+"../template/src" = "puriq/_bundled/template/src"
+"../template/public" = "puriq/_bundled/template/public"
+"../template/package.json" = "puriq/_bundled/template/package.json"
+"../template/package-lock.json" = "puriq/_bundled/template/package-lock.json"
+"../template/astro.config.mjs" = "puriq/_bundled/template/astro.config.mjs"

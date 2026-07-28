@@ -35,8 +35,30 @@ _DEFAULT_SECRET_NAMES: frozenset[str] = frozenset(
 # los conocidos y crece cada vez que `get_env(..., secret=True)` lee una nueva.
 _secret_names: set[str] = set(_DEFAULT_SECRET_NAMES)
 
-# Ruta al `agent/.env`: este modulo vive en agent/puriq/config.py.
-_DOTENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+# Donde se buscan las credenciales, en orden. La primera que exista gana.
+#
+# Instalado con pipx, `agent/.env` caeria dentro de site-packages: un lugar que
+# el usuario no deberia editar y que se borra al actualizar. Por eso se busca
+# primero en la configuracion del usuario (`~/.puriq/.env`, junto al resto del
+# estado que Puriq ya guarda ahi) y despues en el directorio actual, para poder
+# tener credenciales distintas por proyecto. `agent/.env` queda al final: sigue
+# funcionando para quien trabaja sobre el clon.
+def _dotenv_candidates() -> list[Path]:
+    return [
+        Path.home() / ".puriq" / ".env",
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parents[1] / ".env",
+    ]
+
+
+def _dotenv_path() -> Path | None:
+    """Primer archivo de credenciales que exista, o None si no hay ninguno."""
+    for ruta in _dotenv_candidates():
+        if ruta.is_file():
+            return ruta
+    return None
+
+
 _dotenv_loaded = False
 
 
@@ -65,9 +87,12 @@ def _load_dotenv() -> None:
     if _dotenv_loaded:
         return
     _dotenv_loaded = True
+    ruta = _dotenv_path()
+    if ruta is None:
+        return
     try:
-        raw = _DOTENV_PATH.read_text(encoding="utf-8")
-    except (FileNotFoundError, OSError):
+        raw = ruta.read_text(encoding="utf-8")
+    except OSError:
         return
     for line in raw.splitlines():
         line = line.strip()

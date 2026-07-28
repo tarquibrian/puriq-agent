@@ -4,10 +4,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from puriq import paths
+
 import jsonschema
 
-# Los schemas viven en la raiz del repo, junto al agente.
-SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schemas"
+# Resuelto por `puriq.paths`: viajan dentro del paquete cuando Puriq se instala,
+# y se leen de la raiz del repo cuando se trabaja sobre el clon.
+SCHEMA_DIR = paths.schema_dir()
 
 _FILES = {
     "tourism-data": "tourism-data.schema.json",

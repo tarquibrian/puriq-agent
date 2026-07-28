@@ -70,9 +70,11 @@ import subprocess
 from pathlib import Path
 
 from puriq import schemas
+from puriq import paths
 from puriq.tools import _frontmatter, generate_content
 
-TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "template"
+# Resuelto por `puriq.paths` (empaquetada o del repo, ver ese modulo).
+TEMPLATE_DIR = paths.template_dir()
 
 # Directorio de trabajo (copia parametrizable de la Template) dentro del proyecto.
 WORK_DIRNAME = ".puriq-build"
