@@ -975,6 +975,19 @@
   }
 
   // --- Paso: Marca (Req 6.1-6.4) -------------------------------------------
+  // Nombre de la paleta que coincide con los colores actuales, o null si son
+  // propios. Se comparan LOS CINCO colores: alcanzaba con mirar el primario y
+  // eso marcaba como activa una paleta de la que ya se habia cambiado el resto.
+  function activePaletteName(d) {
+    var claves = ["primary", "secondary", "background", "text", "accent"];
+    var coincide = PALETTES.filter(function (p) {
+      return claves.every(function (k) {
+        return String(p.colors[k] || "").toLowerCase() === String(d[k] || "").toLowerCase();
+      });
+    })[0];
+    return coincide ? coincide.name : null;
+  }
+
   function renderBrand(container) {
     var theme = state.server["theme-tokens"] || {};
     var d = state.draft.brand;
@@ -1009,13 +1022,29 @@
     // de alto contraste, acento diferenciado del primario) y sirven de punto de
     // partida editable.
     container.appendChild(el("h3", { class: "brand-legend", text: "Paletas sugeridas" }));
+
+    // Estado explicito arriba de la fila. Antes no habia forma de saber si los
+    // colores actuales venian de una paleta o eran propios: la marca de "activa"
+    // comparaba SOLO el primario, asi que cambiar el acento dejaba la paleta
+    // igual de resaltada aunque ya no fuera esa.
+    var activa = activePaletteName(d);
+    container.appendChild(el("p", { class: "palette-status" }, [
+      el("span", { class: "palette-status-dot" + (activa ? "" : " is-custom") }),
+      el("span", {
+        text: activa
+          ? "Estás usando la paleta " + activa + "."
+          : "Colores propios. Elegí una paleta para reemplazarlos, o seguí editándolos abajo."
+      })
+    ]));
+
     var paletas = el("div", { class: "palette-row" });
     PALETTES.forEach(function (p) {
-      var activa = p.colors.primary.toLowerCase() === (d.primary || "").toLowerCase();
+      var esta = activa === p.name;
       paletas.appendChild(el("button", {
-        class: "palette" + (activa ? " is-active" : ""),
+        class: "palette" + (esta ? " is-active" : ""),
         type: "button",
         title: p.name,
+        "aria-pressed": esta ? "true" : "false",
         "aria-label": "Aplicar paleta " + p.name,
         onclick: function () {
           Object.keys(p.colors).forEach(function (k) { d[k] = p.colors[k]; });
@@ -1025,7 +1054,10 @@
         el("span", { class: "palette-chips" }, ["primary", "accent", "secondary", "background"].map(function (k) {
           return el("span", { class: "palette-chip", style: "background:" + p.colors[k] });
         })),
-        el("span", { class: "palette-name", text: p.name })
+        el("span", { class: "palette-name" }, [
+          document.createTextNode(p.name),
+          esta ? el("span", { class: "palette-check", text: "✓" }) : null
+        ])
       ]));
     });
     container.appendChild(paletas);
@@ -2229,6 +2261,13 @@
   function dropCachedDrafts() {
     state.draft.modules = [];
     state.draft.landing = [];
+    // `site` y `brand` no se vacian: se marcan como no inicializados para que su
+    // paso vuelva a leer el contrato. Sin esto el formulario seguia mostrando
+    // los valores con los que abrio —incluidos los de relleno— mientras el sitio
+    // ya se construia con los del agente: el paso de Marca mostraba el acento
+    // azul por defecto cuando el contrato tenia otro y el sitio lo pintaba bien.
+    state.draft.site._init = false;
+    state.draft.brand._init = false;
     state.assets = null;
     state.qa = null;
   }

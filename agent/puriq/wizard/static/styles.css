@@ -1247,3 +1247,32 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .external-notice { animation: none; } }
+
+/* Estado de la paleta: dice en palabras si los colores vienen de una sugerida o
+ * son propios. Sin esto la unica pista era el resaltado de una tarjeta, que se
+ * perdia de vista al bajar a los selectores de color. */
+.palette-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.7rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.palette-status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+/* Colores propios: anillo hueco en vez de disco lleno. */
+.palette-status-dot.is-custom {
+  background: transparent;
+  border: 2px solid var(--border-strong);
+}
+
+/* Paleta aplicada: ademas del anillo, el nombre lleva un check. */
+.palette-name { display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; }
+.palette-check { color: var(--ok); font-weight: 800; }
+.palette.is-active { border-color: var(--primary); }
