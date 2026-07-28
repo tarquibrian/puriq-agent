@@ -53,3 +53,12 @@ build-backend = "hatchling.build"
 "../template/package.json" = "puriq/_bundled/template/package.json"
 "../template/package-lock.json" = "puriq/_bundled/template/package-lock.json"
 "../template/astro.config.mjs" = "puriq/_bundled/template/astro.config.mjs"
+# Un ejemplo completo, para que `puriq demo` genere un sitio real recien
+# instalado, sin pedirle nada al usuario. Se listan las carpetas de contenido una
+# por una a proposito: `dist/` y `.puriq-build/` (que llega a 167 MB con las
+# dependencias de la plantilla) quedan fuera.
+"../examples/potosi-bo/tourism-data.json" = "puriq/_bundled/examples/potosi-bo/tourism-data.json"
+"../examples/potosi-bo/site.config.json" = "puriq/_bundled/examples/potosi-bo/site.config.json"
+"../examples/potosi-bo/theme.tokens.json" = "puriq/_bundled/examples/potosi-bo/theme.tokens.json"
+"../examples/potosi-bo/content" = "puriq/_bundled/examples/potosi-bo/content"
+"../examples/potosi-bo/assets" = "puriq/_bundled/examples/potosi-bo/assets"

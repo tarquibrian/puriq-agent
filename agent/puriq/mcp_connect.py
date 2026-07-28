@@ -11,15 +11,10 @@ y **pregunta antes de tocar nada**: es configuracion de aplicaciones del usuario
 no del repositorio. Fusiona con lo que ya exista (nunca reemplaza el archivo) y
 deja una copia de respaldo junto al original.
 
-Uso:
-    python3 scripts/conectar-mcp.py [--python RUTA] [--si]
-
-    --python  interprete del entorno de Puriq (por defecto, el de agent/.venv)
-    --si      no preguntar; asumir que si (para automatizacion)
+Se expone como `puriq mcp-connect`.
 """
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import shutil
@@ -27,8 +22,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
-VENV_PY = REPO / "agent" / ".venv" / "bin" / "python"
 
 #: Nombre con el que Puriq queda registrado en los clientes.
 NOMBRE = "puriq"
@@ -140,16 +133,18 @@ def conectar_kiro_cli(python: str, asumir_si: bool) -> bool:
     return True
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description="Conecta Puriq a los clientes MCP instalados.")
-    ap.add_argument("--python", default=str(VENV_PY), help="interprete del entorno de Puriq")
-    ap.add_argument("--si", action="store_true", help="no preguntar; asumir que si")
-    args = ap.parse_args()
+def main(python: str, asumir_si: bool = False) -> int:
+    """Registra Puriq en los clientes detectados. Devuelve el codigo de salida.
 
-    # `os.path.abspath` en vez de `Path.resolve()`: el python del entorno es un
-    # enlace al interprete del sistema, y resolverlo registraba ESE, con el que
+    Args:
+        python: interprete con el que el cliente debe lanzar el servidor. Es el
+            que esta corriendo Puriq, para que `-m puriq.mcp.server` resuelva.
+        asumir_si: no preguntar por cada cliente.
+    """
+    # `os.path.abspath` en vez de `Path.resolve()`: el python de un entorno suele
+    # ser un enlace al del sistema, y resolverlo registraba ESE, con el que
     # `puriq` no es importable. Hace falta la ruta del entorno tal cual.
-    python = os.path.abspath(args.python)
+    python = os.path.abspath(python)
     if not Path(python).is_file():
         print(rojo(f"No existe el interprete {python}."))
         print(gris("Corre ./start.sh una vez para crear el entorno y volve a intentar."))
@@ -174,10 +169,10 @@ def main() -> int:
         # un archivo para una app ausente solo dejaria basura.
         if not ruta.parent.exists():
             continue
-        if conectar_por_archivo(nombre, ruta, python, args.si):
+        if conectar_por_archivo(nombre, ruta, python, asumir_si):
             conectados += 1
 
-    if shutil.which("kiro-cli") and conectar_kiro_cli(python, args.si):
+    if shutil.which("kiro-cli") and conectar_kiro_cli(python, asumir_si):
         conectados += 1
 
     print()
@@ -189,7 +184,3 @@ def main() -> int:
         print("No se conecto ningun cliente.")
         print(gris("Guia manual: docs/mcp-clientes.md"))
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

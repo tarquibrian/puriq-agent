@@ -46,3 +46,8 @@ def template_dir() -> Path:
 def schema_dir() -> Path:
     """JSON Schema contra los que se valida el contrato."""
     return _resolver("schemas")
+
+
+def examples_dir() -> Path:
+    """Proyectos de ejemplo, para poder ver un sitio real sin cargar nada."""
+    return _resolver("examples")

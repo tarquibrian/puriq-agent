@@ -69,7 +69,19 @@ El punto de entrada es el comando `puriq`.
 
 ## Quickstart
 
-### 0) Un solo comando
+### 0) Instalarlo
+
+```bash
+pipx install "git+https://github.com/tarquibrian/puriq-agent.git#subdirectory=agent"
+puriq demo          # genera y sirve un sitio de ejemplo, sin credenciales
+puriq mcp-connect   # conecta Puriq a Claude Desktop / Kiro
+puriq init          # abre el asistente sobre tu proyecto
+puriq config-llm    # opcional: tu clave para el chat integrado
+```
+
+La plantilla, los esquemas y un ejemplo completo viajan dentro del paquete: no hace falta clonar nada.
+
+### 0b) O desde el repositorio
 
 ```bash
 git clone https://github.com/tarquibrian/puriq-agent.git
@@ -87,7 +99,7 @@ Los proyectos viven **fuera del repositorio** a propósito: tu contenido no es p
 ./start.sh --mcp           # conecta Puriq a Claude Desktop / Kiro / Kiro CLI
 ```
 
-### 0b) Conversar desde tu propio cliente (sin credenciales)
+### 0c) Conversar desde tu propio cliente (sin credenciales)
 
 ```bash
 ./start.sh --mcp

@@ -64,15 +64,11 @@ fi
 # --- Modo demo -------------------------------------------------------------
 
 if [ "${1:-}" = "--mcp" ]; then
-  shift
-  exec "$PY" "$REPO/scripts/conectar-mcp.py" --python "$PY" "$@"
+  exec "$PURIQ" mcp-connect
 fi
 
 if [ "${1:-}" = "--demo" ]; then
-  verde "Generando el sitio de ejemplo (Potosi), sin credenciales..."
-  "$PURIQ" build --project "$REPO/examples/potosi-bo" --no-use-llm
-  verde "Listo. Abrí http://127.0.0.1:4322 (Ctrl+C para cortar)."
-  exec "$PURIQ" preview --project "$REPO/examples/potosi-bo"
+  exec "$PURIQ" demo
 fi
 
 # --- Proyecto --------------------------------------------------------------

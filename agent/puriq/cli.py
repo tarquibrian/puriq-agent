@@ -72,6 +72,129 @@ def manejar_errores(func: F) -> F:
     return wrapper  # type: ignore[return-value]
 
 
+#: Motores de LLM que sirven para conversar. `local` (Ollama) queda fuera a
+#: proposito: es text-only, no admite tool-use, y elegirlo aca prometeria un chat
+#: que despues no funciona.
+_MOTORES = {
+    "openai": (
+        "OpenAI, Azure, Groq, OpenRouter, LM Studio…",
+        [
+            ("PURIQ_OPENAI_API_KEY", "Clave de API", True),
+            ("PURIQ_OPENAI_BASE_URL", "URL base", False),
+            ("PURIQ_OPENAI_MODEL", "Modelo (en Azure, el deployment)", False),
+        ],
+    ),
+    "bedrock": (
+        "Amazon Bedrock (familia Claude)",
+        [
+            ("AWS_ACCESS_KEY_ID", "Access key de AWS", True),
+            ("AWS_SECRET_ACCESS_KEY", "Secret key de AWS", True),
+            ("AWS_REGION", "Región", False),
+        ],
+    ),
+}
+
+
+@app.command()
+@manejar_errores
+def demo(port: int = 4322):
+    """Genera y sirve un sitio de ejemplo completo, sin credenciales."""
+    import shutil
+    import tempfile
+
+    from puriq import paths
+    from puriq.core import Puriq
+
+    origen = paths.examples_dir() / "potosi-bo"
+    if not origen.is_dir():
+        print("[red]No se encontró el proyecto de ejemplo.[/]")
+        raise typer.Exit(code=1)
+
+    # Se copia a un temporal en vez de construir sobre el original: instalado con
+    # pipx el ejemplo vive dentro del paquete, que es de solo lectura y no debe
+    # ensuciarse con `dist/` ni con las dependencias de la plantilla.
+    destino = Path(tempfile.mkdtemp(prefix="puriq-demo-")) / "potosi-bo"
+    shutil.copytree(origen, destino)
+
+    print("[bold]Generando el sitio de ejemplo…[/] (no usa ningún LLM)")
+    Puriq(destino).build(use_llm=False)
+    print(f"[bold green]Listo.[/] Abrí http://localhost:{port} — Ctrl+C para cortar.")
+    Puriq(destino).preview(port=port)
+
+
+@app.command("mcp-connect")
+@manejar_errores
+def mcp_connect(si: bool = typer.Option(False, "--si", help="No preguntar; asumir que sí.")):
+    """Registra Puriq en los clientes MCP instalados (Claude Desktop, Kiro…)."""
+    import sys
+
+    from puriq import mcp_connect as conectar
+
+    raise typer.Exit(code=conectar.main(python=sys.executable, asumir_si=si))
+
+
+@app.command()
+@manejar_errores
+def config_llm():
+    """Configura tu clave de LLM para el chat del asistente (opcional)."""
+    # Sin este comando, quien instala Puriq con pipx no tiene forma razonable de
+    # configurar credenciales: no hay `.env.example` que copiar y los nombres de
+    # las variables no se pueden adivinar. Se escribe en `~/.puriq/.env`, que es
+    # lo primero que lee `config._dotenv_path()` y sobrevive a las
+    # actualizaciones del paquete.
+    from puriq.config import _dotenv_candidates
+
+    destino = _dotenv_candidates()[0]
+
+    print()
+    print("[bold]Esto es opcional.[/] Puriq funciona sin ninguna clave:")
+    print("  · [green]puriq demo[/] genera un sitio completo sin credenciales.")
+    print("  · [green]puriq mcp-connect[/] conecta Puriq a Claude Desktop o Kiro,")
+    print("    y ahí el modelo lo pone tu cliente con su propia suscripción.")
+    print()
+    print("Una clave sólo hace falta para el [bold]chat integrado[/] del asistente web.")
+    print()
+
+    for clave, (titulo, _) in _MOTORES.items():
+        print(f"  [bold]{clave}[/] — {titulo}")
+    print()
+
+    motor = typer.prompt("¿Qué motor querés usar?", default="openai").strip().lower()
+    if motor not in _MOTORES:
+        print(f"[red]Motor desconocido:[/] {motor}. Opciones: {', '.join(_MOTORES)}.")
+        raise typer.Exit(code=1)
+
+    valores = {"PURIQ_LLM_MODE": motor}
+    for var, etiqueta, secreto in _MOTORES[motor][1]:
+        # `hide_input` en las claves: no tienen por que quedar en el scrollback
+        # de la terminal ni en una captura de pantalla.
+        valor = typer.prompt(f"  {etiqueta}", default="", hide_input=secreto).strip()
+        if valor:
+            valores[var] = valor
+
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    # Se fusiona con lo que ya hubiera: el archivo puede tener otras variables
+    # (destino de deploy, índice de geocoding) que no vienen al caso aquí.
+    previas: dict[str, str] = {}
+    if destino.is_file():
+        for linea in destino.read_text(encoding="utf-8").splitlines():
+            if "=" in linea and not linea.strip().startswith("#"):
+                k, _, v = linea.partition("=")
+                previas[k.strip()] = v.strip()
+    previas.update(valores)
+
+    destino.write_text(
+        "# Credenciales de Puriq. No compartas este archivo.\n"
+        + "".join(f"{k}={v}\n" for k, v in previas.items()),
+        encoding="utf-8",
+    )
+    destino.chmod(0o600)
+
+    print()
+    print(f"[bold green]Listo.[/] Guardado en {destino} (sólo lectura para vos).")
+    print("Abrí el asistente con [green]puriq init[/] y usá el chat.")
+
+
 @app.command()
 @manejar_errores
 def init(port: int = 4321):
