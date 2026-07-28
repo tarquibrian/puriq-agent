@@ -53,5 +53,3 @@ agent/dist/
 # FUSE temp files (mount)
 .fuse_hidden*
 
-# Proyecto de trabajo que crea ./start.sh cuando no se le pasa una ruta.
-/mi-sitio/

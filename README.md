@@ -76,7 +76,9 @@ cd puriq-agent
 ./start.sh
 ```
 
-Prepara el entorno, instala el agente y abre el asistente en http://127.0.0.1:4321 sobre una carpeta nueva. Correrlo de nuevo arranca en segundos: sólo reinstala si cambiaron las dependencias.
+Prepara el entorno, instala el agente y abre el asistente en http://127.0.0.1:4321. La primera vez pregunta cómo se llama tu sitio y lo crea en `~/Puriq/<nombre>`; después retoma ese mismo sin volver a preguntar. Correrlo de nuevo arranca en segundos: sólo reinstala si cambiaron las dependencias.
+
+Los proyectos viven **fuera del repositorio** a propósito: tu contenido no es parte de la herramienta, así que actualizar o volver a clonar Puriq nunca se lo lleva puesto.
 
 ```bash
 ./start.sh ~/mi-pueblo     # trabaja sobre esa carpeta

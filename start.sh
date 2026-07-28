@@ -2,7 +2,8 @@
 #
 # Puriq — arranque en un solo comando.
 #
-#   ./start.sh                 crea (o reutiliza) ./mi-sitio y abre el asistente
+#   ./start.sh                 pregunta el nombre del sitio y abre el asistente
+#                              (la segunda vez retoma el ultimo, sin preguntar)
 #   ./start.sh ruta/proyecto   trabaja sobre esa carpeta
 #   ./start.sh --demo          construye y sirve el ejemplo de Potosi, sin asistente
 #
@@ -70,9 +71,35 @@ fi
 
 # --- Proyecto --------------------------------------------------------------
 
-PROYECTO="${1:-$REPO/mi-sitio}"
+# Los proyectos viven FUERA del repo, en ~/Puriq. El contenido que carga el
+# usuario —sus textos, sus fotos, su marca— no es parte de la herramienta:
+# guardarlo dentro del clon significaba que actualizar o volver a clonar Puriq se
+# llevaba el sitio puesto. La ultima carpeta usada se recuerda en ~/.puriq para
+# que el arranque siguiente no vuelva a preguntar.
+SITIOS="$HOME/Puriq"
+MEMORIA="$HOME/.puriq/ultimo-proyecto"
+
+if [ -n "${1:-}" ]; then
+  PROYECTO="$1"
+elif [ -f "$MEMORIA" ] && [ -d "$(cat "$MEMORIA")" ]; then
+  PROYECTO="$(cat "$MEMORIA")"
+  gris "Continuando el ultimo proyecto. Para otro: ./start.sh ruta/al/proyecto"
+elif [ -t 0 ]; then
+  # Primera vez y hay terminal: se pregunta una sola vez, en lugar de inventar un
+  # nombre generico que despues nadie cambia.
+  echo
+  printf '¿Como se llama el sitio que vas a armar? (ej: turismo-tarija): '
+  read -r NOMBRE || NOMBRE=""
+  NOMBRE="$(printf '%s' "$NOMBRE" | tr -cs '[:alnum:]._-' '-' | tr '[:upper:]' '[:lower:]' | sed 's/^-*//; s/-*$//')"
+  [ -z "$NOMBRE" ] && NOMBRE="mi-sitio"
+  PROYECTO="$SITIOS/$NOMBRE"
+else
+  PROYECTO="$SITIOS/mi-sitio"
+fi
+
 mkdir -p "$PROYECTO"
 PROYECTO="$(cd "$PROYECTO" && pwd)"
+mkdir -p "$(dirname "$MEMORIA")" && printf '%s\n' "$PROYECTO" > "$MEMORIA"
 
 echo
 verde "Puriq esta listo."
