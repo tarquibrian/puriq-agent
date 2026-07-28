@@ -68,6 +68,23 @@ El punto de entrada es el comando `puriq`.
 
 ## Quickstart
 
+### 0) Un solo comando
+
+```bash
+git clone https://github.com/tarquibrian/puriq-agent.git
+cd puriq-agent
+./start.sh
+```
+
+Prepara el entorno, instala el agente y abre el asistente en http://127.0.0.1:4321 sobre una carpeta nueva. Correrlo de nuevo arranca en segundos: sólo reinstala si cambiaron las dependencias.
+
+```bash
+./start.sh ~/mi-pueblo     # trabaja sobre esa carpeta
+./start.sh --demo          # construye y sirve el ejemplo de Potosí, sin credenciales
+```
+
+Los comandos sueltos de abajo hacen lo mismo paso a paso, por si preferís controlar cada parte.
+
 ### 1) Local, sin nube (sin AWS ni LLM)
 
 Genera un sitio completo a partir del ejemplo de Potosí, sin credenciales. Requiere Node/npm para el build.
