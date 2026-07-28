@@ -7,16 +7,23 @@
 
 ## El problema
 
-Las provincias rurales y gobiernos locales con bajo presupuesto tienen un patrimonio turístico valioso (lugares, festivales, fotos, historias) pero **ninguna presencia web profesional**: contratar una agencia es caro y mantener un CMS exige un perfil técnico que no tienen. Resultado: pierden visibilidad y turismo frente a destinos mejor posicionados digitalmente.
+En los pueblos y provincias rurales hay patrimonio turístico valioso —lugares, festividades, fotos, historias, oficios— y **casi ninguna presencia web propia**. Contratar una agencia es caro, y mantener un CMS exige un perfil técnico que no está disponible. El resultado es el mismo para todos: quedan invisibles frente a destinos mejor posicionados, y quien busca en internet nunca se entera de que existen.
+
+Le pasa a dos tipos de personas, y a las dos les falta lo mismo:
+
+- **Al gobierno local** que quiere mostrar el destino completo: sus lugares, su calendario de fiestas, su historia.
+- **A quien vive ahí y emprende en turismo** —una hospedería, un operador de tours, un guía, un emprendimiento gastronómico o de artesanía— y necesita promocionarse **sin depender de que alguien se lo haga**.
+
+Puriq apunta a los dos. Uno cuenta un pueblo entero; el otro, su propio emprendimiento. La herramienta es la misma porque el problema es el mismo: tener contenido y no tener cómo publicarlo bien.
 
 ## La solución
 
-Puriq se instala y ejecuta localmente. A partir de los recursos que el encargado de turismo ya tiene —y opcionalmente enriqueciendo con datos abiertos (OpenStreetMap, Wikidata, Wikimedia Commons)— el agente:
+Puriq se instala y ejecuta localmente. A partir de los recursos que el usuario ya tiene —y opcionalmente enriqueciendo con datos abiertos (OpenStreetMap, Wikidata, Wikimedia Commons)— el agente:
 
 1. **Recopila y estructura** los recursos (fotos, lugares, eventos, logo, Q&A) en un contrato validado.
 2. **Redacta contenido** con un LLM configurable: descripciones, SEO y traducciones.
 3. **Ensambla módulos** pre-construidos y probados (mapa, lugares, eventos, blog, chatweb).
-4. **Aplica la identidad visual** de la provincia (colores, tipografías, tono de voz).
+4. **Aplica la identidad visual** del destino o del emprendimiento (colores, tipografías, tono de voz).
 5. **Previsualiza y publica** el sitio (AWS Amplify / S3+CloudFront / export estático).
 
 El agente **no escribe el código de los módulos**: compone y configura bloques probados. El LLM trabaja sobre contenido y configuración, nunca sobre infraestructura. Eso lo hace sólido, escalable y mantenible.
@@ -26,7 +33,7 @@ El agente **no escribe el código de los módulos**: compone y configura bloques
 Toda la lógica vive en `puriq.core`; hay tres formas de usarla, sin duplicar comportamiento:
 
 - **CLI (`puriq`)** — flujo headless/técnico, ideal para automatización y para admins.
-- **Wizard web local (`puriq init`)** — para el encargado de turismo **no técnico**: nada de JSON ni de terminal. Ofrece dos modos sobre el mismo contrato: **formularios** por pasos, y un **chat conversacional** que rellena todo hablando, con vista previa en vivo del sitio armándose.
+- **Wizard web local (`puriq init`)** — para el usuario **no técnico**, sea el encargado de turismo del municipio o quien lleva adelante su propio emprendimiento: nada de JSON ni de terminal. Ofrece dos modos sobre el mismo contrato: **formularios** por pasos, y un **chat conversacional** que rellena todo hablando, con vista previa en vivo del sitio armándose.
 - **Servidor MCP `tourism-builder`** — expone las tools a **cualquier cliente MCP** (Claude Desktop, Kiro, Cline...), de forma agnóstica al agente. Ahí el registro conversacional corre **con el modelo del cliente**: Puriq no pone LLM, pone las herramientas y el guion. Ver [docs/mcp-clientes.md](docs/mcp-clientes.md).
 
 ### Registro conversacional

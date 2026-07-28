@@ -4,7 +4,9 @@ Guía para agentes de código (Claude Code / Kiro). Lee también `PROYECTO-puriq
 
 ## Qué es Puriq
 
-Agente especializado que convierte los recursos turísticos dispersos de un gobierno local (fotos, lugares, eventos, logo, Q&A) en un **sitio web profesional y mantenible**. Un solo agente reutilizable; cada región es solo datos. Hackathon Código Facilito × AWS, Reto 3 (Agentes especializados).
+Agente especializado que convierte recursos turísticos dispersos (fotos, lugares, eventos, logo, Q&A) en un **sitio web profesional y mantenible**. Un solo agente reutilizable; cada sitio es solo datos. Hackathon Código Facilito × AWS, Reto 3 (Agentes especializados).
+
+**Dos usuarios, un mismo problema:** el gobierno local que quiere mostrar su destino completo, y quien vive ahí y emprende en turismo (hospedería, tours, guía, gastronomía) y quiere promocionarse sin depender de nadie. Ambos tienen contenido y no tienen cómo publicarlo bien. El contrato no distingue entre los dos: para un destino los `places` son atractivos; para un emprendimiento, lo que ofrece (habitaciones, tours, platos). Las `categories` son libres, así que el mismo esquema cubre los dos casos sin ramificar el código.
 
 ## Invariantes de arquitectura (NO romper)
 

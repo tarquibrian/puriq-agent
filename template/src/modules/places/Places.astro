@@ -19,7 +19,7 @@
 // reserva el area de medios: con foto la muestra; sin foto pinta un placeholder
 // derivado de los tokens de marca (degradado sutil + icono de la categoria), de
 // forma que la fila cierra pareja y un sitio sin fotos igual se ve terminado.
-import { places, categories } from "../../lib/data";
+import { places, categories, siteConfig } from "../../lib/data";
 import Section from "../../design-system/ui/Section.astro";
 import Grid from "../../design-system/ui/Grid.astro";
 import Icon from "../../design-system/ui/Icon.astro";
@@ -37,9 +37,31 @@ const cols = places.length % 3 === 0 ? 3 : places.length % 4 === 0 ? 4 : 3;
 
 // Indice de dos digitos ([01], [02], ...) para la numeracion editorial.
 const idx = (i: number) => String(i + 1).padStart(2, "0");
+
+// Encabezado de la seccion. "Que visitar / Lugares para descubrir" describe un
+// DESTINO, y Puriq tambien arma sitios de emprendimientos turisticos: en el de
+// una hospederia estas fichas son habitaciones y ese titulo no dice nada.
+// Cuando el modulo trae `label` (lo fija el usuario al elegir los modulos) se
+// usa como titulo, de modo que el mismo modulo sirve a los dos casos sin
+// ramificar; sin `label` se conserva el texto de destino de siempre.
+// Solo se toma el `label` cuando el usuario lo cambio: el valor por defecto
+// ("Que visitar") es una etiqueta de NAVEGACION, corta por diseño, y no expresa
+// ninguna intencion. Usarla como titulo pisaba el titular editorial y dejaba a
+// un destino con "Que visitar" repetido donde antes decia "Lugares para
+// descubrir". Con un label propio ("Habitaciones", "Nuestros tours") si hay
+// intencion, y ahi manda: pasa a ser el titulo y se omite la etiqueta superior,
+// porque repetir la misma palabra dos veces se lee como un error.
+const DEFAULT_LABEL = "Qué visitar";
+const rawLabel: string | undefined = siteConfig?.modules?.places?.label;
+const moduleLabel =
+  rawLabel && rawLabel.trim() && rawLabel.trim() !== DEFAULT_LABEL
+    ? rawLabel.trim()
+    : undefined;
+const eyebrow = moduleLabel ? undefined : DEFAULT_LABEL;
+const title = moduleLabel ?? "Lugares para descubrir";
 ---
 {/* El `id` del anchor lo porta esta Section (el Home ya no la envuelve). */}
-<Section id="places" eyebrow="Qué visitar" title="Lugares para descubrir">
+<Section id="places" eyebrow={eyebrow} title={title}>
   {/* Cuadricula responsive de tarjetas (Req 5.3, 9.3); columnas segun ancho. */}
   {/* La ficha entera enlaza a su pagina de detalle: antes la tarjeta no llevaba
       a ningun lado y el contenido del lugar se agotaba en la portada. */}

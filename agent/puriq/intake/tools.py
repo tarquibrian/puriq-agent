@@ -26,6 +26,7 @@ Estado de la implementación (tarea 2.1 — solo andamiaje):
 from __future__ import annotations
 
 import base64
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -54,6 +55,9 @@ from puriq.wizard.validation import (
 
 # --- Constantes de documentos del contrato -----------------------------------
 # Mismas claves que `contracts._DOC_FILES` (documento -> archivo del proyecto).
+#: Patron de id que el esquema exige en `categories[].id` (kebab-case).
+_SLUG_RE = re.compile(r"[a-z0-9-]+")
+
 _TOURISM = "tourism-data"
 _CONFIG = "site-config"
 _THEME = "theme-tokens"
@@ -195,6 +199,7 @@ def add_place(
     lng: float | None = None,
     zoom: int | None = None,
     address: str | None = None,
+    category_label: str | None = None,
 ) -> dict:
     """Agrega un Place a `tourism-data.places` (Req 5).
 
@@ -218,8 +223,51 @@ def add_place(
     place = build_place(
         name, category, lat=lat, lng=lng, zoom=zoom, address=address
     )
-    merged = _save(project, _TOURISM, {"places": [place]})
+    patch: dict = {"places": [place]}
+    # La categoria se declara sola la primera vez que se usa. El sitio muestra
+    # `categories[].label` y, si la categoria no esta declarada, cae al id crudo:
+    # una ficha cargada por conversacion mostraba el chip "habitaciones" en
+    # minuscula en vez de "Habitaciones". Los ejemplos versionados traen sus
+    # categorias escritas a mano, asi que esto solo se notaba al cargar por chat
+    # —y sobre todo con categorias propias de un emprendimiento
+    # (`habitaciones`, `tours`, `platos`), que ningun ejemplo predefine.
+    nueva = _category_entry(project, place["category"], category_label)
+    if nueva is not None:
+        patch["categories"] = [nueva]
+    merged = _save(project, _TOURISM, patch)
     return _state_response(merged)
+
+
+def _category_entry(project: Path, category_id: str, label: str | None) -> dict | None:
+    """Devuelve la Category a declarar para `category_id`, o None si ya existe.
+
+    El `label` lo puede aportar quien llama (el LLM sabe como lo dijo el usuario);
+    si no viene, se deriva del id volviendolo legible: ``casa-museo`` -> ``Casa
+    museo``. `merge_document` fusiona por id, asi que devolver una entrada ya
+    existente igual seria inocuo, pero se evita para no pisar un `label`/`icon`
+    que el usuario haya ajustado a mano.
+
+    Solo se declara si el id cumple el patron slug que el esquema exige en
+    `categories[].id`. El campo `category` de un Place NO tiene esa restriccion,
+    asi que declarar a ciegas volveria invalido un contrato que antes se guardaba
+    sin problema: `add_place` pasaria a rechazar categorias que hoy acepta. Si no
+    es un slug se omite la declaracion y el sitio muestra el id crudo, que es
+    exactamente lo que hacia antes de este cambio.
+    """
+    if not _SLUG_RE.fullmatch(category_id or ""):
+        return None
+    actual = contracts._load_contract(project, _TOURISM)
+    existentes = actual.get("categories")
+    ids = {
+        c.get("id")
+        for c in (existentes if isinstance(existentes, list) else [])
+        if isinstance(c, dict)
+    }
+    if category_id in ids:
+        return None
+    if not label or not str(label).strip():
+        label = category_id.replace("-", " ").strip().capitalize()
+    return {"id": category_id, "label": str(label).strip()}
 
 
 def add_event(
@@ -707,15 +755,38 @@ falta y hacelo.
 
 ## Fases
 
+**Fase 0 — De qué es el sitio.** Antes de nada, entendé QUIEN te está hablando,
+porque cambia todo lo que preguntes después. Puriq sirve a dos casos:
+
+  - Un **destino**: un municipio, pueblo o región que quiere mostrarse entero.
+    El `name` es el del lugar ("Turismo Potosí") y los lugares son atractivos
+    públicos.
+  - Un **emprendimiento turístico**: una hospedería, un operador de tours, un
+    guía, un restaurante, un taller de artesanía. El `name` es el del negocio
+    ("Hostal Kori Wasi") y los "lugares" son lo que ofrece o los sitios que
+    incluye su propuesta.
+
+No lo preguntes de forma mecánica: se deduce de cómo se presenta el usuario. Si
+dice "quiero promocionar mi hostal" ya sabés que es el segundo caso; si dice
+"soy de la alcaldía", el primero. Ante la duda, preguntá en una línea. Adaptá el
+vocabulario al caso: a un emprendedor no le hables de "atractivos del destino"
+sino de "lo que ofrecés".
+
 **Fase 1 — Sitio.** Pedí el nombre del sitio, la región, el centro del mapa
 (latitud y longitud) y el idioma por defecto. Opcionalmente el dominio web y los
 datos de contacto. Registralo con `set_site`.
 
-La `region` es la **unidad administrativa del gobierno local** (departamento,
-provincia o estado), **no el país**: si el usuario dice "Sucre, Bolivia",
-la región es "Chuquisaca" (podés escribirla como "Chuquisaca, Bolivia"), nunca
-sólo "Bolivia". Si no sabés a qué departamento pertenece la localidad,
-preguntáselo en vez de poner el país.
+El `name` es el del destino o el del emprendimiento, según el caso de la fase 0.
+
+La `region` ubica geográficamente al sitio y es la **unidad administrativa**
+(departamento, provincia o estado), **no el país**: si el usuario dice "Sucre,
+Bolivia", la región es "Chuquisaca" (podés escribirla como "Chuquisaca,
+Bolivia"), nunca sólo "Bolivia". Vale igual para un emprendimiento: la región es
+donde está, no su dirección. Si no sabés a qué departamento pertenece la
+localidad, preguntáselo en vez de poner el país.
+
+Para un emprendimiento, el `center` del mapa es su propia ubicación; para un
+destino, el centro de la zona que abarca.
 
 **Fase 2 — Módulos.** Traducí lo que el usuario quiere mostrar a una selección
 ordenada de módulos (mapa, lugares, eventos, blog, asistente). Ej.: "quiero
@@ -724,7 +795,14 @@ lugares y eventos" → activá `places` y `events`. Registralo con
 
 **Fase 3 — Lugares.** Cargá los lugares uno por uno con `add_place`. Lo único
 imprescindible es el **nombre** y la **categoría**: con eso alcanza para
-registrarlo. La ubicación (coordenadas o dirección) es **opcional y deseable**,
+registrarlo.
+
+Qué es un "lugar" depende del caso de la fase 0. Para un destino son sus
+atractivos (un cerro, un museo, una laguna). Para un emprendimiento son **lo que
+ofrece**: las habitaciones o cabañas de una hospedería, cada tour de un
+operador, los platos o el salón de un restaurante, las piezas de un taller. Las
+categorías las elegís vos según el caso —`habitaciones`, `tours`, `platos`,
+`atractivos`— y las nombrás en el lenguaje del usuario. La ubicación (coordenadas o dirección) es **opcional y deseable**,
 no un requisito: pedila una vez, pero si el usuario no la tiene a mano o no
 contesta, **registrá el lugar igual** como borrador —sin inventar coordenadas— y
 seguí adelante; se completa después con `edit_item`. Nunca bloquees la carga de
@@ -873,6 +951,7 @@ def _h_add_place(arguments: dict) -> dict:
         lng=arguments.get("lng"),
         zoom=arguments.get("zoom"),
         address=arguments.get("address"),
+        category_label=arguments.get("category_label"),
     )
 
 
@@ -1128,7 +1207,21 @@ INTAKE_TOOL_SPECS: list[dict[str, Any]] = [
                 },
                 "category": {
                     "type": "string",
-                    "description": "Categoría del lugar.",
+                    "description": (
+                        "Categoría del lugar, en kebab-case. Para un destino suele "
+                        "ser el tipo de atractivo ('naturaleza', 'historia'); para "
+                        "un emprendimiento, el tipo de oferta ('habitaciones', "
+                        "'tours', 'platos'). Si es nueva se declara sola."
+                    ),
+                },
+                "category_label": {
+                    "type": "string",
+                    "description": (
+                        "Nombre legible de la categoría tal como lo diría el usuario "
+                        "('Habitaciones', 'Tours guiados'), usado en la navegación y "
+                        "en las fichas. Solo hace falta la primera vez que aparece la "
+                        "categoría; si se omite se deriva del propio id."
+                    ),
                 },
                 "lat": {
                     "type": "number",
