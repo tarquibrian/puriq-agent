@@ -210,7 +210,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
   background: var(--bg);
   border-left: 1px solid var(--border);
 }
-@media (max-width: 1180px) { .preview { display: none; } }
 
 /* Divisor arrastrable: franja fina en el borde izquierdo del preview. Su area
  * clicable es mas ancha que la linea visible para que sea facil de agarrar. */
@@ -397,6 +396,34 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
 /* El marco del preview cede parte de su altura al chat (antes tomaba todo el
  * alto con `flex: 1`). Basis explicito para un reparto estable ~58/42. */
 .preview-frame { flex: 1 1 58%; }
+
+/* Pantallas medianas: el ESQUELETO se descuelga, pero el CHAT no.
+ *
+ * Antes se ocultaba `.preview` entera y, como el chat es hijo suyo, se iba con
+ * ella: por debajo de 1180px la via conversacional —lo principal del wizard—
+ * desaparecia sin aviso ni forma de recuperarla. Ahora la columna pasa a ser una
+ * fila completa bajo el area de trabajo con el chat visible, y lo que se oculta
+ * es el previsualizador, que sin ancho no se entiende (con su divisor, que ya
+ * no aplica).
+ *
+ * Va DESPUES de las reglas base de `.preview-*` a proposito: una media query no
+ * agrega especificidad, asi que declarada antes la pisaba `.preview-head
+ * { display: flex }` por simple orden de aparicion. */
+@media (max-width: 1180px) {
+  .preview {
+    grid-column: 1 / -1;
+    position: static;
+    height: auto;
+    padding: 1.5rem 1.75rem 2rem;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .preview-resize,
+  .preview-head,
+  .preview-frame { display: none; }
+  /* Alto acotado: el chat no debe empujar el resto fuera de la vista. */
+  .chat-panel { max-height: 32rem; }
+}
 
 .chat-panel {
   flex: 1 1 42%;
