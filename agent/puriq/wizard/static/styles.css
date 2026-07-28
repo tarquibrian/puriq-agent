@@ -1159,3 +1159,63 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); }
   color: var(--bp-primary, #1f2933);
   border: 1px solid color-mix(in srgb, var(--bp-primary, #1f2933) 45%, transparent);
 }
+
+/* ==========================================================================
+ * Paso 0: pantalla de inicio
+ * ========================================================================== */
+.start-loading { color: var(--muted); font-size: 0.9rem; }
+
+/* Ruta del proyecto: el dato que antes no aparecia en ningun lado. Se destaca
+ * en una tarjeta propia porque es lo que el usuario tiene que reconocer antes
+ * de cargar nada. */
+.start-project {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 1.25rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 3%, transparent);
+}
+.start-project-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.start-project-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+  color: var(--text);
+}
+.start-project-hint { font-size: 0.78rem; line-height: 1.5; color: var(--faint); }
+
+.start-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.25rem; }
+.start-chip {
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Las dos vias de carga, lado a lado y con el mismo peso visual: ninguna es la
+ * "correcta", dependen de si el usuario tiene un LLM a mano. */
+.start-paths { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
+@media (max-width: 720px) { .start-paths { grid-template-columns: 1fr; } }
+.start-path {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.start-path h3 { margin: 0; font-size: 0.98rem; }
+.start-path p { margin: 0; font-size: 0.85rem; line-height: 1.55; color: var(--muted); flex: 1; }
+.start-path .btn { align-self: flex-start; margin-top: 0.25rem; }
+/* Via no disponible (sin LLM): atenuada pero legible, con su explicacion. */
+.start-path.is-off { background: color-mix(in srgb, var(--muted) 4%, transparent); }

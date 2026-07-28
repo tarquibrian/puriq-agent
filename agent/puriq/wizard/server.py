@@ -29,7 +29,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 from puriq import config
-from puriq.config import redact_value
+from puriq.config import get_env, redact_value
 from puriq.core import Puriq
 from puriq.errors import wizard_error_response
 from puriq.intake.agent import ChatAgent, ChatRequest
@@ -242,6 +242,61 @@ def list_fonts() -> dict:
         if f.is_file() and f.suffix == ".woff2"
     )
     return {"files": archivos}
+
+
+@app.get("/api/project")
+def get_project() -> dict:
+    """Describe el proyecto sobre el que opera el wizard, para la pantalla de inicio.
+
+    El wizard trabaja siempre sobre UN proyecto, resuelto por `project_root()`
+    desde `PURIQ_PROJECT` o el directorio actual. Hasta ahora eso no se mostraba
+    en ninguna parte: quien abria `puriq init` sin conocer esa regla podia estar
+    cargando datos en una carpeta que no eligio y no tenia como notarlo. Este
+    endpoint expone la ruta y si el proyecto ya tiene contrato en disco, para que
+    la primera pantalla lo diga antes de que el usuario escriba nada.
+
+    Devuelve:
+      - `path`/`name`: ruta absoluta y nombre de la carpeta.
+      - `isNew`: True si no hay NINGUN documento del contrato escrito todavia.
+      - `summary`: conteos de lo ya cargado (vacio si `isNew`).
+      - `chat`: si el chat conversacional tiene un motor de LLM configurado, y
+        cual. Son banderas y el nombre del modo; nunca el valor de una clave.
+    """
+    project = project_root()
+    docs_en_disco = [
+        doc for doc in _STATE_DOCS if contracts._doc_path(project, doc).exists()
+    ]
+    tourism = contracts._load_contract(project, _TOURISM_DOC)
+    config_doc = contracts._load_contract(project, _SITE_CONFIG_DOC)
+    site = tourism.get("site") if isinstance(tourism.get("site"), dict) else {}
+    modules = config_doc.get("modules") if isinstance(config_doc.get("modules"), dict) else {}
+
+    # Motor del chat: se informa SOLO si esta configurado y con que modo, para
+    # que la pantalla de inicio ofrezca la via conversacional cuando sirve y la
+    # explique cuando no. Nunca se expone el valor de una credencial.
+    modo = (get_env("PURIQ_LLM_MODE") or "bedrock").strip().lower()
+    if modo == "openai":
+        listo = bool(get_env("PURIQ_OPENAI_API_KEY", secret=True))
+    elif modo == "local":
+        listo = False  # Ollama es text-only: no admite tool-use, no sirve para el chat.
+    else:
+        listo = bool(get_env("AWS_REGION") or get_env("AWS_DEFAULT_REGION"))
+
+    return redact_value(
+        {
+            "path": str(project),
+            "name": project.name,
+            "isNew": not docs_en_disco,
+            "summary": {
+                "siteName": site.get("name") or "",
+                "region": site.get("region") or "",
+                "places": len(tourism.get("places") or []),
+                "events": len(tourism.get("events") or []),
+                "modules": len(modules),
+            },
+            "chat": {"ready": listo, "mode": modo},
+        }
+    )
 
 
 @app.get("/api/state")

@@ -281,6 +281,7 @@
   // para reconocer cada paso de un vistazo. `stroke: currentColor` hace que
   // hereden el color segun el estado (tenue/activo/hecho) desde el CSS.
   var STEP_ICONS = {
+    start: '<path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/><path d="M10 20v-5h4v5"/>',
     modules: '<path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z"/>',
     site: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17"/>',
     places: '<path d="M12 21c4-4.5 6.5-7.6 6.5-11a6.5 6.5 0 1 0-13 0c0 3.4 2.5 6.5 6.5 11Z"/><circle cx="12" cy="10" r="2.3"/>',
@@ -307,6 +308,7 @@
   // de la referencia: titulo grande + descripcion a la izquierda). El `render`
   // del panel sigue aportando el subtitulo del contenido.
   var STEPS = [
+    { id: "start", label: "Inicio", title: "Inicio", desc: "Sobre que proyecto vas a trabajar y como queres cargarlo.", render: renderStart },
     { id: "modules", label: "Modulos", title: "Modulos", desc: "Elegi que secciones tendra tu sitio y en que orden.", render: renderModules },
     { id: "site", label: "Sitio", title: "Datos del sitio", desc: "Nombre, region, direccion web y contacto del destino.", render: renderSite },
     { id: "places", label: "Lugares", title: "Lugares", desc: "Carga los lugares turisticos que queres mostrar.", render: renderPlaces },
@@ -1453,6 +1455,111 @@
   }
 
   // --- Paso: Generar (WebSocket /ws/build, Req 8.2-8.4) --------------------
+  // ========================================================================
+  // Paso 0: Inicio
+  // ========================================================================
+  // Responde lo primero que alguien necesita saber al abrir el wizard: SOBRE QUE
+  // CARPETA esta trabajando. El wizard opera siempre sobre un unico proyecto
+  // (`PURIQ_PROJECT` o el directorio actual) y antes eso no aparecia en ningun
+  // lado: se entraba directo a "Modulos" y se podian cargar datos en una carpeta
+  // que el usuario no eligio, sin forma de darse cuenta. Ademas ofrece las dos
+  // vias de carga —formularios o conversacion— en vez de asumir la primera.
+  function renderStart(container) {
+    container.appendChild(el("div", { class: "start-loading", text: "Leyendo el proyecto..." }));
+
+    apiRequest("GET", "/api/project")
+      .then(function (info) {
+        clear(container);
+        paintStart(container, info);
+      })
+      .catch(function (err) {
+        clear(container);
+        container.appendChild(el("h2", { text: "No se pudo leer el proyecto" }));
+        container.appendChild(el("p", {
+          class: "hint",
+          text: err && err.__wizardError ? err.normalized.cause : "Error de red."
+        }));
+      });
+  }
+
+  function paintStart(container, info) {
+    var esNuevo = info.isNew;
+    var s = info.summary || {};
+
+    container.appendChild(el("h2", {
+      text: esNuevo ? "Empecemos tu sitio" : "Continuemos con " + (s.siteName || info.name)
+    }));
+    container.appendChild(el("p", {
+      class: "hint",
+      text: esNuevo
+        ? "Esta carpeta todavia no tiene contenido. Todo lo que cargues se guarda aca."
+        : "Este proyecto ya tiene datos cargados. Podes seguir donde lo dejaste."
+    }));
+
+    // Ruta del proyecto: el dato que faltaba. Se muestra completo y monoespaciado
+    // porque es lo que el usuario necesita reconocer de un vistazo.
+    container.appendChild(el("div", { class: "start-project" }, [
+      el("span", { class: "start-project-label", text: "Carpeta del proyecto" }),
+      el("code", { class: "start-project-path", text: info.path }),
+      el("span", {
+        class: "start-project-hint",
+        text: "Para trabajar sobre otra carpeta, cerra el asistente y volve a abrirlo con "
+            + "PURIQ_PROJECT=/ruta/a/tu/proyecto puriq init"
+      })
+    ]));
+
+    // Resumen de lo ya cargado: confirma de un vistazo que es el proyecto correcto.
+    if (!esNuevo) {
+      var chips = [];
+      if (s.region) chips.push(chipStart(s.region));
+      chips.push(chipStart(s.places + (s.places === 1 ? " lugar" : " lugares")));
+      chips.push(chipStart(s.events + (s.events === 1 ? " evento" : " eventos")));
+      chips.push(chipStart(s.modules + (s.modules === 1 ? " modulo" : " modulos")));
+      container.appendChild(el("div", { class: "start-chips" }, chips));
+    }
+
+    // Las dos vias de carga, como opciones explicitas y equivalentes.
+    var chatListo = info.chat && info.chat.ready;
+    container.appendChild(el("div", { class: "start-paths" }, [
+      startPath({
+        titulo: "Cargar con formularios",
+        texto: "Paso a paso por cada seccion. No necesita ninguna credencial.",
+        accion: "Empezar",
+        onclick: function () { goTo(1); }
+      }),
+      startPath({
+        titulo: "Conversar con Puriq",
+        texto: chatListo
+          ? "Contale que queres y el agente completa todo por vos, incluso desde fotos y PDFs."
+          : "Necesita un motor de LLM configurado en agent/.env. Tambien podes conectar Puriq a "
+            + "Claude Desktop o Kiro por MCP y usar el modelo de ellos, sin configurar nada aca.",
+        accion: chatListo ? "Ir al chat" : "Sin configurar",
+        deshabilitado: !chatListo,
+        onclick: function () {
+          var input = document.getElementById("chat-input");
+          if (input) { input.focus(); input.scrollIntoView({ block: "center", behavior: "smooth" }); }
+        }
+      })
+    ]));
+  }
+
+  function chipStart(texto) {
+    return el("span", { class: "start-chip", text: texto });
+  }
+
+  function startPath(opts) {
+    return el("div", { class: "start-path" + (opts.deshabilitado ? " is-off" : "") }, [
+      el("h3", { text: opts.titulo }),
+      el("p", { text: opts.texto }),
+      el("button", {
+        class: "btn" + (opts.deshabilitado ? " btn-ghost" : ""),
+        text: opts.accion,
+        disabled: opts.deshabilitado || null,
+        onclick: opts.deshabilitado ? null : opts.onclick
+      })
+    ]);
+  }
+
   function renderGenerate(container) {
     var d = state.draft.build;
     container.appendChild(el("h2", { text: "Generar el sitio" }));
