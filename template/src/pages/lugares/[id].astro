@@ -62,7 +62,9 @@ const jsonLd = placeJsonLd(place, Astro.site);
   image={fotos[0]}
   jsonLd={jsonLd}
 >
-  <Section eyebrow={categoria} title={place.name}>
+  {/* `titleAs="h1"`: esta pagina no tiene Hero, asi que su encabezado principal
+      es el nombre del lugar. Sin esto el documento arrancaba en h2. */}
+  <Section eyebrow={categoria} title={place.name} titleAs="h1">
     {/* Migas: sin ellas, una pagina de detalle a la que se llega desde un
         buscador no ofrece camino de vuelta al sitio. */}
     <nav class="migas" aria-label="Migas de pan">

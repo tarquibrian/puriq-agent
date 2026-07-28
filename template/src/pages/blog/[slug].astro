@@ -35,7 +35,9 @@ const fecha = entry.data.date.toLocaleDateString("es", {
 const fechaIso = entry.data.date.toISOString().slice(0, 10);
 ---
 <Base title={entry.data.title} description={entry.data.summary}>
-  <Section eyebrow="Noticias" title={entry.data.title}>
+  {/* `titleAs="h1"`: el titulo del articulo es el encabezado principal de la
+      pagina; sin esto el documento arrancaba su jerarquia en h2. */}
+  <Section eyebrow="Noticias" title={entry.data.title} titleAs="h1">
     <nav class="migas" aria-label="Migas de pan">
       <a href="/">Inicio</a>
       <span aria-hidden="true">/</span>

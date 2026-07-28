@@ -26,6 +26,14 @@ interface Props {
   variant?: "default" | "muted" | "dark";
   /** Alineacion de la cabecera. */
   align?: "left" | "center";
+  /**
+   * Nivel del encabezado del titulo. Por defecto `h2`, que es lo correcto en la
+   * portada, donde el `h1` lo pone el Hero. Las paginas de detalle (un lugar, un
+   * articulo) no tienen Hero: ahi el titulo de la Section ES el titulo de la
+   * pagina y debe ser `h1`, o el documento arranca su jerarquia en `h2` y queda
+   * sin encabezado principal para lectores de pantalla y buscadores.
+   */
+  titleAs?: "h1" | "h2";
   /** Clase(s) adicionales opcionales. */
   class?: string;
 }
@@ -37,8 +45,10 @@ const {
   size = "lg",
   variant = "default",
   align = "left",
+  titleAs = "h2",
   class: className,
 } = Astro.props;
+const TitleTag = titleAs;
 const hasHeader = Boolean(eyebrow || title || intro);
 ---
 <section
@@ -51,7 +61,7 @@ const hasHeader = Boolean(eyebrow || title || intro);
     {hasHeader && (
       <header class="ds-section-header">
         {eyebrow && <p class="eyebrow">{eyebrow}</p>}
-        {title && <h2 class="ds-section-title">{title}</h2>}
+        {title && <TitleTag class="ds-section-title">{title}</TitleTag>}
         {intro && <p class="ds-section-intro">{intro}</p>}
       </header>
     )}

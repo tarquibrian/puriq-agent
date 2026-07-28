@@ -32,7 +32,7 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - Definir los tipos `ThemeTokens` (parcial) y `ResolvedTokens` (completo) y la tabla `DESIGN_DEFAULTS` con el conjunto completo de tokens del sistema (colors, typography, spacing, typeScale, shadows, radii, breakpoints, motion, container, radius)
     - Implementar `resolveTokens(theme): ResolvedTokens` puro: fusiona `DESIGN_DEFAULTS` con `theme` sin pisar lo definido por el usuario; token ausente ⇒ default correspondiente (incluido motion)
     - _Requirements: 1.4, 6.4, 16.2, 16.5_
-  - [~] 2.2 Implementar `tokensToCssVars(tokens)` en `template/src/design-system/defaults.ts`
+  - [ ] 2.2 Implementar `tokensToCssVars(tokens)` en `template/src/design-system/defaults.ts`
     - Aplanar los tokens resueltos a un mapa `Record<string,string>` de variables CSS (`--space-*`, `--fs-*`/`--lh-*`, `--shadow-*`, `--radius-*`, `--bp-*`, `--motion-*`, `--container-*`, `--color-*`, `--font-*`), incluidos `colors.secondary`/`colors.accent` cuando existen
     - _Requirements: 2.1, 2.4_
   - [ ]* 2.3 Prueba de propiedad: los tokens ausentes se completan con el default (fast-check)
@@ -46,12 +46,12 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - **Validates: Requirements 2.1, 2.4**
 
 - [ ] 3. Base_Layout, estilos globales y Layout_Variant
-  - [~] 3.1 Reescribir `template/src/layouts/Base.astro` para derivarse solo de tokens
+  - [ ] 3.1 Reescribir `template/src/layouts/Base.astro` para derivarse solo de tokens
     - Consumir `tokensToCssVars(resolveTokens(themeTokens))` en `define:vars`; eliminar todo valor de marca fijado en el código (anchos, paddings, `#fff`) derivándolo de variables con defaults
     - Aplicar la Type_Scale a `h1..h3` y cuerpo (tamaños ordenados de mayor a menor), limitar el ancho al `container` de tokens y centrarlo, estilos globales mobile-first, HTML semántico (`header`/`nav`/`main`/`footer`), foco visible y navegación accesible en pantalla estrecha
     - Escribir `data-variant={siteConfig.layout ?? "clasico"}` en el elemento raíz
     - _Requirements: 2.1, 2.2, 3.1, 3.2, 3.4, 5.1, 5.2, 5.4, 7.5, 8.1, 8.2_
-  - [~] 3.2 Implementar las reglas de Layout_Variant `clasico`/`moderno` por `data-variant` (DD-4)
+  - [ ] 3.2 Implementar las reglas de Layout_Variant `clasico`/`moderno` por `data-variant` (DD-4)
     - Reglas condicionadas por `[data-variant="clasico"]`/`[data-variant="moderno"]` que difieren en composición del header, tratamiento del Hero_Section y estilo de tarjetas, leyendo **las mismas** variables `--color-*`/`--fs-*`/`--space-*` (sin fijar colores/tipografías en ninguna variante)
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
   - [ ]* 3.3 Prueba de propiedad: la Layout_Variant resuelta respeta el valor o el default (fast-check)
@@ -62,17 +62,17 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - _Requirements: 3.1, 3.4, 5.1, 5.2, 7.1, 7.2, 7.3, 8.1, 8.2_
 
 - [ ] 4. Biblioteca de UI_Component reutilizables
-  - [~] 4.1 Crear `template/src/design-system/ui/Container.astro` y `Section.astro`
+  - [ ] 4.1 Crear `template/src/design-system/ui/Container.astro` y `Section.astro`
     - `Container`: aplica `--container-*` y padding `--space-*` (Req 4.1); `Section`: ritmo vertical con `--space-*` y separación entre secciones consecutivas (Req 3.2, 3.3)
     - Apariencia derivada exclusivamente de variables CSS; contenido por slots/props conservando estilos del sistema
     - _Requirements: 3.2, 3.3, 4.1, 4.4, 4.5_
-  - [~] 4.2 Crear `template/src/design-system/ui/Button.astro`
+  - [ ] 4.2 Crear `template/src/design-system/ui/Button.astro`
     - Props `href?`, `variant('primary'|'ghost')`; color/radio de tokens, estados de foco y hover con transición `--motion-*`, anulada bajo `prefers-reduced-motion: reduce`; sin marca hardcodeada
     - _Requirements: 4.2, 4.5, 6.1, 6.2, 6.3, 8.2_
-  - [~] 4.3 Crear `template/src/design-system/ui/Card.astro`
+  - [ ] 4.3 Crear `template/src/design-system/ui/Card.astro`
     - Radio, sombra y padding de tokens; contenido por slots/props conservando estilos; apariencia solo por variables CSS
     - _Requirements: 4.3, 4.4, 4.5_
-  - [~] 4.4 Crear `template/src/design-system/ui/Grid.astro` responsive
+  - [ ] 4.4 Crear `template/src/design-system/ui/Grid.astro` responsive
     - Props `min?`, `gap?`; columnas que se ajustan según los Breakpoint de tokens (mobile-first), sin desbordamiento horizontal y con imágenes escaladas dentro de su contenedor
     - _Requirements: 5.3, 5.4, 5.5_
   - [ ]* 4.5 Pruebas de snapshot de los UI_Component
@@ -80,10 +80,10 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 6.1, 6.2, 6.3_
 
 - [ ] 5. Landing_Module: resolución y composición de la portada (DD-3)
-  - [~] 5.1 Implementar `template/src/design-system/landing/resolve.ts` (`resolveLanding`)
+  - [ ] 5.1 Implementar `template/src/design-system/landing/resolve.ts` (`resolveLanding`)
     - Función pura: aplica la precedencia de hero (landing gana sobre el heredado; hero heredado se sintetiza cuando no hay `landing`), filtra `enabled=true` + tipo del catálogo + contenido esencial no vacío, y ordena por `order` ascendente; omite con gracia tipos no soportados y secciones sin contenido
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 12.5, 13.5, 16.1, 16.4_
-  - [~] 5.2 Crear `template/src/design-system/landing/registry.ts` e integrar en `template/src/pages/index.astro`
+  - [ ] 5.2 Crear `template/src/design-system/landing/registry.ts` e integrar en `template/src/pages/index.astro`
     - `SECTION_REGISTRY: Record<LandingType, AstroComponent>` (`hero/features/cta/gallery/stats`); `index.astro` deja de renderizar el hero inline y compone `resolveLanding(siteConfig)` por encima de los Content_Module activos, omitiendo tipos ausentes del registro sin romper el render
     - _Requirements: 10.1, 10.4, 10.5_
   - [ ]* 5.3 Prueba de propiedad: la resolución devuelve solo secciones activas del catálogo, en orden (fast-check)
@@ -103,19 +103,19 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - **Validates: Requirements 16.1, 16.5**
 
 - [ ] 6. Componentes de Landing_Section (catálogo)
-  - [~] 6.1 Crear `template/src/design-system/landing/Hero.astro`
+  - [ ] 6.1 Crear `template/src/design-system/landing/Hero.astro`
     - Fondo imagen/video cuando está definido; titular/subtítulo sobre el fondo; `Button` CTA cuando hay etiqueta+destino; overlay que preserve contraste ≥ 4.5:1; fondo derivado de los colores de tokens cuando no hay recurso
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 8.5_
-  - [~] 6.2 Crear `template/src/design-system/landing/Features.astro`
+  - [ ] 6.2 Crear `template/src/design-system/landing/Features.astro`
     - `Grid` de `Card` con título + descripción por destacado; reutiliza UI_Component y tokens
     - _Requirements: 12.1_
-  - [~] 6.3 Crear `template/src/design-system/landing/Cta.astro`
+  - [ ] 6.3 Crear `template/src/design-system/landing/Cta.astro`
     - Mensaje + `Button` que enlaza al destino configurado
     - _Requirements: 12.2_
-  - [~] 6.4 Crear `template/src/design-system/landing/Gallery.astro`
+  - [ ] 6.4 Crear `template/src/design-system/landing/Gallery.astro`
     - Galería responsive con texto alternativo por imagen; imágenes escaladas dentro del contenedor
     - _Requirements: 12.3, 8.4, 5.5_
-  - [~] 6.5 Crear `template/src/design-system/landing/Stats.astro`
+  - [ ] 6.5 Crear `template/src/design-system/landing/Stats.astro`
     - Cada métrica renderiza su valor y su etiqueta
     - _Requirements: 12.4_
   - [ ]* 6.6 Prueba de propiedad: cada imagen informativa se renderiza con su texto alternativo (fast-check)
@@ -131,14 +131,14 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - Render de Hero/Features/CTA/Gallery/Stats en sus casos con contenido y con contenido esencial ausente (omisión con gracia)
     - _Requirements: 11.1, 11.2, 11.3, 11.5, 12.1, 12.2, 12.5_
 
-- [~] 7. Checkpoint - Asegurar que las pruebas pasan
+- [ ] 7. Checkpoint - Asegurar que las pruebas pasan
   - Ejecutar el build de la Template y las pruebas de la lógica/render (tokens, UI, landing) y confirmar que todo compila y las propiedades pasan; consultar al usuario si surgen dudas.
 
 - [ ] 8. Lado Python: materialización de tokens en `build_site` (Req 5.6, 13, 16)
   - [x] 8.1 Extender `agent/puriq/tools/build_site.py::_theme_to_css` con defaults + tokens ampliados
     - Replicar la tabla de `DESIGN_DEFAULTS` y la lógica de `resolveTokens` en Python para emitir el conjunto completo de variables (`--space-*`, `--fs-*`/`--lh-*`, `--shadow-*`, `--radius-*`, `--bp-*`, `--motion-*`, `--container-*` además de `--color-*`/`--font-*`), aplicando defaults cuando faltan
     - _Requirements: 5.6, 16.2, 16.5_
-  - [~] 8.2 Asegurar la validación previa a escritura/build en `_write_contract` para `landing` y tokens ampliados
+  - [ ] 8.2 Asegurar la validación previa a escritura/build en `_write_contract` para `landing` y tokens ampliados
     - `_write_contract` valida los 3 documentos contra `schemas/` antes de escribir/construir; un `site.config.json` con `landing` inválida o un `theme.tokens.json` con token inválido detiene el build nombrando el campo
     - _Requirements: 13.3, 13.4, 16.5_
   - [ ]* 8.3 Prueba de propiedad: validación estricta antes de toda escritura del Contrato (Hypothesis)
@@ -153,7 +153,7 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - Recorrer `site_config.landing`; para cada sección **activa** con un campo de copy vacío generar el texto con `get_provider()` a partir de `Tourism_Data` y el `type`; incluir `voice.tone` en el prompt vía `_voice_directives`; preservar el copy no vacío; tolerar fallo por sección con `_safe_complete`; devolver un `site_config` conforme a `site-config.schema.json`
     - Campos de copy por tipo: `hero.{headline,subheadline}`, `features.items[].{title,description}`, `cta.message`, `stats.metrics[].label`, `gallery.images[].alt`
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
-  - [~] 9.2 Cablear `enrich_landing` en el pipeline del core junto al `enrich` de contenido
+  - [ ] 9.2 Cablear `enrich_landing` en el pipeline del core junto al `enrich` de contenido
     - Invocar `enrich_landing` durante `build`/`collect` detrás del mismo *translate gate* conceptual (solo cuando hay copy que redactar), sin reimplementar la selección de proveedor ni la tolerancia a fallos
     - _Requirements: 15.1_
   - [ ]* 9.3 Prueba de propiedad: el copy vacío de secciones activas se completa; el no vacío se conserva (Hypothesis)
@@ -166,17 +166,17 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - **Property 14: Robustez ante fallo del LLM por sección**
     - **Validates: Requirements 15.4, 15.5**
 
-- [~] 10. Checkpoint - Asegurar que las pruebas pasan
+- [ ] 10. Checkpoint - Asegurar que las pruebas pasan
   - Ejecutar la suite Python de la fase de datos (`build_site`, `generate_content`) y confirmar que las propiedades y la integración con mocks pasan; consultar al usuario si surgen dudas.
 
 - [ ] 11. Wizard: construcción y persistencia de la portada (DD-6, Req 14)
-  - [-] 11.1 Implementar `agent/puriq/wizard/landing.py::build_landing` (constructor puro)
+  - [ ] 11.1 Implementar `agent/puriq/wizard/landing.py::build_landing` (constructor puro)
     - Construir `Site_Config.landing` desde la selección ordenada del Wizard: asignar `order = posición+1` estrictamente creciente, restringir `type` al catálogo (rechazar fuera del catálogo con `LandingCatalogError`), conservar `content`
     - _Requirements: 14.2, 10.4_
-  - [~] 11.2 Extender `PUT /api/site-config` en `agent/puriq/wizard/server.py` para aceptar `landing`
+  - [ ] 11.2 Extender `PUT /api/site-config` en `agent/puriq/wizard/server.py` para aceptar `landing`
     - Recibir la lista ordenada de secciones con `enabled` y `content`, construir `landing` con `build_landing`, persistir vía `contracts.merge_document` + `save_contract` (validate-before-write); inválido → `422` redactado que nombra el campo
     - _Requirements: 14.3, 14.4, 14.6_
-  - [~] 11.3 Prellenar `landing` existente desde `GET /api/state` en `agent/puriq/wizard/server.py`
+  - [ ] 11.3 Prellenar `landing` existente desde `GET /api/state` en `agent/puriq/wizard/server.py`
     - Cargar las Landing_Section existentes de `Site_Config.landing` para que el Wizard_UI prellene los campos al iniciar el paso
     - _Requirements: 14.5_
   - [ ]* 11.4 Prueba de propiedad: `build_landing` asigna un orden coherente con la posición (Hypothesis)
@@ -187,24 +187,24 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - _Requirements: 13.2, 14.4, 14.5_
 
 - [ ] 12. Wizard: paso de portada en la UI
-  - [~] 12.1 Añadir el paso "Portada" en `agent/puriq/wizard/static/`
+  - [ ] 12.1 Añadir el paso "Portada" en `agent/puriq/wizard/static/`
     - Listar las Landing_Section del catálogo con controles de activar/desactivar y reordenar; campos de copy editable (titular, subtítulo, destacados, mensaje, etiqueta de CTA); persistir vía `fetch` al endpoint; prellenar desde `GET /api/state`; el Wizard solo compone secciones pre-construidas, sin generar código
     - _Requirements: 14.1, 14.2, 14.3, 14.5, 14.6_
 
 - [ ] 13. Uplift visual de los Content_Module (DD-7, Req 9)
-  - [~] 13.1 Uplift de `template/src/modules/places/Places.astro`
+  - [ ] 13.1 Uplift de `template/src/modules/places/Places.astro`
     - Envolver el contenido en `Container`/`Section`/`Card`/`Grid` y referenciar variables CSS en lugar de estilos inline; grid responsive por breakpoints; conservar intactos los datos de entrada (`places`) y el comportamiento
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 16.3_
-  - [~] 13.2 Uplift de `template/src/modules/events/Events.astro`
+  - [ ] 13.2 Uplift de `template/src/modules/events/Events.astro`
     - Igual patrón; conservar `events` y su orden funcional; grid responsive
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 16.3_
-  - [~] 13.3 Uplift de `template/src/modules/map/Map.astro`
+  - [ ] 13.3 Uplift de `template/src/modules/map/Map.astro`
     - Reemplazar solo la presentación (contenedor/estilos por tokens); **no** tocar la lógica de Leaflet ni sus datos
     - _Requirements: 9.1, 9.2, 9.4, 16.3_
-  - [~] 13.4 Uplift de `template/src/modules/blog/Blog.astro`
+  - [ ] 13.4 Uplift de `template/src/modules/blog/Blog.astro`
     - Usar UI_Component y tokens; conservar la lectura de la Content Collection y el orden por fecha
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 16.3_
-  - [~] 13.5 Uplift de `template/src/modules/chatweb/Chat.astro`
+  - [ ] 13.5 Uplift de `template/src/modules/chatweb/Chat.astro`
     - Uplift visual con tokens/UI_Component; conservar la recuperación client-side y el `faq` de entrada
     - _Requirements: 9.1, 9.2, 9.4, 16.3_
   - [ ]* 13.6 Prueba de propiedad: el uplift preserva los datos y el comportamiento de los Content_Module
@@ -215,22 +215,22 @@ Convención: las subtareas marcadas con `*` (tests) son opcionales y pueden omit
     - _Requirements: 9.2, 9.3_
 
 - [ ] 14. Revisión de código / lint de invariantes transversales
-  - [~] 14.1 Verificar ausencia de marca hardcodeada en la capa de presentación
+  - [ ] 14.1 Verificar ausencia de marca hardcodeada en la capa de presentación
     - Revisión/lint que confirme la ausencia de literales de marca (hex/px) inline en estilos globales, UI_Component, Content_Module y reglas de variante; todo deriva de variables CSS de Design_Tokens
     - _Requirements: 2.2, 2.3, 4.5, 7.4, 9.1_
-  - [~] 14.2 Verificar que el agente y el Wizard solo escriben datos, no generan código de secciones
+  - [ ] 14.2 Verificar que el agente y el Wizard solo escriben datos, no generan código de secciones
     - Revisión que confirme que `enrich_landing`, `build_landing` y los endpoints solo producen datos del Contrato (`site.config.json`) y jamás código de secciones/build
     - _Requirements: 14.6_
 
 - [ ] 15. Cableado end-to-end y retrocompatibilidad
-  - [~] 15.1 Verificar el build completo con Contrato parcial, ausente y completo
+  - [ ] 15.1 Verificar el build completo con Contrato parcial, ausente y completo
     - Confirmar que `index.astro` compone `landing` + Content_Module y que el build produce un sitio válido con `landing`/tokens ampliados ausentes, parciales o completos; un proyecto anterior (solo `hero` heredado) sintetiza el Hero_Section sin error
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 13.5_
   - [ ]* 15.2 Prueba de integración end-to-end del build con Contrato completo
     - Build con `landing` completa + tokens ampliados: portada compuesta, `theme.css` con todas las variables, módulos con uplift; sin errores
     - _Requirements: 16.5_
 
-- [~] 16. Checkpoint final - Asegurar que todas las pruebas pasan
+- [ ] 16. Checkpoint final - Asegurar que todas las pruebas pasan
   - Ejecutar la suite completa de la Template (fast-check + snapshots) y la de Python (Hypothesis + integración con mocks) y confirmar la cobertura de los 16 requisitos y las 18 propiedades; consultar al usuario si surgen dudas.
 
 ## Notas
