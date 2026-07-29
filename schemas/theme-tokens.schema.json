@@ -38,6 +38,11 @@
         "formality": { "enum": ["formal", "informal"] }
       }
     },
+    "colorScheme": {
+      "description": "Esquema de color del sitio. 'auto' (por defecto) sigue la preferencia del sistema del visitante; 'light' fija el modo claro.",
+      "enum": ["auto", "light"],
+      "default": "auto"
+    },
     "logo": { "type": "string" },
     "radius": { "type": "string" },
     "spacing": {
